@@ -193,7 +193,7 @@ export default function Home() {
     <div className="container mx-auto p-3 max-w-full overflow-x-hidden">
       <header className="bg-blue-800 text-white rounded-lg mb-4 p-4 flex items-center">
         <ScaleIcon className="w-6 h-6" />
-        <h1 className="text-xl font-semibold pl-2 text-sm md:text-base">
+        <h1 className="text-sm font-semibold pl-2 text-sm md:text-base">
           Pesagem
         </h1>
         <p className="font-sans text-sm pl-2 text-blue-500">
@@ -202,7 +202,7 @@ export default function Home() {
       </header>
 
       <section className="mb-4">
-        <h2 className="text-lg font-semibold mb-2 text-sm md:text-base">
+        <h2 className="text-sm font-semibold mb-2 text-sm md:text-base">
           Gestão de Ordens
         </h2>
         <input
@@ -231,7 +231,7 @@ export default function Home() {
           <h3 className="text-lg font-semibold mb-2 text-sm md:text-base">
             Ordens Adicionadas
           </h3>
-          <div className="rounded-lg shadow-lg p-2 max-w-full overflow-x-auto">
+          <div className="p-1 max-w-full overflow-x-auto">
             <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
               <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
                 <tr>
@@ -285,7 +285,7 @@ export default function Home() {
               </div>
             </span>
           </h3>
-          <div className="rounded-lg shadow-lg p-2 max-w-full overflow-x-auto">
+          <div className="p-2 max-w-full overflow-x-auto">
             <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
               <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
                 <tr>
