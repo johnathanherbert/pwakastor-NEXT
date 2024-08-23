@@ -190,48 +190,54 @@ export default function Home() {
     ],
   };
   return (
-    <div className="container mx-auto p-6">
-      <header className="bg-blue-800 text-white rounded-lg mb-6 p-6 flex ">
-        <ScaleIcon />
-        <h1 className="text-2xl font-semibold pl-2">Pesagem</h1>
-        <p className="font-sans text-sm pl-4 text-blue-500">
+    <div className="container mx-auto p-3 max-w-full overflow-x-hidden">
+      <header className="bg-blue-800 text-white rounded-lg mb-4 p-4 flex items-center">
+        <ScaleIcon className="w-6 h-6" />
+        <h1 className="text-xl font-semibold pl-2 text-sm md:text-base">
+          Pesagem
+        </h1>
+        <p className="font-sans text-sm pl-2 text-blue-500">
           by Johnathan Herbert
         </p>
       </header>
 
-      <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">Gestão de Ordens</h2>
+      <section className="mb-4">
+        <h2 className="text-lg font-semibold mb-2 text-sm md:text-base">
+          Gestão de Ordens
+        </h2>
         <input
           type="number"
           placeholder="Código Receita"
           value={ativo}
           onChange={(e) => setAtivo(e.target.value)}
-          className="w-full p-3 mb-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-2 mb-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-sm"
         />
         <button
           onClick={handleAddOrdem}
-          className="w-full bg-blue-600 text-white p-3 mb-3 rounded-lg shadow-lg hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-white p-2 mb-2 rounded-lg shadow-lg hover:bg-blue-700 transition text-sm md:text-sm"
         >
           Adicionar Ordem
         </button>
         <button
           onClick={handleUpdateTotal}
-          className="w-full bg-blue-700 text-white p-3 rounded-lg shadow-lg hover:bg-blue-800 transition"
+          className="w-full bg-blue-700 text-white p-2 rounded-lg shadow-lg hover:bg-blue-800 transition text-sm md:text-sm"
         >
           Atualizar Tabela
         </button>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         <div>
-          <h3 className="text-xl font-semibold mb-4">Ordens Adicionadas</h3>
-          <div className="rounded-lg shadow-lg p-2">
-            <table className="min-w-full bg-white shadow-md rounded-xl">
-              <thead className="bg-blue-gray-100 text-gray-700 text-xs uppercase">
+          <h3 className="text-lg font-semibold mb-2 text-sm md:text-base">
+            Ordens Adicionadas
+          </h3>
+          <div className="rounded-lg shadow-lg p-2 max-w-full overflow-x-auto">
+            <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
+              <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
                 <tr>
-                  <th className="py-3 px-4 text-left">Código</th>
-                  <th className="py-3 px-4 text-left">Nome</th>
-                  <th className="py-3 px-4 text-left">Ações</th>
+                  <th className="py-2 px-2 text-left">Código</th>
+                  <th className="py-2 px-2 text-left">Nome</th>
+                  <th className="py-2 px-2 text-left">Ações</th>
                 </tr>
               </thead>
               <tbody className="text-blue-gray-900">
@@ -240,18 +246,18 @@ export default function Home() {
                     key={index}
                     className="border-b border-blue-gray-200 hover:bg-gray-50"
                   >
-                    <td className="py-3 px-4">{ordem.codigo}</td>
-                    <td className="py-3 px-4">{ordem.nome}</td>
-                    <td className="py-3 px-4 flex space-x-2">
+                    <td className="py-2 px-2">{ordem.codigo}</td>
+                    <td className="py-2 px-2">{ordem.nome}</td>
+                    <td className="py-2 px-2 flex space-x-1">
                       <button
                         onClick={() => handleRemoveOrdem(index)}
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+                        className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
                       >
                         Remover
                       </button>
                       <button
                         onClick={() => handleEditOrdem(index)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                        className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition"
                       >
                         Editar
                       </button>
@@ -262,30 +268,30 @@ export default function Home() {
             </table>
           </div>
 
-          <h3 className="text-xl font-semibold mt-6 mb-4">
+          <h3 className="text-sm font-semibold mt-4 mb-2 text-sm md:text-base">
             Somatória de Excipientes{" "}
             <span>
               <div className="flex">
-                <div className="flex m-2">
-                  <div className="bg-blue-600 w-4 h-4"></div>
-                  <p className="font-sans text-sm text-gray-400 pl-2">Manual</p>
+                <div className="flex m-1">
+                  <div className="bg-blue-600 w-3 h-3"></div>
+                  <p className="font-sans text-sm text-gray-400 pl-1">Manual</p>
                 </div>
-                <div className="flex m-2">
-                  <div className="bg-red-500 w-4 h-4"></div>
-                  <p className="font-sans text-sm text-gray-400 pl-2">
+                <div className="flex m-1">
+                  <div className="bg-red-500 w-3 h-3"></div>
+                  <p className="font-sans text-sm text-gray-400 pl-1">
                     Automática
                   </p>
                 </div>
               </div>
             </span>
           </h3>
-          <div className="rounded-lg shadow-lg p-2">
-            <table className="min-w-full bg-white shadow-md rounded-xl">
-              <thead className="bg-blue-gray-100 text-gray-700 text-xs uppercase">
+          <div className="rounded-lg shadow-lg p-2 max-w-full overflow-x-auto">
+            <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
+              <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
                 <tr>
-                  <th className="py-3 px-4 text-left">Excipiente</th>
-                  <th className="py-3 px-4 text-left">Quantidade Total (Kg)</th>
-                  <th className="py-3 px-4 text-left">Ordens</th>
+                  <th className="py-1 px-1 text-left">Excipiente</th>
+                  <th className="py-1 px-1 text-left">Quantidade Total (Kg)</th>
+                  <th className="py-1 px-1 text-left">Ordens</th>
                 </tr>
               </thead>
               <tbody className="text-blue-gray-900">
@@ -293,56 +299,74 @@ export default function Home() {
                   ([excipient, { total, ordens }]) => (
                     <tr
                       key={excipient}
-                      className="border-b border-blue-gray-200 hover:bg-gray-50"
+                      className="border-b border-blue-gray-200 hover:bg-gray-50 transition-colors duration-300"
                     >
-                      <td
-                        className={`py-3 px-4 ${
-                          [
-                            "LACTOSE (200)",
-                            "LACTOSE (50/70)",
-                            "AMIDO DE MILHO PREGELATINIZADO",
-                            "CELULOSE MIC (TIPO200)",
-                            "CELULOSE MIC.(TIPO102)",
-                            "FOSF.CAL.DIB.(COMPDIRETA)",
-                            "AMIDO",
-                            "CELULOSE+LACTOSE",
-                          ].includes(excipient)
-                            ? "text-red-600"
-                            : "text-blue-600"
-                        }`}
-                      >
-                        {excipient}
-                      </td>
-                      <td className="py-3 px-4">{total} kg</td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => handleToggleExpandExcipient(excipient)}
-                          className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition"
-                        >
-                          {expandedExcipient === excipient
-                            ? "Ocultar Ordens"
-                            : "Mostrar Ordens"}
-                        </button>
-                        {expandedExcipient === excipient && (
-                          <ul className="mt-3 space-y-2 text-gray-700">
-                            {ordens.map((ordem, index) => (
-                              <li key={index}>
-                                Código:{" "}
-                                <span className="text-blue-600">
-                                  {ordem.codigo}
-                                </span>
-                                , Quantidade:{" "}
-                                <span className="text-blue-600 font-bold">
-                                  {ordem.quantidade} kg
-                                </span>
-                                , Ativo:{" "}
-                                <span className="text-blue-400 font-bold">
-                                  {ordem.nome}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                      <td colSpan={3} className="py-3 px-4">
+                        <div className="flex flex-col items-start space-y-2">
+                          <div
+                            className="flex justify-between items-center w-full cursor-pointer"
+                            onClick={() =>
+                              handleToggleExpandExcipient(excipient)
+                            }
+                          >
+                            <div
+                              className={`text-sm font-semibold ${
+                                [
+                                  "LACTOSE (200)",
+                                  "LACTOSE (50/70)",
+                                  "AMIDO DE MILHO PREGELATINIZADO",
+                                  "CELULOSE MIC (TIPO200)",
+                                  "CELULOSE MIC.(TIPO102)",
+                                  "FOSF.CAL.DIB.(COMPDIRETA)",
+                                  "AMIDO",
+                                  "CELULOSE+LACTOSE",
+                                ].includes(excipient)
+                                  ? "text-red-600"
+                                  : "text-blue-600"
+                              }`}
+                            >
+                              {excipient}
+                            </div>
+                            <div className="text-sm text-blue-700 font-semibold">
+                              {total} kg
+                            </div>
+                          </div>
+                          {expandedExcipient === excipient && (
+                            <ul className="w-full mt-2 space-y-3 p-2 bg-gray-100 rounded-lg shadow-inner">
+                              {ordens.map((ordem, index) => (
+                                <li
+                                  key={index}
+                                  className="p-2 border border-gray-300 rounded-lg flex items-center space-x-6 bg-white shadow-sm hover:shadow-lg transition-shadow"
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="text-sm text-gray-500">
+                                      Código:
+                                    </span>
+                                    <span className="text-blue-600 font-semibold">
+                                      {ordem.codigo}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm text-gray-500">
+                                      Quantidade:
+                                    </span>
+                                    <span className="text-blue-600">
+                                      {ordem.quantidade} kg
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm text-gray-500">
+                                      Ativo:
+                                    </span>
+                                    <span className="text-blue-400">
+                                      {ordem.nome}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -351,62 +375,7 @@ export default function Home() {
             </table>
           </div>
         </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-lg">
-          <h3 className="text-xl font-semibold mb-4">Gráfico de Excipientes</h3>
-          <div className="w-full h-80">
-            <Bar data={chartData} options={{ responsive: true }} />
-          </div>
-        </div>
       </div>
-
-      {editingOrdem && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
-            <h3 className="text-xl font-semibold mb-4">
-              Editar Ordem: {editingOrdem.codigo}
-            </h3>
-            {Object.entries(editingExcipiente).map(([excipient, value]) => (
-              <div key={excipient} className="mb-4">
-                <label className="block text-sm mb-2 font-medium">
-                  {excipient}
-                </label>
-                <input
-                  type="number"
-                  value={value}
-                  onChange={(e) =>
-                    handleExcipientChange(excipient, e.target.value)
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={() => handleRemoveExcipient(excipient)}
-                  className="text-red-600 mt-2"
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <div className="flex space-x-3">
-              <button
-                onClick={handleSaveEdit}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Salvar
-              </button>
-              <button
-                onClick={handleCloseEdit}
-                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <p className="text-center">
-        Projeto em desenvolvimento - Johnathan Herbert ID 75710{" "}
-      </p>
     </div>
   );
 }
