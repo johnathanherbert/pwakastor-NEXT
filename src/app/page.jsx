@@ -193,16 +193,14 @@ export default function Home() {
     <div className="container mx-auto p-3 max-w-full overflow-x-hidden">
       <header className="bg-blue-800 text-white rounded-lg mb-4 p-4 flex items-center">
         <ScaleIcon className="w-6 h-6" />
-        <h1 className="text-sm font-semibold pl-2 text-sm md:text-base">
-          Pesagem
-        </h1>
+        <h1 className="text-sm font-semibold pl-2 md:text-base">Pesagem</h1>
         <p className="font-sans text-sm pl-2 text-blue-500">
           by Johnathan Herbert
         </p>
       </header>
 
       <section className="mb-4">
-        <h2 className="text-sm font-semibold mb-2 text-sm md:text-base">
+        <h2 className="text-sm font-semibold mb-2 md:text-base">
           Gestão de Ordens
         </h2>
         <input
@@ -228,7 +226,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 gap-4">
         <div>
-          <h3 className="text-lg font-semibold mb-2 text-sm md:text-base">
+          <h3 className="text-lg font-semibold mb-2 md:text-base">
             Ordens Adicionadas
           </h3>
           <div className="p-1 max-w-full overflow-x-auto">
@@ -268,7 +266,7 @@ export default function Home() {
             </table>
           </div>
 
-          <h3 className="text-sm font-semibold mt-4 mb-2 text-sm md:text-base">
+          <h3 className="text-sm font-semibold mt-4 mb-2 md:text-base">
             Somatória de Excipientes{" "}
             <span>
               <div className="flex">
