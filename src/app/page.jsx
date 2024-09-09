@@ -3,26 +3,44 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import ScaleIcon from "@mui/icons-material/Scale";
-import { Bar } from "react-chartjs-2";
-
+import { Collapse, Box, Chip, Divider } from "@mui/material";
+import MedicationIcon from "@mui/icons-material/Medication";
+import React from "react";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+  Container,
+  Grid,
+  Paper,
+  Typography,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  AppBar,
+  Toolbar,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import MenuIcon from "@mui/icons-material/Menu";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import Sidebar from "../components/Sidebar";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#1976d2",
+    },
+    secondary: {
+      main: "#dc004e",
+    },
+  },
+});
 
 export default function Home() {
   const [ordens, setOrdens] = useState([]);
@@ -31,6 +49,32 @@ export default function Home() {
   const [editingOrdem, setEditingOrdem] = useState(null);
   const [expandedExcipient, setExpandedExcipient] = useState(null);
   const [editingExcipiente, setEditingExcipiente] = useState({});
+  const [selectedOrdem, setSelectedOrdem] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    // Recuperar dados do Local Storage ao carregar a página
+    const savedState = localStorage.getItem("appState");
+    if (savedState) {
+      const { ordens, excipientes, expandedExcipient, selectedOrdem } =
+        JSON.parse(savedState);
+      setOrdens(ordens);
+      setExcipientes(excipientes);
+      setExpandedExcipient(expandedExcipient);
+      setSelectedOrdem(selectedOrdem);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Salvar dados no Local Storage sempre que o estado relevante mudar
+    const stateToSave = {
+      ordens,
+      excipientes,
+      expandedExcipient,
+      selectedOrdem,
+    };
+    localStorage.setItem("appState", JSON.stringify(stateToSave));
+  }, [ordens, excipientes, expandedExcipient, selectedOrdem]);
 
   const handleAddOrdem = async () => {
     const { data, error } = await supabase
@@ -167,213 +211,348 @@ export default function Home() {
     calcularExcipientes(ordens);
   }, [ordens]);
 
-  const chartData = {
-    labels: Object.keys(excipientes),
-    datasets: [
-      {
-        label: "Quantidade de Excipientes",
-        data: Object.values(excipientes).map((item) => item.total),
-        backgroundColor: Object.keys(excipientes).map(
-          (_, index) =>
-            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
-              (index * 150) % 255
-            }, 0.6)`
-        ),
-        borderColor: Object.keys(excipientes).map(
-          (_, index) =>
-            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
-              (index * 150) % 255
-            }, 1)`
-        ),
-        borderWidth: 1,
-      },
-    ],
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      handleAddOrdem();
+    }
   };
+
+  // Função para calcular a movimentação total
+  const calcularMovimentacaoTotal = () => {
+    return Object.values(excipientes).reduce(
+      (total, { total: quantidade }) => total + quantidade,
+      0
+    );
+  };
+
+  const handleOrdemClick = (ordem) => {
+    if (selectedOrdem && selectedOrdem.codigo === ordem.codigo) {
+      setSelectedOrdem(null);
+    } else {
+      setSelectedOrdem(ordem);
+    }
+  };
+
+  const filteredExcipientes = selectedOrdem
+    ? Object.fromEntries(
+        Object.entries(excipientes).filter(([excipient, { ordens }]) =>
+          ordens.some((o) => o.codigo === selectedOrdem.codigo)
+        )
+      )
+    : excipientes;
+
+  const handleExcipientClick = (excipient) => {
+    handleToggleExpandExcipient(excipient);
+  };
+
+  const toggleDrawer = (open) => (event) => {
+    if (
+      event.type === "keydown" &&
+      (event.key === "Tab" || event.key === "Shift")
+    ) {
+      return;
+    }
+    setDrawerOpen(open);
+  };
+
   return (
-    <div className="container mx-auto p-3 max-w-full overflow-x-hidden">
-      <header className="bg-blue-800 text-white rounded-lg mb-4 p-4 flex items-center">
-        <ScaleIcon className="w-6 h-6" />
-        <h1 className="text-sm font-semibold pl-2 md:text-base">Pesagem</h1>
-        <p className="font-sans text-sm pl-2 text-blue-500">
-          by Johnathan Herbert
-        </p>
-      </header>
+    <ThemeProvider theme={theme}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={toggleDrawer(true)}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Pesagem
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item>
+              <ScaleIcon color="primary" fontSize="large" />
+            </Grid>
+            <Grid item xs>
+              <Typography variant="h4" component="h1">
+                Pesagem
+              </Typography>
+            </Grid>
+            <Grid item>
+              <Typography variant="subtitle1" color="textSecondary">
+                by Johnathan Herbert
+              </Typography>
+            </Grid>
+          </Grid>
+        </Paper>
 
-      <section className="mb-4">
-        <h2 className="text-sm font-semibold mb-2 md:text-base">
-          Gestão de Ordens
-        </h2>
-        <input
-          type="number"
-          placeholder="Código Receita"
-          value={ativo}
-          onChange={(e) => setAtivo(e.target.value)}
-          className="w-full p-2 mb-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-sm"
-        />
-        <button
-          onClick={handleAddOrdem}
-          className="w-full bg-blue-600 text-white p-2 mb-2 rounded-lg shadow-lg hover:bg-blue-700 transition text-sm md:text-sm"
-        >
-          Adicionar Ordem
-        </button>
-        <button
-          onClick={handleUpdateTotal}
-          className="w-full bg-blue-700 text-white p-2 rounded-lg shadow-lg hover:bg-blue-800 transition text-sm md:text-sm"
-        >
-          Atualizar Tabela
-        </button>
-      </section>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={4}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Gestão de Ordens
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                label="Código Receita"
+                value={ativo}
+                onChange={(e) => setAtivo(e.target.value)}
+                onKeyPress={handleKeyPress}
+                margin="normal"
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={handleAddOrdem}
+                sx={{ mt: 2 }}
+              >
+                Adicionar Ordem
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="primary"
+                onClick={handleUpdateTotal}
+                sx={{ mt: 2 }}
+              >
+                Atualizar Tabela
+              </Button>
+            </Paper>
+          </Grid>
 
-      <div className="grid grid-cols-1 gap-4">
-        <div>
-          <h3 className="text-lg font-semibold mb-2 md:text-base">
-            Ordens Adicionadas
-          </h3>
-          <div className="p-1 max-w-full overflow-x-auto">
-            <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
-              <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
-                <tr>
-                  <th className="py-2 px-2 text-left">Código</th>
-                  <th className="py-2 px-2 text-left">Nome</th>
-                  <th className="py-2 px-2 text-left">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="text-blue-gray-900">
-                {ordens.map((ordem, index) => (
-                  <tr
-                    key={index}
-                    className="border-b border-blue-gray-200 hover:bg-gray-50"
-                  >
-                    <td className="py-2 px-2">{ordem.codigo}</td>
-                    <td className="py-2 px-2">{ordem.nome}</td>
-                    <td className="py-2 px-2 flex space-x-1">
-                      <button
-                        onClick={() => handleRemoveOrdem(index)}
-                        className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
+          <Grid item xs={12} md={8}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Ordens Adicionadas
+              </Typography>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Código</TableCell>
+                      <TableCell>Nome</TableCell>
+                      <TableCell align="right">Ações</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {ordens.map((ordem, index) => (
+                      <TableRow
+                        key={index}
+                        onClick={() => handleOrdemClick(ordem)}
+                        sx={{
+                          cursor: "pointer",
+                          backgroundColor:
+                            selectedOrdem &&
+                            selectedOrdem.codigo === ordem.codigo
+                              ? "rgba(0, 0, 0, 0.04)"
+                              : "inherit",
+                          "&:hover": {
+                            backgroundColor: "rgba(0, 0, 0, 0.08)",
+                          },
+                        }}
                       >
-                        Remover
-                      </button>
-                      <button
-                        onClick={() => handleEditOrdem(index)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition"
-                      >
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <TableCell>{ordem.codigo}</TableCell>
+                        <TableCell>{ordem.nome}</TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveOrdem(index);
+                            }}
+                            color="secondary"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditOrdem(index);
+                            }}
+                            color="primary"
+                            size="small"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </Grid>
+        </Grid>
 
-          <h3 className="text-sm font-semibold mt-4 mb-2 md:text-base">
-            Somatória de Excipientes{" "}
-            <span>
-              <div className="flex">
-                <div className="flex m-1">
-                  <div className="bg-blue-600 w-3 h-3"></div>
-                  <p className="font-sans text-sm text-gray-400 pl-1">Manual</p>
-                </div>
-                <div className="flex m-1">
-                  <div className="bg-red-500 w-3 h-3"></div>
-                  <p className="font-sans text-sm text-gray-400 pl-1">
-                    Automática
-                  </p>
-                </div>
-              </div>
-            </span>
-          </h3>
-          <div className="p-2 max-w-full overflow-x-auto">
-            <table className="min-w-full bg-white shadow-md rounded-xl text-sm md:text-sm">
-              <thead className="bg-blue-gray-100 text-gray-700 text-sm uppercase">
-                <tr>
-                  <th className="py-1 px-1 text-left">Excipiente</th>
-                  <th className="py-1 px-1 text-left">Quantidade Total (Kg)</th>
-                  <th className="py-1 px-1 text-left">Ordens</th>
-                </tr>
-              </thead>
-              <tbody className="text-blue-gray-900">
-                {Object.entries(excipientes).map(
+        <Paper elevation={2} sx={{ mt: 4, p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Somatória de Excipientes
+            {selectedOrdem && (
+              <Typography variant="subtitle2" color="textSecondary">
+                (Filtrado para a ordem: {selectedOrdem.codigo})
+              </Typography>
+            )}
+          </Typography>
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            <Grid item>
+              <Paper sx={{ width: 16, height: 16, bgcolor: "primary.main" }} />
+            </Grid>
+            <Grid item>
+              <Typography variant="caption">Manual</Typography>
+            </Grid>
+            <Grid item>
+              <Paper
+                sx={{ width: 16, height: 16, bgcolor: "secondary.main" }}
+              />
+            </Grid>
+            <Grid item>
+              <Typography variant="caption">Automática</Typography>
+            </Grid>
+          </Grid>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Excipiente</TableCell>
+                  <TableCell align="right">Quantidade Total (Kg)</TableCell>
+                  <TableCell>Ordens</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(filteredExcipientes).map(
                   ([excipient, { total, ordens }]) => (
-                    <tr
-                      key={excipient}
-                      className="border-b border-blue-gray-200 hover:bg-gray-50 transition-colors duration-300"
-                    >
-                      <td colSpan={3} className="py-3 px-4">
-                        <div className="flex flex-col items-start space-y-2">
-                          <div
-                            className="flex justify-between items-center w-full cursor-pointer"
-                            onClick={() =>
-                              handleToggleExpandExcipient(excipient)
+                    <React.Fragment key={excipient}>
+                      <TableRow
+                        hover
+                        onClick={() => handleExcipientClick(excipient)}
+                        sx={{ cursor: "pointer" }}
+                      >
+                        <TableCell component="th" scope="row">
+                          <Typography
+                            color={
+                              [
+                                "LACTOSE (200)",
+                                "LACTOSE (50/70)",
+                                "AMIDO DE MILHO PREGELATINIZADO",
+                                "CELULOSE MIC (TIPO200)",
+                                "CELULOSE MIC.(TIPO102)",
+                                "FOSF.CAL.DIB.(COMPDIRETA)",
+                                "AMIDO",
+                                "CELULOSE+LACTOSE",
+                              ].includes(excipient)
+                                ? "secondary"
+                                : "primary"
                             }
                           >
-                            <div
-                              className={`text-sm font-semibold ${
-                                [
-                                  "LACTOSE (200)",
-                                  "LACTOSE (50/70)",
-                                  "AMIDO DE MILHO PREGELATINIZADO",
-                                  "CELULOSE MIC (TIPO200)",
-                                  "CELULOSE MIC.(TIPO102)",
-                                  "FOSF.CAL.DIB.(COMPDIRETA)",
-                                  "AMIDO",
-                                  "CELULOSE+LACTOSE",
-                                ].includes(excipient)
-                                  ? "text-red-600"
-                                  : "text-blue-600"
-                              }`}
-                            >
-                              {excipient}
-                            </div>
-                            <div className="text-sm text-blue-700 font-semibold">
-                              {total} kg
-                            </div>
-                          </div>
-                          {expandedExcipient === excipient && (
-                            <ul className="w-full mt-2 space-y-3 p-2 bg-gray-100 rounded-lg shadow-inner">
+                            {excipient}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">{total} kg</TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleExpandExcipient(excipient);
+                            }}
+                          >
+                            {expandedExcipient === excipient ? (
+                              <ExpandLessIcon />
+                            ) : (
+                              <ExpandMoreIcon />
+                            )}
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell
+                          style={{ paddingBottom: 0, paddingTop: 0 }}
+                          colSpan={3}
+                        >
+                          <Collapse
+                            in={expandedExcipient === excipient}
+                            timeout="auto"
+                            unmountOnExit
+                          >
+                            <Box sx={{ margin: 1 }}>
                               {ordens.map((ordem, index) => (
-                                <li
+                                <Box
                                   key={index}
-                                  className="p-2 border border-gray-300 rounded-lg flex items-center space-x-6 bg-white shadow-sm hover:shadow-lg transition-shadow"
+                                  sx={{
+                                    mb: 2,
+                                    p: 2,
+                                    bgcolor: "background.paper",
+                                    borderRadius: 1,
+                                    boxShadow: 1,
+                                  }}
                                 >
-                                  <div className="flex flex-col">
-                                    <span className="text-sm text-gray-500">
-                                      Código:
-                                    </span>
-                                    <span className="text-blue-600 font-semibold">
-                                      {ordem.codigo}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm text-gray-500">
-                                      Quantidade:
-                                    </span>
-                                    <span className="text-blue-600">
-                                      {ordem.quantidade} kg
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm text-gray-500">
-                                      Ativo:
-                                    </span>
-                                    <span className="text-blue-400">
-                                      {ordem.nome}
-                                    </span>
-                                  </div>
-                                </li>
+                                  <Grid
+                                    container
+                                    spacing={2}
+                                    alignItems="center"
+                                  >
+                                    <Grid item>
+                                      <MedicationIcon color="primary" />
+                                    </Grid>
+                                    <Grid item xs>
+                                      <Typography
+                                        variant="subtitle1"
+                                        component="div"
+                                      >
+                                        {ordem.nome}
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        Código: {ordem.codigo}
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item>
+                                      <Chip
+                                        label={`${ordem.quantidade} kg`}
+                                        color="primary"
+                                        variant="outlined"
+                                      />
+                                    </Grid>
+                                  </Grid>
+                                </Box>
                               ))}
-                            </ul>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
                   )
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+                <TableRow>
+                  <TableCell
+                    colSpan={3}
+                    sx={{ borderTop: "2px solid rgba(224, 224, 224, 1)" }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      className="text-zinc-500"
+                    >
+                      Movimentação total:{" "}
+                      {calcularMovimentacaoTotal().toFixed(3)} kg
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Container>
+    </ThemeProvider>
   );
 }
