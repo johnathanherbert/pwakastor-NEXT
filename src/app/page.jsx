@@ -78,7 +78,7 @@ export default function Home() {
 
   const handleAddOrdem = async () => {
     const { data, error } = await supabase
-      .from("DataBase_nmed")
+      .from("DataBase_ems")
       .select("*")
       .eq("Codigo_Receita", ativo);
 
@@ -126,7 +126,7 @@ export default function Home() {
 
   const fetchOrdemExcipientes = async (codigo) => {
     const { data, error } = await supabase
-      .from("DataBase_nmed")
+      .from("DataBase_ems")
       .select("Excipiente, qtd_materia_prima")
       .eq("Codigo_Receita", codigo);
 
@@ -169,7 +169,7 @@ export default function Home() {
 
     for (let ordem of ordens) {
       const { data, error } = await supabase
-        .from("DataBase_nmed")
+        .from("DataBase_ems")
         .select("Excipiente, qtd_materia_prima")
         .eq("Codigo_Receita", ordem.codigo);
 
@@ -196,7 +196,7 @@ export default function Home() {
 
   const testConnection = async () => {
     const { data, error } = await supabase
-      .from("DataBase_nmed")
+      .from("DataBase_ems")
       .select("*")
       .limit(1);
 
