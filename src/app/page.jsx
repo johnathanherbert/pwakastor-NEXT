@@ -1,6 +1,6 @@
 // pages/index.js
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import ScaleIcon from "@mui/icons-material/Scale";
 import { Collapse, Box, Chip, Divider } from "@mui/material";
@@ -22,6 +22,10 @@ import {
   IconButton,
   AppBar,
   Toolbar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,15 +34,31 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import MenuIcon from "@mui/icons-material/Menu";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Sidebar from "../components/Sidebar";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { v4 as uuidv4 } from "uuid"; // Importe a biblioteca uuid para gerar IDs únicos
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import debounce from "lodash/debounce";
+import { useRouter } from "next/navigation";
+import UserMenu from "../components/UserMenu";
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#1976d2",
+      main: "#175C7C",
     },
     secondary: {
-      main: "#dc004e",
+      main: "#51A3E7",
     },
+    tertiary: {
+      main: "#227582",
+    },
+  },
+  typography: {
+    fontSize: 12,
   },
 });
 
@@ -51,30 +71,87 @@ export default function Home() {
   const [editingExcipiente, setEditingExcipiente] = useState({});
   const [selectedOrdem, setSelectedOrdem] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pesados, setPesados] = useState({});
+  const [openDialog, setOpenDialog] = useState(false);
+  const [currentOrdemId, setCurrentOrdemId] = useState(null);
+  const [opNumber, setOpNumber] = useState("");
+  const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
-    // Recuperar dados do Local Storage ao carregar a página
-    const savedState = localStorage.getItem("appState");
-    if (savedState) {
-      const { ordens, excipientes, expandedExcipient, selectedOrdem } =
-        JSON.parse(savedState);
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        loadState(user.id);
+      } else {
+        router.push("/login");
+      }
+    };
+    checkUser();
+  }, [router]);
+
+  const loadState = async (userId) => {
+    const { data, error } = await supabase
+      .from("app_state")
+      .select("state")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("Erro ao carregar o estado:", error);
+      return;
+    }
+
+    if (data) {
+      const { ordens, excipientes, expandedExcipient, selectedOrdem, pesados } =
+        data.state;
       setOrdens(ordens);
       setExcipientes(excipientes);
       setExpandedExcipient(expandedExcipient);
       setSelectedOrdem(selectedOrdem);
+      setPesados(pesados);
     }
-  }, []);
+  };
+
+  const saveState = useCallback(
+    debounce(async () => {
+      if (!user) return;
+
+      const stateToSave = {
+        ordens,
+        excipientes,
+        expandedExcipient,
+        selectedOrdem,
+        pesados,
+      };
+
+      const { error } = await supabase
+        .from("app_state")
+        .insert({ user_id: user.id, state: stateToSave })
+        .select();
+
+      if (error) {
+        console.error("Erro ao salvar o estado:", error);
+      }
+    }, 1000),
+    [user, ordens, excipientes, expandedExcipient, selectedOrdem, pesados]
+  );
 
   useEffect(() => {
-    // Salvar dados no Local Storage sempre que o estado relevante mudar
-    const stateToSave = {
-      ordens,
-      excipientes,
-      expandedExcipient,
-      selectedOrdem,
-    };
-    localStorage.setItem("appState", JSON.stringify(stateToSave));
-  }, [ordens, excipientes, expandedExcipient, selectedOrdem]);
+    saveState();
+  }, [
+    ordens,
+    excipientes,
+    expandedExcipient,
+    selectedOrdem,
+    pesados,
+    saveState,
+  ]);
 
   const handleAddOrdem = async () => {
     const { data, error } = await supabase
@@ -85,7 +162,12 @@ export default function Home() {
     if (error) {
       alert(error.message);
     } else if (data.length > 0) {
-      const newOrdens = [...ordens, { codigo: ativo, nome: data[0].Ativo }];
+      const newOrdem = {
+        id: uuidv4(), // Gera um ID único para cada ordem
+        codigo: ativo,
+        nome: data[0].Ativo,
+      };
+      const newOrdens = [...ordens, newOrdem];
       setOrdens(newOrdens);
       calcularExcipientes(newOrdens);
     } else {
@@ -159,15 +241,35 @@ export default function Home() {
     setExpandedExcipient(expandedExcipient === excipient ? null : excipient);
   };
 
-  const calcularExcipientes = async (ordens) => {
-    if (ordens.length === 0) {
+  const togglePesado = (excipient, ordemId) => {
+    setPesados((prev) => {
+      const newPesados = {
+        ...prev,
+        [excipient]: {
+          ...prev[excipient],
+          [ordemId]: !prev[excipient]?.[ordemId],
+        },
+      };
+
+      // Recalcular excipientes imediatamente após a atualização
+      calcularExcipientes(ordens, newPesados);
+
+      return newPesados;
+    });
+  };
+
+  const calcularExcipientes = async (
+    ordensAtuais = ordens,
+    pesadosAtual = pesados
+  ) => {
+    if (ordensAtuais.length === 0) {
       setExcipientes({});
       return;
     }
 
     let newExcipientes = {};
 
-    for (let ordem of ordens) {
+    for (let ordem of ordensAtuais) {
       const { data, error } = await supabase
         .from("DataBase_ems")
         .select("Excipiente, qtd_materia_prima")
@@ -182,14 +284,24 @@ export default function Home() {
         if (!newExcipientes[item.Excipiente]) {
           newExcipientes[item.Excipiente] = { total: 0, ordens: [] };
         }
-        newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
+        if (!pesadosAtual[item.Excipiente]?.[ordem.id]) {
+          newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
+        }
         newExcipientes[item.Excipiente].ordens.push({
+          id: ordem.id,
           codigo: ordem.codigo,
           quantidade: item.qtd_materia_prima,
           nome: ordem.nome,
+          op: ordem.op, // Incluímos a OP aqui
+          pesado: pesadosAtual[item.Excipiente]?.[ordem.id] || false,
         });
       });
     }
+
+    // Arredonda o total para 3 casas decimais
+    Object.keys(newExcipientes).forEach((key) => {
+      newExcipientes[key].total = Number(newExcipientes[key].total.toFixed(3));
+    });
 
     setExcipientes(newExcipientes);
   };
@@ -255,175 +367,183 @@ export default function Home() {
     setDrawerOpen(open);
   };
 
+  const handleOpenDialog = (ordemId) => {
+    setCurrentOrdemId(ordemId);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setCurrentOrdemId(null);
+    setOpNumber("");
+  };
+
+  const handleAddOP = () => {
+    setOrdens((prevOrdens) => {
+      const newOrdens = prevOrdens.map((ordem) =>
+        ordem.id === currentOrdemId ? { ...ordem, op: opNumber } : ordem
+      );
+
+      // Recalcular excipientes imediatamente após a atualização das ordens
+      calcularExcipientes(newOrdens);
+
+      return newOrdens;
+    });
+    handleCloseDialog();
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  if (!user) {
+    return null; // ou um componente de carregamento
+  }
+
   return (
     <ThemeProvider theme={theme}>
-      <AppBar position="static">
-        <Toolbar>
+      <AppBar
+        position="static"
+        sx={{ backgroundColor: theme.palette.primary.main }}
+      >
+        <Toolbar variant="dense">
           <IconButton
             edge="start"
             color="inherit"
             aria-label="menu"
             onClick={toggleDrawer(true)}
+            size="small"
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="subtitle1" component="div" sx={{ flexGrow: 1 }}>
             Pesagem
           </Typography>
+          <UserMenu user={user} onUserUpdate={handleUserUpdate} />
         </Toolbar>
       </AppBar>
       <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item>
-              <ScaleIcon color="primary" fontSize="large" />
-            </Grid>
-            <Grid item xs>
-              <Typography variant="h4" component="h1">
-                Pesagem
-              </Typography>
-            </Grid>
-            <Grid item>
-              <Typography variant="subtitle1" color="textSecondary">
-                by Johnathan Herbert
-              </Typography>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={4}>
-            <Paper elevation={2} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Gestão de Ordens
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Código Receita"
-                value={ativo}
-                onChange={(e) => setAtivo(e.target.value)}
-                onKeyPress={handleKeyPress}
-                margin="normal"
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                onClick={handleAddOrdem}
-                sx={{ mt: 2 }}
+      <Box sx={{ display: "flex", height: "calc(100vh - 48px)" }}>
+        <Box
+          sx={{
+            width: "20%",
+            overflowY: "auto",
+            borderRight: `1px solid ${theme.palette.primary.light}`,
+          }}
+        >
+          <Box sx={{ p: 1, backgroundColor: "#fafafa" }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Gestão de Ordens
+            </Typography>
+            <TextField
+              fullWidth
+              type="number"
+              label="Código Receita"
+              value={ativo}
+              onChange={(e) => setAtivo(e.target.value)}
+              onKeyPress={handleKeyPress}
+              size="small"
+              margin="dense"
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              color="secondary"
+              onClick={handleAddOrdem}
+              size="small"
+              sx={{ mt: 1, mb: 1, color: "#fff" }}
+            >
+              Adicionar Ordem
+            </Button>
+          </Box>
+          <Divider />
+          <List dense component="nav" aria-label="ordens adicionadas">
+            {ordens.map((ordem) => (
+              <ListItem
+                key={ordem.id}
+                button
+                selected={selectedOrdem && selectedOrdem.id === ordem.id}
+                onClick={() => handleOrdemClick(ordem)}
+                sx={{
+                  "&.Mui-selected": {
+                    backgroundColor: theme.palette.tertiary.light,
+                  },
+                }}
               >
-                Adicionar Ordem
-              </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                color="primary"
-                onClick={handleUpdateTotal}
-                sx={{ mt: 2 }}
-              >
-                Atualizar Tabela
-              </Button>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={8}>
-            <Paper elevation={2} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Ordens Adicionadas
-              </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Código</TableCell>
-                      <TableCell>Nome</TableCell>
-                      <TableCell align="right">Ações</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {ordens.map((ordem, index) => (
-                      <TableRow
-                        key={index}
-                        onClick={() => handleOrdemClick(ordem)}
-                        sx={{
-                          cursor: "pointer",
-                          backgroundColor:
-                            selectedOrdem &&
-                            selectedOrdem.codigo === ordem.codigo
-                              ? "rgba(0, 0, 0, 0.04)"
-                              : "inherit",
-                          "&:hover": {
-                            backgroundColor: "rgba(0, 0, 0, 0.08)",
-                          },
-                        }}
-                      >
-                        <TableCell>{ordem.codigo}</TableCell>
-                        <TableCell>{ordem.nome}</TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveOrdem(index);
-                            }}
-                            color="secondary"
-                            size="small"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditOrdem(index);
-                            }}
-                            color="primary"
-                            size="small"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        <Paper elevation={2} sx={{ mt: 4, p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+                <ListItemText
+                  primary={
+                    <Box>
+                      {ordem.op && (
+                        <Typography variant="body2" color="primary">
+                          OP: {ordem.op}
+                        </Typography>
+                      )}
+                      <Typography variant="body2">{ordem.codigo}</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {ordem.nome}
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="add op"
+                    onClick={() => handleOpenDialog(ordem.id)}
+                    size="small"
+                  >
+                    <AddCircleOutlineIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleRemoveOrdem(ordem.id)}
+                    size="small"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+            p: 1,
+            backgroundColor: theme.palette.background.default,
+          }}
+        >
+          <Typography variant="subtitle2" gutterBottom color="primary">
             Somatória de Excipientes
             {selectedOrdem && (
-              <Typography variant="subtitle2" color="textSecondary">
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                sx={{ ml: 1 }}
+              >
                 (Filtrado para a ordem: {selectedOrdem.codigo})
               </Typography>
             )}
           </Typography>
-          <Grid container spacing={1} sx={{ mb: 2 }}>
-            <Grid item>
-              <Paper sx={{ width: 16, height: 16, bgcolor: "primary.main" }} />
-            </Grid>
-            <Grid item>
-              <Typography variant="caption">Manual</Typography>
-            </Grid>
-            <Grid item>
-              <Paper
-                sx={{ width: 16, height: 16, bgcolor: "secondary.main" }}
-              />
-            </Grid>
-            <Grid item>
-              <Typography variant="caption">Automática</Typography>
-            </Grid>
-          </Grid>
-          <TableContainer>
-            <Table size="small">
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small" aria-label="excipientes table">
               <TableHead>
-                <TableRow>
+                <TableRow
+                  sx={{
+                    backgroundColor: theme.palette.primary.light,
+                    color: "#fff",
+                  }}
+                >
                   <TableCell>Excipiente</TableCell>
-                  <TableCell align="right">Quantidade Total (Kg)</TableCell>
-                  <TableCell>Ordens</TableCell>
+                  <TableCell align="right">Qtd. Total (Kg)</TableCell>
+                  <TableCell padding="checkbox">Detalhes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -437,6 +557,7 @@ export default function Home() {
                       >
                         <TableCell component="th" scope="row">
                           <Typography
+                            variant="body2"
                             color={
                               [
                                 "LACTOSE (200)",
@@ -455,19 +576,22 @@ export default function Home() {
                             {excipient}
                           </Typography>
                         </TableCell>
-                        <TableCell align="right">{total} kg</TableCell>
-                        <TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2">
+                            {total.toFixed(3)} kg
+                          </Typography>
+                        </TableCell>
+                        <TableCell padding="checkbox">
                           <IconButton
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleExpandExcipient(excipient);
-                            }}
+                            onClick={() =>
+                              handleToggleExpandExcipient(excipient)
+                            }
                           >
                             {expandedExcipient === excipient ? (
-                              <ExpandLessIcon />
+                              <ExpandLessIcon fontSize="small" />
                             ) : (
-                              <ExpandMoreIcon />
+                              <ExpandMoreIcon fontSize="small" />
                             )}
                           </IconButton>
                         </TableCell>
@@ -482,50 +606,84 @@ export default function Home() {
                             timeout="auto"
                             unmountOnExit
                           >
-                            <Box sx={{ margin: 1 }}>
-                              {ordens.map((ordem, index) => (
-                                <Box
-                                  key={index}
-                                  sx={{
-                                    mb: 2,
-                                    p: 2,
-                                    bgcolor: "background.paper",
-                                    borderRadius: 1,
-                                    boxShadow: 1,
-                                  }}
-                                >
-                                  <Grid
-                                    container
-                                    spacing={2}
-                                    alignItems="center"
+                            <Box sx={{ my: 1 }}>
+                              <Table size="small" aria-label="purchases">
+                                <TableHead>
+                                  <TableRow
+                                    sx={{
+                                      backgroundColor:
+                                        theme.palette.secondary.light,
+                                    }}
                                   >
-                                    <Grid item>
-                                      <MedicationIcon color="primary" />
-                                    </Grid>
-                                    <Grid item xs>
-                                      <Typography
-                                        variant="subtitle1"
-                                        component="div"
-                                      >
-                                        {ordem.nome}
-                                      </Typography>
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                      >
-                                        Código: {ordem.codigo}
-                                      </Typography>
-                                    </Grid>
-                                    <Grid item>
-                                      <Chip
-                                        label={`${ordem.quantidade} kg`}
-                                        color="primary"
-                                        variant="outlined"
-                                      />
-                                    </Grid>
-                                  </Grid>
-                                </Box>
-                              ))}
+                                    <TableCell>OP</TableCell>
+                                    <TableCell>Código</TableCell>
+                                    <TableCell>Nome</TableCell>
+                                    <TableCell align="right">
+                                      Quantidade (kg)
+                                    </TableCell>
+                                    <TableCell align="center">Pesado</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {ordens.map((ordem) => (
+                                    <TableRow
+                                      key={ordem.id}
+                                      sx={{
+                                        backgroundColor: ordem.pesado
+                                          ? "rgba(0, 0, 0, 0.1)"
+                                          : "inherit",
+                                        "&:hover": {
+                                          backgroundColor: ordem.pesado
+                                            ? "rgba(0, 0, 0, 0.2)"
+                                            : "rgba(0, 0, 0, 0.04)",
+                                        },
+                                      }}
+                                    >
+                                      <TableCell>
+                                        <Typography variant="caption">
+                                          {ordem.op || "-"}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell component="th" scope="row">
+                                        <Typography variant="caption">
+                                          {ordem.codigo}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography variant="caption">
+                                          {ordem.nome}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell align="right">
+                                        <Typography variant="caption">
+                                          {ordem.quantidade.toFixed(3)} kg
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() =>
+                                            togglePesado(excipient, ordem.id)
+                                          }
+                                          color={
+                                            ordem.pesado ? "primary" : "default"
+                                          }
+                                        >
+                                          <CheckCircleIcon fontSize="small" />
+                                        </IconButton>
+                                        {ordem.pesado && (
+                                          <Chip
+                                            label="Pesado"
+                                            size="small"
+                                            color="primary"
+                                            sx={{ ml: 1 }}
+                                          />
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
                             </Box>
                           </Collapse>
                         </TableCell>
@@ -536,12 +694,14 @@ export default function Home() {
                 <TableRow>
                   <TableCell
                     colSpan={3}
-                    sx={{ borderTop: "2px solid rgba(224, 224, 224, 1)" }}
+                    sx={{
+                      borderTop: `2px solid ${theme.palette.primary.main}`,
+                    }}
                   >
                     <Typography
-                      variant="subtitle1"
+                      variant="body2"
                       fontWeight="bold"
-                      className="text-zinc-500"
+                      color="primary"
                     >
                       Movimentação total:{" "}
                       {calcularMovimentacaoTotal().toFixed(3)} kg
@@ -551,8 +711,29 @@ export default function Home() {
               </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
-      </Container>
+        </Box>
+      </Box>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Adicionar OP</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="op"
+            label="Número da OP"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={opNumber}
+            onChange={(e) => setOpNumber(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleAddOP}>Adicionar</Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }
