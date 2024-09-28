@@ -7,6 +7,8 @@ import {
   ListItemText,
   IconButton,
   Divider,
+  Box,
+  Typography,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -16,6 +18,25 @@ import {
   Dashboard as DashboardIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
+import { styled } from "@mui/material/styles";
+
+const DrawerHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  padding: theme.spacing(0, 1),
+  ...theme.mixins.toolbar,
+  justifyContent: "flex-start",
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+}));
+
+const StyledListItem = styled(ListItem)(({ theme }) => ({
+  borderRadius: theme.shape.borderRadius,
+  margin: theme.spacing(0.5, 1),
+  "&:hover": {
+    backgroundColor: theme.palette.action.hover,
+  },
+}));
 
 const Sidebar = ({ open, toggleDrawer }) => {
   const menuItems = [
@@ -26,23 +47,44 @@ const Sidebar = ({ open, toggleDrawer }) => {
   ];
 
   return (
-    <Drawer anchor="left" open={open} onClose={toggleDrawer(false)}>
-      <div
-        role="presentation"
-        onClick={toggleDrawer(false)}
-        onKeyDown={toggleDrawer(false)}
-      >
-        <List>
-          {menuItems.map((item, index) => (
-            <Link href={item.path} key={item.text} passHref>
-              <ListItem button component="a">
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            </Link>
-          ))}
-        </List>
-      </div>
+    <Drawer
+      anchor="left"
+      open={open}
+      onClose={toggleDrawer(false)}
+      PaperProps={{
+        sx: {
+          width: 240,
+          backgroundColor: "background.default",
+        },
+      }}
+    >
+      <DrawerHeader>
+        <IconButton color="inherit" onClick={toggleDrawer(false)} edge="start">
+          <MenuIcon />
+        </IconButton>
+        <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+          Menu
+        </Typography>
+      </DrawerHeader>
+      <Divider />
+      <List>
+        {menuItems.map((item, index) => (
+          <Link href={item.path} key={item.text} passHref>
+            <StyledListItem button component="a">
+              <ListItemIcon sx={{ color: "primary.main" }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontWeight: "medium",
+                  color: "text.primary",
+                }}
+              />
+            </StyledListItem>
+          </Link>
+        ))}
+      </List>
     </Drawer>
   );
 };

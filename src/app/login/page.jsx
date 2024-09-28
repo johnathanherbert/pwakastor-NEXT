@@ -11,19 +11,62 @@ import {
   Link,
   Snackbar,
   Alert,
+  Paper,
 } from "@mui/material";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import {
+  ThemeProvider,
+  createTheme,
+  alpha,
+  styled,
+} from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#175C7C",
+      main: "#004B5F",
     },
     secondary: {
-      main: "#51A3E7",
+      main: "#0a4064",
+    },
+    background: {
+      default: "#F2F2F7",
+      paper: "#FFFFFF",
+    },
+  },
+  typography: {
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          borderRadius: 20,
+          padding: "8px 16px",
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 10,
+          },
+        },
+      },
     },
   },
 });
+
+const ContentCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius * 2,
+  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+}));
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -76,7 +119,7 @@ export default function Login() {
             message: "Este email já está registrado. Por favor, faça login.",
             severity: "warning",
           });
-          setIsLogin(true); // Muda para o modo de login
+          setIsLogin(true);
         } else {
           setSnackbar({
             open: true,
@@ -86,7 +129,6 @@ export default function Login() {
         }
       } else if (data?.user) {
         if (data.session) {
-          // O usuário foi registrado e logado automaticamente
           setSnackbar({
             open: true,
             message: "Registro bem-sucedido! Você será redirecionado em breve.",
@@ -94,14 +136,13 @@ export default function Login() {
           });
           setTimeout(() => router.push("/"), 2000);
         } else {
-          // O usuário foi registrado, mas precisa confirmar o email
           setSnackbar({
             open: true,
             message:
               "Registro bem-sucedido! Por favor, verifique seu email para confirmar a conta.",
             severity: "success",
           });
-          setIsLogin(true); // Muda para o modo de login após o registro bem-sucedido
+          setIsLogin(true);
         }
       }
     }
@@ -123,92 +164,98 @@ export default function Login() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Container component="main" maxWidth="xs">
-        <Box
-          sx={{
-            minHeight: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{
-              mb: 4,
-              fontWeight: "bold",
-              color: "primary.main",
-              textAlign: "center",
-            }}
-          >
-            Pesagem Novamed
-          </Typography>
-          <Box
-            sx={{
-              width: "100%",
-              backgroundColor: "white",
-              padding: 3,
-              borderRadius: 2,
-              boxShadow: 3,
-            }}
-          >
-            <Typography component="h2" variant="h5" sx={{ mb: 2 }}>
-              {isLogin ? "Login" : "Registro"}
-            </Typography>
-            <Box component="form" onSubmit={handleAuth} noValidate>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email"
-                name="email"
-                autoComplete="email"
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                size="small"
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Senha"
-                type="password"
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                size="small"
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={loading}
-              >
-                {loading ? "Carregando..." : isLogin ? "Entrar" : "Registrar"}
-              </Button>
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  resetFields();
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.palette.background.default,
+        }}
+      >
+        <Container component="main" maxWidth="xs">
+          <ContentCard>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <Typography
+                component="h1"
+                variant="h4"
+                sx={{
+                  mb: 4,
+                  fontWeight: "bold",
+                  color: "primary.main",
+                  textAlign: "center",
                 }}
-                sx={{ display: "block", textAlign: "center" }}
               >
-                {isLogin
-                  ? "Não tem uma conta? Registre-se"
-                  : "Já tem uma conta? Faça login"}
-              </Link>
+                Pesagem Novamed
+              </Typography>
+              <Typography component="h2" variant="h5" sx={{ mb: 2 }}>
+                {isLogin ? "Login" : "Registro"}
+              </Typography>
+              <Box
+                component="form"
+                onSubmit={handleAuth}
+                noValidate
+                sx={{ mt: 1 }}
+              >
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="email"
+                  label="Email"
+                  name="email"
+                  autoComplete="email"
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  size="small"
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="password"
+                  label="Senha"
+                  type="password"
+                  id="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  size="small"
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{ mt: 3, mb: 2 }}
+                  disabled={loading}
+                >
+                  {loading ? "Carregando..." : isLogin ? "Entrar" : "Registrar"}
+                </Button>
+                <Link
+                  component="button"
+                  variant="body2"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    resetFields();
+                  }}
+                  sx={{ display: "block", textAlign: "center" }}
+                >
+                  {isLogin
+                    ? "Não tem uma conta? Registre-se"
+                    : "Já tem uma conta? Faça login"}
+                </Link>
+              </Box>
             </Box>
-          </Box>
-        </Box>
+          </ContentCard>
+        </Container>
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
@@ -222,7 +269,7 @@ export default function Login() {
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </Container>
+      </Box>
     </ThemeProvider>
   );
 }

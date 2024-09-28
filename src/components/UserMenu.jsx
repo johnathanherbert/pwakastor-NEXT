@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
-import { Button, Menu, MenuItem, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
-import { supabase } from '../supabaseClient';
-import { useRouter } from 'next/navigation';
+import React, { useState } from "react";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  TextField,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Avatar,
+  Typography,
+  Box,
+  IconButton,
+} from "@mui/material";
+import { useRouter } from "next/navigation";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { supabase } from "../supabaseClient";
 
 export default function UserMenu({ user, onUserUpdate }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [username, setUsername] = useState(user.user_metadata?.username || '');
   const router = useRouter();
 
   const handleMenu = (event) => {
@@ -17,78 +29,44 @@ export default function UserMenu({ user, onUserUpdate }) {
     setAnchorEl(null);
   };
 
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
-    handleClose();
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    onUserUpdate(null);
+    router.push("/login");
   };
-
-  const handleSaveUsername = async () => {
-    const { data, error } = await supabase.auth.updateUser({
-      data: { username: username }
-    });
-
-    if (error) {
-      console.error('Erro ao atualizar o nome de usuário:', error);
-    } else {
-      onUserUpdate(data.user);
-      handleCloseDialog();
-    }
-  };
-
-  const displayName = user.user_metadata?.username || user.email;
 
   return (
-    <>
-      <Button color="inherit" onClick={handleMenu}>
-        <Avatar sx={{ width: 32, height: 32, mr: 1 }}>{displayName[0].toUpperCase()}</Avatar>
-        <Typography variant="body2">{displayName}</Typography>
-      </Button>
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Typography variant="body1" sx={{ mr: 1, color: "inherit" }}>
+        {user?.email}
+      </Typography>
+      <IconButton
+        size="large"
+        aria-label="account of current user"
+        aria-controls="menu-appbar"
+        aria-haspopup="true"
+        onClick={handleMenu}
+        color="inherit"
+      >
+        <Avatar alt={user?.email} src={user?.avatar_url} />
+      </IconButton>
       <Menu
+        id="menu-appbar"
         anchorEl={anchorEl}
         anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+          vertical: "bottom",
+          horizontal: "right",
         }}
         keepMounted
         transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+          vertical: "top",
+          horizontal: "right",
         }}
         open={Boolean(anchorEl)}
         onClose={handleClose}
       >
-        <MenuItem onClick={handleOpenDialog}>Adicionar/Editar Nome de Usuário</MenuItem>
-        <MenuItem onClick={handleLogout}>Deslogar</MenuItem>
+        <MenuItem onClick={handleLogout}>Sair</MenuItem>
       </Menu>
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Adicionar/Editar Nome de Usuário</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="username"
-            label="Nome de Usuário"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSaveUsername}>Salvar</Button>
-        </DialogActions>
-      </Dialog>
-    </>
+    </Box>
   );
 }
