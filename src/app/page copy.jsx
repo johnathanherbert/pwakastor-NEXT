@@ -53,7 +53,6 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { CircularProgress } from "@mui/material";
-import { Switch } from "@mui/material";
 
 // Estilos personalizados
 const AppContainer = styled(Box)(({ theme }) => ({
@@ -155,17 +154,6 @@ const theme = createTheme({
   },
 });
 
-const EXCIPIENTES_ESPECIAIS = [
-  "LACTOSE (200)",
-  "LACTOSE (50/70)",
-  "AMIDO DE MILHO PREGELATINIZADO",
-  "CELULOSE MIC (TIPO200)",
-  "CELULOSE MIC.(TIPO102)",
-  "FOSF.CAL.DIB.(COMPDIRETA)",
-  "AMIDO",
-  "CELULOSE+LACTOSE",
-];
-
 export default function Home() {
   const [ordens, setOrdens] = useState([]);
   const [ativo, setAtivo] = useState("");
@@ -192,9 +180,6 @@ export default function Home() {
   const [autoIncrementOP, setAutoIncrementOP] = useState(false);
   const [lastOP, setLastOP] = useState(2213345);
   const [initialOP, setInitialOP] = useState("");
-
-  const [filtrarExcipientesEspeciais, setFiltrarExcipientesEspeciais] =
-    useState(false);
 
   const loadState = useCallback(async (userId) => {
     try {
@@ -547,47 +532,35 @@ export default function Home() {
   };
 
   const filteredExcipientes = useMemo(() => {
-    let filtered = excipientes;
+    if (!selectedOrdem) return excipientes;
 
-    if (selectedOrdem) {
-      filtered = Object.fromEntries(
-        Object.entries(excipientes)
-          .map(([excipient, data]) => {
-            const filteredOrdens = data.ordens.filter(
-              (o) => o.nome === selectedOrdem.nome
-            );
-            const filteredTotal = filteredOrdens.reduce(
-              (sum, o) => sum + o.quantidade,
-              0
-            );
-            const filteredTotalNaoPesado = filteredOrdens.reduce(
-              (sum, o) => (o.pesado ? sum : sum + o.quantidade),
-              0
-            );
-            return [
-              excipient,
-              {
-                ...data,
-                ordens: filteredOrdens,
-                total: filteredTotal,
-                totalNaoPesado: filteredTotalNaoPesado,
-              },
-            ];
-          })
-          .filter(([_, data]) => data.ordens.length > 0)
-      );
-    }
-
-    if (filtrarExcipientesEspeciais) {
-      filtered = Object.fromEntries(
-        Object.entries(filtered).filter(([excipient]) =>
-          EXCIPIENTES_ESPECIAIS.includes(excipient)
-        )
-      );
-    }
-
-    return filtered;
-  }, [selectedOrdem, excipientes, filtrarExcipientesEspeciais]);
+    return Object.fromEntries(
+      Object.entries(excipientes)
+        .map(([excipient, data]) => {
+          const filteredOrdens = data.ordens.filter(
+            (o) => o.nome === selectedOrdem.nome
+          );
+          const filteredTotal = filteredOrdens.reduce(
+            (sum, o) => sum + o.quantidade,
+            0
+          );
+          const filteredTotalNaoPesado = filteredOrdens.reduce(
+            (sum, o) => (o.pesado ? sum : sum + o.quantidade),
+            0
+          );
+          return [
+            excipient,
+            {
+              ...data,
+              ordens: filteredOrdens,
+              total: filteredTotal,
+              totalNaoPesado: filteredTotalNaoPesado,
+            },
+          ];
+        })
+        .filter(([_, data]) => data.ordens.length > 0)
+    );
+  }, [selectedOrdem, excipientes]);
 
   const calcularMovimentacaoTotal = useCallback(() => {
     return Object.values(filteredExcipientes).reduce(
@@ -977,29 +950,24 @@ export default function Home() {
                             OPs:
                           </TableCell>
                           <TableCell sx={{ border: "none", pl: 1 }}>
-                            {getFilterInfo()
-                              .split(", ")
-                              .map((op, index) => (
-                                <React.Fragment key={op}>
-                                  {index > 0 && ", "}
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color: theme.palette.primary.main,
-                                      backgroundColor: alpha(
-                                        theme.palette.primary.main,
-                                        0.1
-                                      ),
-                                      padding: "2px 6px",
-                                      borderRadius: "4px",
-                                      display: "inline-block",
-                                    }}
-                                  >
-                                    OP: {op}
-                                  </Typography>
-                                </React.Fragment>
-                              ))}
+                            {getFilterInfo().split(", ").map((op, index) => (
+                              <React.Fragment key={op}>
+                                {index > 0 && ", "}
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontWeight: "bold",
+                                    color: theme.palette.primary.main,
+                                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-block",
+                                  }}
+                                >
+                                  OP: {op}
+                                </Typography>
+                              </React.Fragment>
+                            ))}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -1226,20 +1194,6 @@ export default function Home() {
                     </TableRow>
                   </TableBody>
                 </Table>
-                <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={filtrarExcipientesEspeciais}
-                        onChange={(e) =>
-                          setFiltrarExcipientesEspeciais(e.target.checked)
-                        }
-                        color="primary"
-                      />
-                    }
-                    label="Filtrar itens comuns da PA"
-                  />
-                </Box>
               </StyledTableContainer>
             </ContentCard>
           </MainContent>
