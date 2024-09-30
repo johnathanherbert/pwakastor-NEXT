@@ -54,6 +54,8 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { CircularProgress } from "@mui/material";
 import { Switch } from "@mui/material";
+import Autocomplete from "../components/Autocomplete";
+import NumbersIcon from "@mui/icons-material/Numbers";
 
 // Estilos personalizados
 const AppContainer = styled(Box)(({ theme }) => ({
@@ -196,6 +198,8 @@ export default function Home() {
   const [filtrarExcipientesEspeciais, setFiltrarExcipientesEspeciais] =
     useState(false);
 
+  const [addMode, setAddMode] = useState("codigo");
+
   const loadState = useCallback(async (userId) => {
     try {
       // Primeiro, tenta carregar do Supabase
@@ -303,40 +307,76 @@ export default function Home() {
   ]);
 
   const handleAddOrdem = async () => {
-    const { data, error } = await supabase
-      .from("DataBase_ems")
-      .select("*")
-      .eq("Codigo_Receita", ativo);
+    if (!ativo) return;
 
-    if (error) {
-      alert(error.message);
-    } else if (data.length > 0) {
-      let newOP = "";
-      if (autoIncrementOP) {
-        if (initialOP) {
-          newOP = initialOP;
-          setInitialOP((parseInt(initialOP) + 1).toString());
-        } else if (lastOP) {
-          newOP = (lastOP + 1).toString();
-          setLastOP(lastOP + 1);
-        } else {
-          newOP = "2213345";
-          setLastOP(2213345);
-        }
+    let codigo, nome, excipientesData;
+
+    if (addMode === "codigo") {
+      // Busca por código
+      const { data, error } = await supabase
+        .from("DataBase_ems")
+        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .eq("Codigo_Receita", ativo);
+
+      if (error || !data || data.length === 0) {
+        alert("Código não encontrado");
+        return;
       }
 
-      const newOrdem = {
-        id: uuidv4(),
-        codigo: ativo,
-        nome: data[0].Ativo,
-        op: newOP,
-      };
-      const newOrdens = [...ordens, newOrdem];
-      setOrdens(newOrdens);
-      calcularExcipientes(newOrdens);
+      codigo = data[0].Codigo_Receita;
+      nome = data[0].Ativo;
+      excipientesData = data;
     } else {
-      alert("Receita não encontrada");
+      // Busca por ativo
+      const { data, error } = await supabase
+        .from("DataBase_ems")
+        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .ilike("Ativo", `%${ativo}%`);
+
+      if (error || !data || data.length === 0) {
+        alert("Ativo não encontrado");
+        return;
+      }
+
+      codigo = data[0].Codigo_Receita;
+      nome = data[0].Ativo;
+      excipientesData = data;
     }
+
+    let op = null;
+    if (autoIncrementOP) {
+      op = initialOP ? parseInt(initialOP) : lastOP ? lastOP + 1 : 2213345;
+      setLastOP(op);
+      setInitialOP("");
+    }
+
+    const novaOrdem = {
+      id: uuidv4(),
+      codigo,
+      nome,
+      op,
+      excipientes: excipientesData.reduce((acc, item) => {
+        acc[item.Excipiente] = item.qtd_materia_prima;
+        return acc;
+      }, {}),
+    };
+
+    setOrdens((prevOrdens) => [...prevOrdens, novaOrdem]);
+    // Removemos a linha que limpa o input
+    // setAtivo("");
+
+    // Atualizar pesados
+    const newPesados = { ...pesados };
+    excipientesData.forEach((item) => {
+      if (!newPesados[item.Excipiente]) {
+        newPesados[item.Excipiente] = {};
+      }
+      newPesados[item.Excipiente][novaOrdem.id] = false;
+    });
+    setPesados(newPesados);
+
+    // Recalcular excipientes
+    await calcularExcipientes([...ordens, novaOrdem], newPesados);
   };
 
   const handleRemoveOrdem = (index) => {
@@ -482,7 +522,7 @@ export default function Home() {
         .eq("Codigo_Receita", ordem.codigo);
 
       if (error) {
-        alert(error.message);
+        alert("Erro ao calcular excipientes: " + error.message);
         return;
       }
 
@@ -728,6 +768,11 @@ export default function Home() {
     calcularExcipientes(ordens.filter((ordem) => ordem.id !== ordemId));
   };
 
+  const toggleAddMode = () => {
+    setAddMode((prevMode) => (prevMode === "codigo" ? "ativo" : "codigo"));
+    setAtivo(""); // Limpar o campo ao mudar o modo
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -785,30 +830,61 @@ export default function Home() {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
                 Gestão de Ordens
               </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Código Receita"
-                value={ativo}
-                onChange={(e) => setAtivo(e.target.value)}
-                onKeyPress={handleKeyPress}
-                size="small"
-                margin="dense"
-                variant="outlined"
-              />
-              <Box sx={{ display: "flex", alignItems: "center", mt: 2, mb: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={autoIncrementOP}
-                      onChange={toggleAutoIncrementOP}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 2,
+                  width: "100%",
+                }}
+              >
+                <Box sx={{ flexGrow: 1, position: "relative" }}>
+                  {addMode === "codigo" ? (
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Código Receita"
+                      value={ativo}
+                      onChange={(e) => setAtivo(e.target.value)}
+                      onKeyPress={handleKeyPress}
                       size="small"
-                      color="primary"
+                      margin="dense"
+                      variant="outlined"
                     />
+                  ) : (
+                    <Autocomplete
+                      fullWidth
+                      label="Ativo"
+                      value={ativo}
+                      onChange={setAtivo}
+                      onKeyPress={handleKeyPress}
+                      size="small"
+                      margin="dense"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
+                <IconButton onClick={toggleAddMode} sx={{ ml: 1 }}>
+                  {addMode === "codigo" ? <MedicationIcon /> : <NumbersIcon />}
+                </IconButton>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", mt: 2, mb: 2 }}>
+                <Button
+                  variant="contained"
+                  color={autoIncrementOP ? "primary" : "inherit"}
+                  onClick={toggleAutoIncrementOP}
+                  size="small"
+                  sx={{ mr: 1, flexGrow: 1 }}
+                  startIcon={
+                    autoIncrementOP ? (
+                      <CheckCircleIcon />
+                    ) : (
+                      <CheckCircleOutlineIcon />
+                    )
                   }
-                  label="Auto add OP"
-                  sx={{ mr: 2 }}
-                />
+                >
+                  Auto add OP
+                </Button>
                 <Button
                   variant="contained"
                   color="primary"
