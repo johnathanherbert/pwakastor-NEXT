@@ -2,6 +2,30 @@
 
 import React, { useState, useEffect } from "react";
 import { TextField, Autocomplete as MuiAutocomplete } from "@mui/material";
+import { styled, alpha } from "@mui/material/styles";
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  "& .MuiOutlinedInput-root": {
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+    transition: "all 0.3s",
+    "&:hover": {
+      backgroundColor: alpha(theme.palette.primary.main, 0.08),
+    },
+    "&.Mui-focused": {
+      backgroundColor: alpha(theme.palette.primary.main, 0.12),
+      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+    },
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    border: "none",
+  },
+  "& .MuiInputLabel-outlined": {
+    color: alpha(theme.palette.text.primary, 0.7),
+  },
+  "& .MuiInputBase-input": {
+    color: theme.palette.text.primary,
+  },
+}));
 
 const Autocomplete = ({ label, value, onChange, onKeyPress, sx, ...props }) => {
   const [suggestions, setSuggestions] = useState([]);
@@ -26,7 +50,7 @@ const Autocomplete = ({ label, value, onChange, onKeyPress, sx, ...props }) => {
       freeSolo
       options={suggestions}
       renderInput={(params) => (
-        <TextField
+        <StyledTextField
           {...params}
           {...props}
           label={label}

@@ -1,65 +1,74 @@
 // pages/index.js
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../supabaseClient";
-import ScaleIcon from "@mui/icons-material/Scale";
-import { Collapse, Box, Chip, Divider } from "@mui/material";
-import MedicationIcon from "@mui/icons-material/Medication";
 import React from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
+
+// Material-UI imports
 import {
-  Container,
-  Grid,
-  Paper,
-  Typography,
+  alpha,
+  createTheme,
+  styled,
+  ThemeProvider,
+} from "@mui/material/styles";
+import {
+  AppBar,
+  Box,
   Button,
-  TextField,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  List,
+  ListItem,
+  ListItemSecondaryAction,
+  ListItemText,
+  Paper,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  AppBar,
+  TextField,
   Toolbar,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+  Typography,
 } from "@mui/material";
+
+// Material-UI icons
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import MedicationIcon from "@mui/icons-material/Medication";
 import MenuIcon from "@mui/icons-material/Menu";
-import {
-  ThemeProvider,
-  createTheme,
-  alpha,
-  styled,
-} from "@mui/material/styles";
-import Sidebar from "../components/Sidebar";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { v4 as uuidv4 } from "uuid"; // Importe a biblioteca uuid para gerar IDs únicos
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import debounce from "lodash/debounce";
-import { useRouter } from "next/navigation";
-import UserMenu from "../components/UserMenu";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import { CircularProgress } from "@mui/material";
-import { Switch } from "@mui/material";
+import NumbersIcon from "@mui/icons-material/Numbers";
 
-// Estilos personalizados
+// Custom components
+import Autocomplete from "../../components/Autocomplete";
+import Sidebar from "../../components/Sidebar";
+import UserMenu from "../../components/UserMenu";
+
+// Supabase client
+import { supabase } from "../../supabaseClient";
+
+// Estilos personalizados atualizados para mobile
 const AppContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  height: "100vh",
+  minHeight: "100vh",
   backgroundColor: theme.palette.background.default,
 }));
 
@@ -68,27 +77,19 @@ const AppHeader = styled(AppBar)(({ theme }) => ({
   backdropFilter: "blur(10px)",
   boxShadow: "none",
   borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  color: theme.palette.text.primary, // Adicione esta linha
-}));
-
-const SidebarContainer = styled(Paper)(({ theme }) => ({
-  width: "25%",
-  overflowY: "auto",
-  borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: "none",
+  color: theme.palette.text.primary,
 }));
 
 const MainContent = styled(Box)(({ theme }) => ({
   flexGrow: 1,
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   overflowY: "auto",
   backgroundColor: theme.palette.background.default,
 }));
 
 const ContentCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
+  padding: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
 }));
 
@@ -195,6 +196,10 @@ export default function Home() {
 
   const [filtrarExcipientesEspeciais, setFiltrarExcipientesEspeciais] =
     useState(false);
+
+  const [addMode, setAddMode] = useState("codigo");
+
+  const [ordensPesadas, setOrdensPesadas] = useState([]);
 
   const loadState = useCallback(async (userId) => {
     try {
@@ -303,40 +308,76 @@ export default function Home() {
   ]);
 
   const handleAddOrdem = async () => {
-    const { data, error } = await supabase
-      .from("DataBase_ems")
-      .select("*")
-      .eq("Codigo_Receita", ativo);
+    if (!ativo) return;
 
-    if (error) {
-      alert(error.message);
-    } else if (data.length > 0) {
-      let newOP = "";
-      if (autoIncrementOP) {
-        if (initialOP) {
-          newOP = initialOP;
-          setInitialOP((parseInt(initialOP) + 1).toString());
-        } else if (lastOP) {
-          newOP = (lastOP + 1).toString();
-          setLastOP(lastOP + 1);
-        } else {
-          newOP = "2213345";
-          setLastOP(2213345);
-        }
+    let codigo, nome, excipientesData;
+
+    if (addMode === "codigo") {
+      // Busca por código
+      const { data, error } = await supabase
+        .from("DataBase_ems")
+        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .eq("Codigo_Receita", ativo);
+
+      if (error || !data || data.length === 0) {
+        alert("Código não encontrado");
+        return;
       }
 
-      const newOrdem = {
-        id: uuidv4(),
-        codigo: ativo,
-        nome: data[0].Ativo,
-        op: newOP,
-      };
-      const newOrdens = [...ordens, newOrdem];
-      setOrdens(newOrdens);
-      calcularExcipientes(newOrdens);
+      codigo = data[0].Codigo_Receita;
+      nome = data[0].Ativo;
+      excipientesData = data;
     } else {
-      alert("Receita não encontrada");
+      // Busca por ativo
+      const { data, error } = await supabase
+        .from("DataBase_ems")
+        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .ilike("Ativo", `%${ativo}%`);
+
+      if (error || !data || data.length === 0) {
+        alert("Ativo não encontrado");
+        return;
+      }
+
+      codigo = data[0].Codigo_Receita;
+      nome = data[0].Ativo;
+      excipientesData = data;
     }
+
+    let op = null;
+    if (autoIncrementOP) {
+      op = initialOP ? parseInt(initialOP) : lastOP ? lastOP + 1 : 2213345;
+      setLastOP(op);
+      setInitialOP("");
+    }
+
+    const novaOrdem = {
+      id: uuidv4(),
+      codigo,
+      nome,
+      op,
+      excipientes: excipientesData.reduce((acc, item) => {
+        acc[item.Excipiente] = item.qtd_materia_prima;
+        return acc;
+      }, {}),
+    };
+
+    setOrdens((prevOrdens) => [...prevOrdens, novaOrdem]);
+    // Removemos a linha que limpa o input
+    // setAtivo("");
+
+    // Atualizar pesados
+    const newPesados = { ...pesados };
+    excipientesData.forEach((item) => {
+      if (!newPesados[item.Excipiente]) {
+        newPesados[item.Excipiente] = {};
+      }
+      newPesados[item.Excipiente][novaOrdem.id] = false;
+    });
+    setPesados(newPesados);
+
+    // Recalcular excipientes
+    await calcularExcipientes([...ordens, novaOrdem], newPesados);
   };
 
   const handleRemoveOrdem = (index) => {
@@ -482,7 +523,7 @@ export default function Home() {
         .eq("Codigo_Receita", ordem.codigo);
 
       if (error) {
-        alert(error.message);
+        alert("Erro ao calcular excipientes: " + error.message);
         return;
       }
 
@@ -728,6 +769,27 @@ export default function Home() {
     calcularExcipientes(ordens.filter((ordem) => ordem.id !== ordemId));
   };
 
+  const toggleAddMode = () => {
+    setAddMode((prevMode) => (prevMode === "codigo" ? "ativo" : "codigo"));
+    setAtivo(""); // Limpar o campo ao mudar o modo
+  };
+
+  // Adicione esta função para buscar ativos
+  const fetchAtivos = async (searchTerm) => {
+    const { data, error } = await supabase
+      .from("DataBase_ems")
+      .select("Ativo")
+      .ilike("Ativo", `%${searchTerm}%`)
+      .limit(10);
+
+    if (error) {
+      console.error("Erro ao buscar ativos:", error);
+      return [];
+    }
+
+    return data.map((item) => item.Ativo);
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -760,7 +822,7 @@ export default function Home() {
           <Toolbar variant="dense">
             <IconButton
               edge="start"
-              color="inherit" // Mude para "inherit"
+              color="inherit"
               aria-label="menu"
               onClick={toggleDrawer(true)}
               size="small"
@@ -771,7 +833,7 @@ export default function Home() {
             <Typography
               variant="h6"
               component="div"
-              sx={{ flexGrow: 1, fontWeight: "bold", color: "inherit" }} // Mude para "inherit"
+              sx={{ flexGrow: 1, fontWeight: "bold", color: "inherit" }}
             >
               Pesagem
             </Typography>
@@ -779,89 +841,83 @@ export default function Home() {
           </Toolbar>
         </AppHeader>
         <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
-        <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
-          <SidebarContainer>
-            <Box sx={{ p: 3 }}>
+        <MainContent>
+          <ContentCard>
+            <Box sx={{ mb: 2 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
                 Gestão de Ordens
               </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Código Receita"
-                value={ativo}
-                onChange={(e) => setAtivo(e.target.value)}
-                onKeyPress={handleKeyPress}
-                size="small"
-                margin="dense"
-                variant="outlined"
-              />
-              <Box sx={{ display: "flex", alignItems: "center", mt: 2, mb: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={autoIncrementOP}
-                      onChange={toggleAutoIncrementOP}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  mb: 2,
+                  width: "100%",
+                }}
+              >
+                <Box sx={{ mb: 1 }}>
+                  {addMode === "codigo" ? (
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Código Receita"
+                      value={ativo}
+                      onChange={(e) => setAtivo(e.target.value)}
+                      onKeyPress={handleKeyPress}
                       size="small"
-                      color="primary"
+                      margin="dense"
+                      variant="outlined"
                     />
-                  }
-                  label="Auto add OP"
-                  sx={{ mr: 2 }}
-                />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddOrdem}
-                  size="small"
-                  sx={{ flexGrow: 1 }}
-                >
-                  Adicionar Ordem
-                </Button>
-              </Box>
-              {autoIncrementOP && (
-                <>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="OP Inicial"
-                    value={initialOP}
-                    onChange={(e) => setInitialOP(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    size="small"
-                    margin="dense"
+                  ) : (
+                    <Autocomplete
+                      label="Ativo"
+                      value={ativo}
+                      onChange={setAtivo}
+                      onKeyPress={handleKeyPress}
+                      size="small"
+                      margin="dense"
+                      variant="outlined"
+                      fullWidth
+                    />
+                  )}
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Button
                     variant="outlined"
-                  />
-                  <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                    <Typography variant="caption" sx={{ flexGrow: 1 }}>
-                      Próxima OP:{" "}
-                      {initialOP
-                        ? parseInt(initialOP) + 1
-                        : lastOP
-                        ? lastOP + 1
-                        : 2213345}
-                    </Typography>
-                    <Button size="small" onClick={resetOP}>
-                      Reset
-                    </Button>
-                  </Box>
-                </>
-              )}
+                    onClick={toggleAddMode}
+                    size="small"
+                    sx={{ mr: 1, flexGrow: 1 }}
+                  >
+                    {addMode === "codigo"
+                      ? "Buscar por Ativo"
+                      : "Buscar por Código"}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleAddOrdem}
+                    size="small"
+                    sx={{ flexGrow: 1 }}
+                  >
+                    Adicionar Ordem
+                  </Button>
+                </Box>
+              </Box>
             </Box>
-            <Divider />
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Ordens Adicionadas
+            </Typography>
             <List dense component="nav" aria-label="ordens adicionadas">
               {ordens.map((ordem) => (
                 <ListItem
                   key={ordem.id}
                   button
-                  selected={selectedOrdem && selectedOrdem.id === ordem.id}
-                  onClick={() => handleOrdemClick(ordem)}
                   sx={{
                     borderRadius: 1,
                     mb: 1,
-                    "&.Mui-selected": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    },
+                    backgroundColor: alpha(theme.palette.background.paper, 0.7),
                   }}
                 >
                   <ListItemText
@@ -894,356 +950,71 @@ export default function Home() {
                     secondary={`Código: ${ordem.codigo}`}
                   />
                   <ListItemSecondaryAction>
-                    {!ordem.op && (
-                      <IconButton
-                        edge="end"
-                        aria-label="add-op"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDialog(ordem.id);
-                        }}
-                      >
-                        <AddCircleOutlineIcon />
-                      </IconButton>
-                    )}
-                    <IconButton
+                    <Checkbox
                       edge="end"
-                      aria-label="edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditOrdem(ordem);
-                      }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteOrdem(ordem.id);
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                      onChange={() => handleToggleOrdemPesada(ordem)}
+                      checked={false}
+                    />
                   </ListItemSecondaryAction>
                 </ListItem>
               ))}
             </List>
-          </SidebarContainer>
-          <MainContent>
-            <ContentCard>
-              <Box sx={{ mb: 2, display: "flex", alignItems: "center" }}>
-                {selectedOrdem ? (
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1,
-                      backgroundColor: alpha(theme.palette.primary.light, 0.1),
-                      borderRadius: 1,
-                      mr: 2,
-                    }}
-                  >
-                    <Table size="small">
-                      <TableBody>
-                        <TableRow>
-                          <TableCell
-                            component="th"
-                            scope="row"
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Ordens Pesadas
+            </Typography>
+            <List dense component="nav" aria-label="ordens pesadas">
+              {ordensPesadas.map((ordem) => (
+                <ListItem
+                  key={ordem.id}
+                  button
+                  sx={{
+                    borderRadius: 1,
+                    mb: 1,
+                    backgroundColor: alpha(theme.palette.success.main, 0.1),
+                  }}
+                >
+                  <ListItemText
+                    primary={
+                      <>
+                        {ordem.op && (
+                          <Typography
+                            variant="caption"
                             sx={{
                               fontWeight: "bold",
-                              border: "none",
-                              pr: 1,
-                              pl: 0,
+                              color: theme.palette.success.main,
+                              backgroundColor: alpha(
+                                theme.palette.success.main,
+                                0.1
+                              ),
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              display: "inline-block",
+                              mb: 0.5,
                             }}
                           >
-                            Filtrando:
-                          </TableCell>
-                          <TableCell sx={{ border: "none", pl: 1 }}>
-                            {selectedOrdem.nome}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell
-                            component="th"
-                            scope="row"
-                            sx={{
-                              fontWeight: "bold",
-                              border: "none",
-                              pr: 1,
-                              pl: 0,
-                            }}
-                          >
-                            OPs:
-                          </TableCell>
-                          <TableCell sx={{ border: "none", pl: 1 }}>
-                            {getFilterInfo()
-                              .split(", ")
-                              .map((op, index) => (
-                                <React.Fragment key={op}>
-                                  {index > 0 && ", "}
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color: theme.palette.primary.main,
-                                      backgroundColor: alpha(
-                                        theme.palette.primary.main,
-                                        0.1
-                                      ),
-                                      padding: "2px 6px",
-                                      borderRadius: "4px",
-                                      display: "inline-block",
-                                    }}
-                                  >
-                                    OP: {op}
-                                  </Typography>
-                                </React.Fragment>
-                              ))}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </Paper>
-                ) : (
-                  <Typography variant="h6">Todos os itens</Typography>
-                )}
-              </Box>
-              <StyledTableContainer>
-                <Table size="small">
-                  <StyledTableHead>
-                    <TableRow>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={toggleAllExcipients}
-                          sx={{ color: "inherit", marginRight: 1 }}
-                        >
-                          {allExpanded ? (
-                            <ExpandLessIcon fontSize="small" />
-                          ) : (
-                            <ExpandMoreIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                        Excipiente
-                      </TableCell>
-                      <TableCell align="right">Qtd. Total (Kg)</TableCell>
-                      <TableCell padding="checkbox">Detalhes</TableCell>
-                    </TableRow>
-                  </StyledTableHead>
-                  <TableBody>
-                    {Object.entries(filteredExcipientes).map(
-                      ([excipient, { total, ordens, totalNaoPesado }]) => {
-                        const allPesado = ordens.every((ordem) => ordem.pesado);
-                        return (
-                          <React.Fragment key={excipient}>
-                            <StyledTableRow
-                              hover
-                              onClick={() => handleExcipientClick(excipient)}
-                              sx={{
-                                cursor: "pointer",
-                                backgroundColor: allPesado
-                                  ? "rgba(0, 0, 0, 0.1)"
-                                  : "inherit",
-                              }}
-                            >
-                              <TableCell component="th" scope="row">
-                                <Typography
-                                  variant="body2"
-                                  color={
-                                    allPesado
-                                      ? "text.secondary"
-                                      : [
-                                          "LACTOSE (200)",
-                                          "LACTOSE (50/70)",
-                                          "AMIDO DE MILHO PREGELATINIZADO",
-                                          "CELULOSE MIC (TIPO200)",
-                                          "CELULOSE MIC.(TIPO102)",
-                                          "FOSF.CAL.DIB.(COMPDIRETA)",
-                                          "AMIDO",
-                                          "CELULOSE+LACTOSE",
-                                        ].includes(excipient)
-                                      ? "secondary"
-                                      : "primary"
-                                  }
-                                >
-                                  {excipient}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2">
-                                  {allPesado ? (
-                                    <Chip
-                                      label="Pesado"
-                                      size="small"
-                                      color="default"
-                                    />
-                                  ) : (
-                                    `${totalNaoPesado.toFixed(3)} kg`
-                                  )}
-                                </Typography>
-                              </TableCell>
-                              <TableCell padding="checkbox">
-                                <IconButton
-                                  size="small"
-                                  onClick={() =>
-                                    handleToggleExpandExcipient(excipient)
-                                  }
-                                >
-                                  {expandedExcipient === excipient ? (
-                                    <ExpandLessIcon fontSize="small" />
-                                  ) : (
-                                    <ExpandMoreIcon fontSize="small" />
-                                  )}
-                                </IconButton>
-                              </TableCell>
-                            </StyledTableRow>
-                            <TableRow>
-                              <TableCell
-                                style={{ paddingBottom: 0, paddingTop: 0 }}
-                                colSpan={3}
-                              >
-                                <Collapse
-                                  in={
-                                    expandedExcipient === excipient ||
-                                    allExpanded
-                                  }
-                                  timeout="auto"
-                                  unmountOnExit
-                                >
-                                  <Box sx={{ my: 1 }}>
-                                    <Table size="small" aria-label="purchases">
-                                      <TableHead>
-                                        <TableRow
-                                          sx={{
-                                            backgroundColor:
-                                              theme.palette.secondary.light,
-                                          }}
-                                        >
-                                          <TableCell>OP</TableCell>
-                                          <TableCell>Código</TableCell>
-                                          <TableCell>Nome</TableCell>
-                                          <TableCell align="right">
-                                            Quantidade (kg)
-                                          </TableCell>
-                                          <TableCell align="center">
-                                            Pesado
-                                          </TableCell>
-                                        </TableRow>
-                                      </TableHead>
-                                      <TableBody>
-                                        {ordens.map((ordem) => (
-                                          <TableRow
-                                            key={ordem.id}
-                                            sx={{
-                                              backgroundColor: ordem.pesado
-                                                ? "rgba(0, 0, 0, 0.1)"
-                                                : "inherit",
-                                              "&:hover": {
-                                                backgroundColor: ordem.pesado
-                                                  ? "rgba(0, 0, 0, 0.2)"
-                                                  : "rgba(0, 0, 0, 0.04)",
-                                              },
-                                            }}
-                                          >
-                                            <TableCell>
-                                              <Typography variant="caption">
-                                                {ordem.op || "-"}
-                                              </Typography>
-                                            </TableCell>
-                                            <TableCell
-                                              component="th"
-                                              scope="row"
-                                            >
-                                              <Typography variant="caption">
-                                                {ordem.codigo}
-                                              </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Typography variant="caption">
-                                                {ordem.nome}
-                                              </Typography>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                              <Typography variant="caption">
-                                                {ordem.quantidade.toFixed(3)} kg
-                                              </Typography>
-                                            </TableCell>
-                                            <TableCell align="center">
-                                              <IconButton
-                                                size="small"
-                                                onClick={() =>
-                                                  togglePesado(
-                                                    excipient,
-                                                    ordem.id
-                                                  )
-                                                }
-                                                color={
-                                                  ordem.pesado
-                                                    ? "primary"
-                                                    : "default"
-                                                }
-                                              >
-                                                <CheckCircleIcon fontSize="small" />
-                                              </IconButton>
-                                              {ordem.pesado && (
-                                                <Chip
-                                                  label="Pesado"
-                                                  size="small"
-                                                  color="primary"
-                                                  sx={{ ml: 1 }}
-                                                />
-                                              )}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </Box>
-                                </Collapse>
-                              </TableCell>
-                            </TableRow>
-                          </React.Fragment>
-                        );
-                      }
-                    )}
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        sx={{
-                          borderTop: `2px solid ${theme.palette.primary.main}`,
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          fontWeight="bold"
-                          color="primary"
-                        >
-                          Movimentação total:{" "}
-                          {calcularMovimentacaoTotal().toFixed(3)} kg
+                            OP: {ordem.op}
+                          </Typography>
+                        )}
+                        <Typography variant="body2" component="div">
+                          {ordem.nome}
                         </Typography>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={filtrarExcipientesEspeciais}
-                        onChange={(e) =>
-                          setFiltrarExcipientesEspeciais(e.target.checked)
-                        }
-                        color="primary"
-                      />
+                      </>
                     }
-                    label="Filtrar itens comuns da PA"
+                    secondary={`Código: ${ordem.codigo}`}
                   />
-                </Box>
-              </StyledTableContainer>
-            </ContentCard>
-          </MainContent>
-        </Box>
+                  <ListItemSecondaryAction>
+                    <Checkbox
+                      edge="end"
+                      onChange={() => handleToggleOrdemPesada(ordem)}
+                      checked={true}
+                    />
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          </ContentCard>
+        </MainContent>
       </AppContainer>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
