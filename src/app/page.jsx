@@ -532,7 +532,15 @@ export default function Home() {
         console.error("Erro ao salvar o estado no Supabase:", error);
       }
     },
-    [ordens, excipientes, expandedExcipient, selectedOrdem, pesados, materiaisNaArea, inputValues] // Adicione inputValues aqui
+    [
+      ordens,
+      excipientes,
+      expandedExcipient,
+      selectedOrdem,
+      pesados,
+      materiaisNaArea,
+      inputValues,
+    ] // Adicione inputValues aqui
   );
 
   useEffect(() => {
@@ -580,10 +588,11 @@ export default function Home() {
     let codigo, nome, excipientesData;
 
     if (addMode === "codigo") {
-      // Busca por código
       const { data, error } = await supabase
         .from("DataBase_ems")
-        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .select(
+          "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
+        )
         .eq("Codigo_Receita", ativo);
 
       if (error || !data || data.length === 0) {
@@ -598,7 +607,9 @@ export default function Home() {
       // Busca por ativo
       const { data, error } = await supabase
         .from("DataBase_ems")
-        .select("Codigo_Receita, Ativo, Excipiente, qtd_materia_prima")
+        .select(
+          "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
+        )
         .ilike("Ativo", `%${ativo}%`);
 
       if (error || !data || data.length === 0) {
@@ -624,7 +635,10 @@ export default function Home() {
       nome,
       op,
       excipientes: excipientesData.reduce((acc, item) => {
-        acc[item.Excipiente] = item.qtd_materia_prima;
+        acc[item.Excipiente] = {
+          quantidade: item.qtd_materia_prima,
+          codigo: item.codigo_materia_prima,
+        };
         return acc;
       }, {}),
     };
@@ -791,27 +805,31 @@ export default function Home() {
     for (let ordem of ordensAtuais) {
       const { data, error } = await supabase
         .from("DataBase_ems")
-        .select("Excipiente, qtd_materia_prima")
+        .select("Excipiente, qtd_materia_prima, codigo_materia_prima")
         .eq("Codigo_Receita", ordem.codigo);
 
       if (error) {
-        alert("Erro ao calcular excipientes: " + error.message);
+        console.error("Erro ao buscar excipientes:", error);
         return;
       }
 
       data.forEach((item) => {
+        const codigoMateriaPrima = String(item.codigo_materia_prima);
+        const codigoExcipiente =
+          codigoMateriaPrima && codigoMateriaPrima.startsWith("1")
+            ? "0" + codigoMateriaPrima
+            : codigoMateriaPrima;
+
         if (!newExcipientes[item.Excipiente]) {
           newExcipientes[item.Excipiente] = {
             total: 0,
-            totalNaoPesado: 0,
             ordens: [],
+            codigo: codigoExcipiente,
           };
         }
         // Só adiciona ao total e totalNaoPesado se não estiver pesado
         if (!pesadosAtual[item.Excipiente]?.[ordem.id]) {
           newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
-          newExcipientes[item.Excipiente].totalNaoPesado +=
-            item.qtd_materia_prima;
         }
         newExcipientes[item.Excipiente].ordens.push({
           id: ordem.id,
@@ -827,9 +845,6 @@ export default function Home() {
     // Arredonda os totais para 3 casas decimais
     Object.keys(newExcipientes).forEach((key) => {
       newExcipientes[key].total = Number(newExcipientes[key].total.toFixed(3));
-      newExcipientes[key].totalNaoPesado = Number(
-        newExcipientes[key].totalNaoPesado.toFixed(3)
-      );
     });
 
     setExcipientes(newExcipientes);
@@ -1037,27 +1052,30 @@ export default function Home() {
   };
 
   // Função para atualizar a quantidade de materiais na área
-  const handleMateriaisNaAreaChange = useCallback((excipient, value) => {
-    setInputValues((prev) => ({
-      ...prev,
-      [excipient]: value,
-    }));
+  const handleMateriaisNaAreaChange = useCallback(
+    (excipient, value) => {
+      setInputValues((prev) => ({
+        ...prev,
+        [excipient]: value,
+      }));
 
-    const formattedValue = value === "" ? null : parseFloat(value).toFixed(3);
-    setMateriaisNaArea((prev) => {
-      const newState = { ...prev };
-      if (formattedValue === null) {
-        delete newState[excipient];
-      } else {
-        newState[excipient] = parseFloat(formattedValue);
+      const formattedValue = value === "" ? null : parseFloat(value).toFixed(3);
+      setMateriaisNaArea((prev) => {
+        const newState = { ...prev };
+        if (formattedValue === null) {
+          delete newState[excipient];
+        } else {
+          newState[excipient] = parseFloat(formattedValue);
+        }
+        return newState;
+      });
+
+      if (user) {
+        saveState(user.id);
       }
-      return newState;
-    });
-
-    if (user) {
-      saveState(user.id);
-    }
-  }, [user, saveState]);
+    },
+    [user, saveState]
+  );
 
   useEffect(() => {
     const timers = {};

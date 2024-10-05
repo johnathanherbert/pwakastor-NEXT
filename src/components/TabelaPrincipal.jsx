@@ -292,11 +292,35 @@ const TabelaPrincipal = ({
     handleOpenOrdensDialog(excipient);
   };
 
+  // Adicione esta função para calcular o total considerando os filtros
+  const calcularTotalConsiderandoFiltros = () => {
+    return Object.values(filteredExcipientes).reduce((total, { ordens }) => {
+      const totalOrdens = ordens.reduce((sum, ordem) => {
+        // Só adiciona ao total se não estiver pesado
+        if (!ordem.pesado) {
+          return sum + ordem.quantidade;
+        }
+        return sum;
+      }, 0);
+      return total + totalOrdens;
+    }, 0);
+  };
+
   return (
     <StyledTableContainer>
       <Table size="small" sx={{ minWidth: 650 }}>
         <StyledTableHead>
           <TableRow>
+            <TableCell
+              sx={{
+                fontWeight: "bold",
+                fontSize: "0.75rem",
+                padding: "8px",
+                color: theme.palette.primary.main,
+              }}
+            >
+              Código
+            </TableCell>
             <TableCell
               sx={{
                 fontWeight: "bold",
@@ -351,24 +375,16 @@ const TabelaPrincipal = ({
             >
               Status
             </TableCell>
-            <TableCell
-              padding="checkbox"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Detalhes
-            </TableCell>
           </TableRow>
         </StyledTableHead>
         <TableBody>
           {Object.entries(filteredExcipientes).map(
-            ([excipient, { total, ordens, totalNaoPesado }]) => {
+            ([excipient, { total, ordens, codigo }]) => {
               const naArea = materiaisNaArea[excipient] || 0;
-              const faltaSolicitarValue = faltaSolicitar[excipient] || 0;
+              // Calcular totalNaoPesado considerando apenas as ordens não pesadas
+              const totalNaoPesado = ordens.reduce((sum, ordem) => {
+                return sum + (ordem.pesado ? 0 : ordem.quantidade);
+              }, 0);
               const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
               return (
                 <React.Fragment key={excipient}>
@@ -394,13 +410,22 @@ const TabelaPrincipal = ({
                         fontWeight: "medium",
                       }}
                     >
+                      {codigo}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        padding: "8px",
+                        fontSize: "0.75rem",
+                        fontWeight: "medium",
+                      }}
+                    >
                       {excipient}
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{ padding: "8px", fontSize: "0.75rem" }}
                     >
-                      {total.toFixed(3) + " kg"}
+                      {totalNaoPesado.toFixed(3) + " kg"}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -419,23 +444,52 @@ const TabelaPrincipal = ({
                             <InputAdornment position="end">Kg</InputAdornment>
                           ),
                         }}
-                        sx={{ width: "80px" }}
+                        sx={{
+                          width: "100px", // Aumentado de 80px para 100px
+                          "& .MuiInputBase-input": {
+                            padding: "8px 12px", // Ajustado o padding interno
+                          },
+                        }}
                       />
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{
-                        padding: "8px",
-                        fontSize: "0.75rem",
+                        padding: "6px", // Reduzido o padding para melhor disposição
+                        fontSize: "0.7rem", // Fonte ligeiramente reduzida
                         fontWeight: "bold",
-                        color: theme.palette.error.main,
                       }}
                     >
-                      {typeof faltaSolicitarValue === "number"
-                        ? `${faltaSolicitarValue.toFixed(3)} Kg`
-                        : (faltaSolicitarValue &&
-                            `${faltaSolicitarValue} Kg`) ||
-                          "0.000 Kg"}
+                      {(() => {
+                        const faltaSolicitarValue = totalNaoPesado - naArea;
+                        if (faltaSolicitarValue > 0 || naArea === 0) {
+                          // Se falta solicitar ou está zerado, exibe em vermelho
+                          return (
+                            <Typography
+                              sx={{
+                                color: theme.palette.error.main,
+                                fontWeight: "bold",
+                                fontSize: "0.7rem", // Fonte ligeiramente reduzida
+                              }}
+                            >
+                              {faltaSolicitarValue.toFixed(3)} Kg
+                            </Typography>
+                          );
+                        } else {
+                          // Se há material suficiente ou excedente, exibe em verde
+                          return (
+                            <Typography
+                              sx={{
+                                color: theme.palette.success.main,
+                                fontWeight: "bold",
+                                fontSize: "0.7rem", // Fonte ligeiramente reduzida
+                              }}
+                            >
+                              {naArea.toFixed(3)} Kg
+                            </Typography>
+                          );
+                        }
+                      })()}
                     </TableCell>
                     <TableCell align="center" sx={{ padding: "8px" }}>
                       <Chip
@@ -460,16 +514,11 @@ const TabelaPrincipal = ({
                         }}
                       />
                     </TableCell>
-                    <TableCell padding="checkbox" sx={{ padding: "8px" }}>
-                      <Typography variant="body2" sx={{ cursor: "pointer" }}>
-                        Detalhes
-                      </Typography>
-                    </TableCell>
                   </StyledTableRow>
                   <StyledExpandedRow>
                     <TableCell
                       style={{ paddingBottom: 0, paddingTop: 0 }}
-                      colSpan={6}
+                      colSpan={6} // Ajustado para 6 para acomodar a nova coluna
                     >
                       <Collapse
                         in={expandedExcipient === excipient || allExpanded}
@@ -497,7 +546,7 @@ const TabelaPrincipal = ({
                               marginBottom: "12px",
                             }}
                           >
-                            Detalhes do Excipiente: {excipient}
+                            Detalhes do Excipiente: {codigo} - {excipient}
                           </Typography>
                           <Table
                             size="small"
@@ -515,6 +564,15 @@ const TabelaPrincipal = ({
                                   ),
                                 }}
                               >
+                                <TableCell
+                                  sx={{
+                                    fontWeight: "bold",
+                                    fontSize: "0.75rem",
+                                    color: theme.palette.primary.main,
+                                  }}
+                                >
+                                  Código
+                                </TableCell>
                                 <TableCell
                                   sx={{
                                     fontWeight: "bold",
@@ -575,6 +633,14 @@ const TabelaPrincipal = ({
                                     },
                                   }}
                                 >
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    {ordem.codigo}{" "}
+                                    {/* Alterado para exibir o código da receita */}
+                                  </TableCell>
                                   <TableCell
                                     component="th"
                                     scope="row"
@@ -685,7 +751,8 @@ const TabelaPrincipal = ({
               }}
             >
               <Typography variant="body2" fontWeight="bold" color="primary">
-                Movimentação total: {calcularMovimentacaoTotal().toFixed(3)} kg
+                Movimentação total:{" "}
+                {calcularTotalConsiderandoFiltros().toFixed(3)} kg
               </Typography>
             </TableCell>
           </TableRow>
