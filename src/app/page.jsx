@@ -1,7 +1,7 @@
 // pages/index.js
 "use client";
 import React from "react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 
@@ -61,16 +61,14 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import WarningIcon from "@mui/icons-material/Warning";
 import CheckIcon from "@mui/icons-material/Check";
 import ErrorIcon from "@mui/icons-material/Error";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ScaleIcon from "@mui/icons-material/Scale";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
 
 // Custom components
 import Autocomplete from "../components/Autocomplete";
 import Sidebar from "../components/Sidebar";
 import UserMenu from "../components/UserMenu";
-import ExcipientDetailDialog from "../components/ExcipientDetailDialog";
+import TabelaPrincipal from "../components/TabelaPrincipal";
+import DetalhamentoMateriais from "../components/DetalhamentoMateriais";
 
 // Supabase client
 import { supabase } from "../supabaseClient";
@@ -383,6 +381,8 @@ export default function Home() {
 
   const [darkMode, setDarkMode] = useState(false);
 
+  const inputRef = useRef(null);
+
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
     if (savedMode) {
@@ -459,7 +459,6 @@ export default function Home() {
 
   const loadState = useCallback(async (userId) => {
     try {
-      // Primeiro, tenta carregar do Supabase
       const { data, error } = await supabase
         .from("app_state")
         .select("state")
@@ -477,18 +476,18 @@ export default function Home() {
           expandedExcipient,
           selectedOrdem,
           pesados,
-          materiaisNaArea, // Adicione esta linha
+          materiaisNaArea,
+          inputValues, // Adicione esta linha
         } = data.state;
         setOrdens(ordens || []);
         setExcipientes(excipientes || {});
         setExpandedExcipient(expandedExcipient || null);
         setSelectedOrdem(selectedOrdem || null);
         setPesados(pesados || {});
-        setMateriaisNaArea(materiaisNaArea || {}); // Adicione esta linha
-        // Atualiza o localStorage com o estado do Supabase
+        setMateriaisNaArea(materiaisNaArea || {});
+        setInputValues(inputValues || {}); // Adicione esta linha
         localStorage.setItem(`appState_${userId}`, JSON.stringify(data.state));
       } else {
-        // Se não houver dados no Supabase, tenta carregar do localStorage
         const storedState = localStorage.getItem(`appState_${userId}`);
         if (storedState) {
           const parsedState = JSON.parse(storedState);
@@ -497,18 +496,19 @@ export default function Home() {
           setExpandedExcipient(parsedState.expandedExcipient || null);
           setSelectedOrdem(parsedState.selectedOrdem || null);
           setPesados(parsedState.pesados || {});
-          setMateriaisNaArea(parsedState.materiaisNaArea || {}); // Adicione esta linha
+          setMateriaisNaArea(parsedState.materiaisNaArea || {});
+          setInputValues(parsedState.inputValues || {}); // Adicione esta linha
         }
       }
     } catch (error) {
       console.error("Erro ao carregar o estado:", error);
-      // Inicialize com valores padrão em caso de erro
       setOrdens([]);
       setExcipientes({});
       setExpandedExcipient(null);
       setSelectedOrdem(null);
       setPesados({});
-      setMateriaisNaArea({}); // Adicione esta linha
+      setMateriaisNaArea({});
+      setInputValues({}); // Adicione esta linha
     }
   }, []);
 
@@ -520,11 +520,10 @@ export default function Home() {
         expandedExcipient,
         selectedOrdem,
         pesados,
-        materiaisNaArea, // Adicione esta linha
+        materiaisNaArea,
+        inputValues, // Adicione esta linha
       };
-      // Salva no localStorage
       localStorage.setItem(`appState_${userId}`, JSON.stringify(stateToSave));
-      // Salva no Supabase
       try {
         await supabase
           .from("app_state")
@@ -533,14 +532,7 @@ export default function Home() {
         console.error("Erro ao salvar o estado no Supabase:", error);
       }
     },
-    [
-      ordens,
-      excipientes,
-      expandedExcipient,
-      selectedOrdem,
-      pesados,
-      materiaisNaArea,
-    ] // Adicione materiaisNaArea aqui
+    [ordens, excipientes, expandedExcipient, selectedOrdem, pesados, materiaisNaArea, inputValues] // Adicione inputValues aqui
   );
 
   useEffect(() => {
@@ -570,11 +562,17 @@ export default function Home() {
     expandedExcipient,
     selectedOrdem,
     pesados,
-    materiaisNaArea, // Adicione esta linha
+    materiaisNaArea,
     isLoading,
     saveState,
     user,
   ]);
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      saveState(user.id);
+    }
+  }, [materiaisNaArea, user, isLoading, saveState]);
 
   const handleAddOrdem = async () => {
     if (!ativo) return;
@@ -647,6 +645,11 @@ export default function Home() {
 
     // Recalcular excipientes
     await calcularExcipientes([...ordens, novaOrdem], newPesados);
+
+    // Manter o foco no input
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const handleRemoveOrdem = (index) => {
@@ -804,8 +807,9 @@ export default function Home() {
             ordens: [],
           };
         }
-        newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
+        // Só adiciona ao total e totalNaoPesado se não estiver pesado
         if (!pesadosAtual[item.Excipiente]?.[ordem.id]) {
+          newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
           newExcipientes[item.Excipiente].totalNaoPesado +=
             item.qtd_materia_prima;
         }
@@ -1038,7 +1042,22 @@ export default function Home() {
       ...prev,
       [excipient]: value,
     }));
-  }, []);
+
+    const formattedValue = value === "" ? null : parseFloat(value).toFixed(3);
+    setMateriaisNaArea((prev) => {
+      const newState = { ...prev };
+      if (formattedValue === null) {
+        delete newState[excipient];
+      } else {
+        newState[excipient] = parseFloat(formattedValue);
+      }
+      return newState;
+    });
+
+    if (user) {
+      saveState(user.id);
+    }
+  }, [user, saveState]);
 
   useEffect(() => {
     const timers = {};
@@ -1098,38 +1117,48 @@ export default function Home() {
     setSelectedExcipientDetail(null);
   };
 
-  const getOrdensAtendidas = (excipient) => {
-    const naArea = materiaisNaArea[excipient] || 0;
-    let quantidadeRestante = naArea;
-    const ordensAtendidas = [];
-    const ordensNaoAtendidas = [];
-
-    // Função auxiliar para comparar OPs de forma segura
-    const compareOPs = (a, b) => {
-      if (a.op && b.op) {
-        return a.op.toString().localeCompare(b.op.toString());
+  const getOrdensAtendidas = useCallback(
+    (excipient) => {
+      if (!filteredExcipientes[excipient]) {
+        console.warn(`Excipiente não encontrado: ${excipient}`);
+        return { ordensAtendidas: [], ordensNaoAtendidas: [] };
       }
-      if (a.op) return -1;
-      if (b.op) return 1;
-      return 0;
-    };
 
-    // Ordena as ordens de forma segura
-    const ordensOrdenadas = [...filteredExcipientes[excipient].ordens].sort(
-      compareOPs
-    );
+      const naArea = materiaisNaArea[excipient] || 0;
+      let quantidadeRestante = naArea;
+      const ordensAtendidas = [];
+      const ordensNaoAtendidas = [];
 
-    ordensOrdenadas.forEach((ordem) => {
-      if (quantidadeRestante >= ordem.quantidade) {
-        ordensAtendidas.push(ordem);
-        quantidadeRestante -= ordem.quantidade;
-      } else {
-        ordensNaoAtendidas.push(ordem);
-      }
-    });
+      // Função auxiliar para comparar OPs de forma segura
+      const compareOPs = (a, b) => {
+        if (a.op && b.op) {
+          return a.op.toString().localeCompare(b.op.toString());
+        }
+        if (a.op) return -1;
+        if (b.op) return 1;
+        return 0;
+      };
 
-    return { ordensAtendidas, ordensNaoAtendidas };
-  };
+      // Ordena as ordens de forma segura
+      const ordensOrdenadas = [
+        ...(filteredExcipientes[excipient].ordens || []),
+      ].sort(compareOPs);
+
+      ordensOrdenadas.forEach((ordem) => {
+        if (ordem.pesado) {
+          ordensAtendidas.push(ordem);
+        } else if (quantidadeRestante >= ordem.quantidade) {
+          ordensAtendidas.push(ordem);
+          quantidadeRestante -= ordem.quantidade;
+        } else {
+          ordensNaoAtendidas.push(ordem);
+        }
+      });
+
+      return { ordensAtendidas, ordensNaoAtendidas };
+    },
+    [filteredExcipientes, materiaisNaArea]
+  );
 
   const getAtivoStatus = (ativo) => {
     const excipientes = Object.entries(filteredExcipientes).filter(
@@ -1142,10 +1171,8 @@ export default function Home() {
     excipientes.forEach(([excipient, data]) => {
       const ordensDoAtivo = data.ordens.filter((ordem) => ordem.nome === ativo);
       ordensDoAtivo.forEach((ordem) => {
-        totalNecessario += ordem.quantidade;
-        if (ordem.pesado) {
-          totalDisponivel += ordem.quantidade;
-        } else {
+        if (!ordem.pesado) {
+          totalNecessario += ordem.quantidade;
           totalDisponivel += Math.min(
             materiaisNaArea[excipient] || 0,
             ordem.quantidade
@@ -1239,6 +1266,23 @@ export default function Home() {
       return [selectedOrdem.nome];
     }
     return [...new Set(ordens.map((ordem) => ordem.nome))];
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pesado":
+        return alpha(theme.palette.success.main, 0.1);
+      case "ok":
+        return alpha(theme.palette.success.main, 0.1);
+      case status.startsWith("atende") ? status : "":
+        return alpha(theme.palette.warning.main, 0.1);
+      case "warning":
+        return alpha(theme.palette.warning.main, 0.1);
+      case "error":
+        return alpha(theme.palette.error.main, 0.1);
+      default:
+        return alpha(theme.palette.grey[300], 0.1);
+    }
   };
 
   if (isLoading) {
@@ -1506,443 +1550,89 @@ export default function Home() {
             </List>
           </SidebarContainer>
           <MainContent>
-            <Box
-              sx={{ display: "flex", flexDirection: "column", height: "100%" }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Typography
-                variant="h5"
+                variant="h6"
                 gutterBottom
-                sx={{ fontWeight: "bold", mb: 3 }}
+                sx={{
+                  fontWeight: "bold",
+                  color: theme.palette.primary.main,
+                  mb: 2,
+                }}
               >
                 Gestão de Materiais
               </Typography>
-              {selectedOrdem && (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    mb: 3,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    borderRadius: 2,
-                  }}
-                >
+              <Box
+                sx={{
+                  display: "flex",
+                  backgroundColor: theme.palette.background.paper,
+                  borderRadius: "4px", // Reduzido o arredondamento
+                  overflow: "visible", // Alterado para 'visible' para evitar cortes
+                  border: `1px solid ${theme.palette.divider}`,
+                }}
+              >
+                <Box sx={{ width: "65%", p: 1 }}>
+                  {" "}
                   <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: "bold", mb: 1 }}
-                  >
-                    Filtrando por Ativo: {selectedOrdem.nome}
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {getFilterInfo()
-                      .split(", ")
-                      .map((op, index) => (
-                        <Typography
-                          key={index}
-                          variant="caption"
-                          sx={{
-                            fontWeight: "bold",
-                            color: theme.palette.primary.main,
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              0.1
-                            ),
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            display: "inline-block",
-                          }}
-                        >
-                          OP: {op}
-                        </Typography>
-                      ))}
-                  </Box>
-                </Paper>
-              )}
-              <Box sx={{ display: "flex", gap: 4, flexGrow: 1 }}>
-                <Box
-                  sx={{
-                    width: "65%",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    gutterBottom
                     sx={{
                       fontWeight: "bold",
-                      color: theme.palette.primary.main,
-                      mb: 2,
+                      color: theme.palette.text.secondary,
+                      p: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
                     }}
                   >
                     Tabela Principal
                   </Typography>
-                  <StyledTableContainer sx={{ flexGrow: 1 }}>
-                    <Table size="small">
-                      <StyledTableHead>
-                        <TableRow>
-                          <TableCell>Excipiente</TableCell>
-                          <TableCell align="right">Qtd. Total (Kg)</TableCell>
-                          <TableCell align="right">Na Área (Kg)</TableCell>
-                          <TableCell align="right">
-                            Falta Solicitar (Kg)
-                          </TableCell>
-                          <TableCell align="center">Status</TableCell>
-                          <TableCell padding="checkbox">Detalhes</TableCell>
-                        </TableRow>
-                      </StyledTableHead>
-                      <TableBody>
-                        {Object.entries(filteredExcipientes).map(
-                          ([excipient, { total, ordens, totalNaoPesado }]) => {
-                            const naArea = materiaisNaArea[excipient] || 0;
-                            const faltaSolicitarValue =
-                              faltaSolicitar[excipient] || 0;
-                            const status = getExcipientStatus(
-                              naArea,
-                              totalNaoPesado,
-                              ordens
-                            );
-                            return (
-                              <React.Fragment key={excipient}>
-                                <StyledTableRow
-                                  hover
-                                  onClick={(event) =>
-                                    handleExcipientClick(excipient, event)
-                                  }
-                                  sx={{
-                                    cursor: "pointer",
-                                    backgroundColor:
-                                      status === "ok"
-                                        ? "rgba(0, 255, 0, 0.1)"
-                                        : status === "partial"
-                                        ? "rgba(255, 165, 0, 0.1)"
-                                        : status === "warning"
-                                        ? "rgba(255, 255, 0, 0.1)"
-                                        : "rgba(255, 0, 0, 0.1)",
-                                  }}
-                                >
-                                  <TableCell component="th" scope="row">
-                                    <Typography variant="body2" color="primary">
-                                      {excipient}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <Typography variant="body2">
-                                      {totalNaoPesado.toFixed(3)}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <StyledMaterialInput
-                                      size="small"
-                                      type="number"
-                                      value={
-                                        inputValues[excipient] !== undefined
-                                          ? inputValues[excipient]
-                                          : materiaisNaArea[excipient] || ""
-                                      }
-                                      onChange={(e) =>
-                                        handleMateriaisNaAreaChange(
-                                          excipient,
-                                          e.target.value
-                                        )
-                                      }
-                                      onBlur={(e) => {
-                                        const value = e.target.value;
-                                        if (
-                                          value !== "" &&
-                                          !isNaN(parseFloat(value))
-                                        ) {
-                                          const formattedValue =
-                                            parseFloat(value).toFixed(3);
-                                          setInputValues((prev) => ({
-                                            ...prev,
-                                            [excipient]: formattedValue,
-                                          }));
-                                        }
-                                      }}
-                                      variant="filled"
-                                      sx={{
-                                        width: "110px",
-                                        ...removeArrows,
-                                      }}
-                                      InputProps={{
-                                        disableUnderline: true,
-                                        endAdornment: (
-                                          <InputAdornment position="end">
-                                            Kg
-                                          </InputAdornment>
-                                        ),
-                                      }}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <Typography variant="body2" color="error">
-                                      {faltaSolicitarValue}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell
-                                    align="center"
-                                    onClick={() => handleDetailClick(excipient)}
-                                  >
-                                    {status === "ok" && (
-                                      <CheckIcon color="success" />
-                                    )}
-                                    {status === "partial" && (
-                                      <ScaleIcon color="warning" />
-                                    )}
-                                    {status === "warning" && (
-                                      <WarningIcon color="warning" />
-                                    )}
-                                    {status === "error" && (
-                                      <ErrorIcon color="error" />
-                                    )}
-                                  </TableCell>
-                                  <TableCell padding="checkbox">
-                                    <IconButton
-                                      size="small"
-                                      onClick={() =>
-                                        handleToggleExpandExcipient(excipient)
-                                      }
-                                    >
-                                      {expandedExcipient === excipient ? (
-                                        <ExpandLessIcon fontSize="small" />
-                                      ) : (
-                                        <ExpandMoreIcon fontSize="small" />
-                                      )}
-                                    </IconButton>
-                                  </TableCell>
-                                </StyledTableRow>
-                                <StyledExpandedRow>
-                                  <TableCell
-                                    style={{ paddingBottom: 0, paddingTop: 0 }}
-                                    colSpan={6}
-                                  >
-                                    <Collapse
-                                      in={
-                                        expandedExcipient === excipient ||
-                                        allExpanded
-                                      }
-                                      timeout="auto"
-                                      unmountOnExit
-                                    >
-                                      <Box sx={{ my: 2, mx: 1 }}>
-                                        <Typography
-                                          variant="subtitle2"
-                                          gutterBottom
-                                          component="div"
-                                          sx={{
-                                            fontWeight: "bold",
-                                            color: theme.palette.primary.main,
-                                          }}
-                                        >
-                                          Detalhes do Excipiente: {excipient}
-                                        </Typography>
-                                        <Table
-                                          size="small"
-                                          aria-label="purchases"
-                                        >
-                                          <TableHead>
-                                            <TableRow
-                                              sx={{
-                                                backgroundColor: alpha(
-                                                  theme.palette.primary.main,
-                                                  0.1
-                                                ),
-                                              }}
-                                            >
-                                              <TableCell>OP</TableCell>
-                                              <TableCell>Código</TableCell>
-                                              <TableCell>Nome</TableCell>
-                                              <TableCell align="right">
-                                                Quantidade (kg)
-                                              </TableCell>
-                                              <TableCell align="center">
-                                                Pesado
-                                              </TableCell>
-                                            </TableRow>
-                                          </TableHead>
-                                          <TableBody>
-                                            {ordens.map((ordem) => (
-                                              <TableRow
-                                                key={ordem.id}
-                                                sx={{
-                                                  backgroundColor: ordem.pesado
-                                                    ? "rgba(0, 0, 0, 0.1)"
-                                                    : "inherit",
-                                                  "&:hover": {
-                                                    backgroundColor:
-                                                      ordem.pesado
-                                                        ? "rgba(0, 0, 0, 0.2)"
-                                                        : "rgba(0, 0, 0, 0.04)",
-                                                  },
-                                                }}
-                                              >
-                                                <TableCell>
-                                                  <Typography variant="caption">
-                                                    {ordem.op
-                                                      ? ordem.op.toString()
-                                                      : "N/A"}
-                                                  </Typography>
-                                                </TableCell>
-                                                <TableCell
-                                                  component="th"
-                                                  scope="row"
-                                                >
-                                                  <Typography variant="caption">
-                                                    {ordem.codigo}
-                                                  </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <Typography variant="caption">
-                                                    {ordem.nome}
-                                                  </Typography>
-                                                </TableCell>
-                                                <TableCell align="right">
-                                                  <Typography variant="caption">
-                                                    {ordem.quantidade.toFixed(
-                                                      3
-                                                    )}{" "}
-                                                    kg
-                                                  </Typography>
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() =>
-                                                      togglePesado(
-                                                        excipient,
-                                                        ordem.id
-                                                      )
-                                                    }
-                                                    color={
-                                                      ordem.pesado
-                                                        ? "primary"
-                                                        : "default"
-                                                    }
-                                                  >
-                                                    <CheckCircleIcon fontSize="small" />
-                                                  </IconButton>
-                                                  {ordem.pesado && (
-                                                    <Chip
-                                                      label="Pesado"
-                                                      size="small"
-                                                      color="primary"
-                                                      sx={{ ml: 1 }}
-                                                    />
-                                                  )}
-                                                </TableCell>
-                                              </TableRow>
-                                            ))}
-                                          </TableBody>
-                                        </Table>
-                                      </Box>
-                                    </Collapse>
-                                  </TableCell>
-                                </StyledExpandedRow>
-                              </React.Fragment>
-                            );
-                          }
-                        )}
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            sx={{
-                              borderTop: `2px solid ${theme.palette.primary.main}`,
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              fontWeight="bold"
-                              color="primary"
-                            >
-                              Movimentação total:{" "}
-                              {calcularMovimentacaoTotal().toFixed(3)} kg
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <Box
-                      sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}
-                    >
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={filtrarExcipientesEspeciais}
-                            onChange={(e) =>
-                              setFiltrarExcipientesEspeciais(e.target.checked)
-                            }
-                            color="primary"
-                          />
-                        }
-                        label="Filtrar itens comuns da PA"
-                      />
-                    </Box>
-                  </StyledTableContainer>
+                  <Box sx={{ p: 2 }}>
+                    <TabelaPrincipal
+                      filteredExcipientes={filteredExcipientes}
+                      materiaisNaArea={materiaisNaArea}
+                      faltaSolicitar={faltaSolicitar}
+                      inputValues={inputValues} // Certifique-se de que esta linha está presente
+                      handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
+                      handleDetailClick={handleDetailClick}
+                      handleToggleExpandExcipient={handleToggleExpandExcipient}
+                      expandedExcipient={expandedExcipient}
+                      allExpanded={allExpanded}
+                      togglePesado={togglePesado}
+                      theme={theme}
+                      calcularMovimentacaoTotal={calcularMovimentacaoTotal}
+                      getOrdensAtendidas={getOrdensAtendidas}
+                    />
+                  </Box>
                 </Box>
+
                 <Box
                   sx={{
                     width: "35%",
-                    display: "flex",
-                    flexDirection: "column",
+                    borderLeft: `1px solid ${theme.palette.divider}`,
+                    p: 1,
                   }}
                 >
+                  {" "}
                   <Typography
-                    variant="h6"
-                    gutterBottom
+                    variant="subtitle1"
                     sx={{
                       fontWeight: "bold",
-                      color: theme.palette.primary.main,
-                      mb: 2,
+                      color: theme.palette.text.secondary,
+                      p: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
                     }}
                   >
                     Detalhamento de Materiais
                   </Typography>
-                  <StyledTableContainer sx={{ flexGrow: 1 }}>
-                    <DetailTable size="small">
-                      <StyledTableHead>
-                        <TableRow>
-                          <TableCell>Ativo</TableCell>
-                          <TableCell align="center">Status</TableCell>
-                        </TableRow>
-                      </StyledTableHead>
-                      <TableBody>
-                        {getFilteredAtivos().map((ativo) => {
-                          const status = getAtivoStatus(ativo);
-                          return (
-                            <StyledDetailTableRow
-                              key={ativo}
-                              hover
-                              onClick={() => handleDetailClick(ativo)}
-                              sx={{
-                                cursor: "pointer",
-                                "&:hover": {
-                                  backgroundColor: alpha(
-                                    theme.palette.primary.main,
-                                    0.1
-                                  ),
-                                },
-                              }}
-                            >
-                              <TableCell
-                                component="th"
-                                scope="row"
-                                sx={{ fontWeight: "medium" }}
-                              >
-                                {ativo}
-                              </TableCell>
-                              <StatusCell align="center" status={status}>
-                                {status === "completo"
-                                  ? "Disponível"
-                                  : status === "parcial"
-                                  ? "Parcialmente Disponível"
-                                  : "Indisponível"}
-                              </StatusCell>
-                            </StyledDetailTableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </DetailTable>
-                  </StyledTableContainer>
+                  <Box sx={{ p: 2 }}>
+                    <DetalhamentoMateriais
+                      getFilteredAtivos={getFilteredAtivos}
+                      getAtivoStatus={getAtivoStatus}
+                      handleDetailClick={handleDetailClick}
+                      theme={theme}
+                      ordens={ordens}
+                      filteredExcipientes={filteredExcipientes}
+                      materiaisNaArea={materiaisNaArea}
+                    />
+                  </Box>
                 </Box>
               </Box>
             </Box>

@@ -61,16 +61,12 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import WarningIcon from "@mui/icons-material/Warning";
 import CheckIcon from "@mui/icons-material/Check";
 import ErrorIcon from "@mui/icons-material/Error";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ScaleIcon from "@mui/icons-material/Scale";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
 
 // Custom components
 import Autocomplete from "../components/Autocomplete";
 import Sidebar from "../components/Sidebar";
 import UserMenu from "../components/UserMenu";
-import ExcipientDetailDialog from "../components/ExcipientDetailDialog";
 
 // Supabase client
 import { supabase } from "../supabaseClient";
