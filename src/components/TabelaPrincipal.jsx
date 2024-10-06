@@ -425,7 +425,23 @@ const TabelaPrincipal = ({
                       align="right"
                       sx={{ padding: "8px", fontSize: "0.75rem" }}
                     >
-                      {totalNaoPesado.toFixed(3) + " kg"}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          alignItems: "baseline",
+                        }}
+                      >
+                        <Typography component="span" sx={{ mr: 0.5 }}>
+                          {totalNaoPesado.toFixed(3)}
+                        </Typography>
+                        <Typography
+                          component="span"
+                          sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+                        >
+                          kg
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell
                       align="right"
@@ -455,40 +471,52 @@ const TabelaPrincipal = ({
                     <TableCell
                       align="right"
                       sx={{
-                        padding: "6px", // Reduzido o padding para melhor disposição
-                        fontSize: "0.7rem", // Fonte ligeiramente reduzida
+                        padding: "6px",
+                        fontSize: "0.7rem",
                         fontWeight: "bold",
                       }}
                     >
                       {(() => {
                         const faltaSolicitarValue = totalNaoPesado - naArea;
-                        if (faltaSolicitarValue > 0 || naArea === 0) {
-                          // Se falta solicitar ou está zerado, exibe em vermelho
-                          return (
+                        const color =
+                          faltaSolicitarValue > 0 || naArea === 0
+                            ? theme.palette.error.main
+                            : theme.palette.success.main;
+                        const value =
+                          faltaSolicitarValue > 0 || naArea === 0
+                            ? faltaSolicitarValue
+                            : naArea;
+
+                        return (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              alignItems: "baseline",
+                            }}
+                          >
                             <Typography
+                              component="span"
                               sx={{
-                                color: theme.palette.error.main,
+                                color: color,
                                 fontWeight: "bold",
-                                fontSize: "0.7rem", // Fonte ligeiramente reduzida
+                                fontSize: "0.7rem",
+                                mr: 0.5,
                               }}
                             >
-                              {faltaSolicitarValue.toFixed(3)} Kg
+                              {value.toFixed(3)}
                             </Typography>
-                          );
-                        } else {
-                          // Se há material suficiente ou excedente, exibe em verde
-                          return (
                             <Typography
+                              component="span"
                               sx={{
-                                color: theme.palette.success.main,
-                                fontWeight: "bold",
-                                fontSize: "0.7rem", // Fonte ligeiramente reduzida
+                                color: color,
+                                fontSize: "0.6rem",
                               }}
                             >
-                              {naArea.toFixed(3)} Kg
+                              kg
                             </Typography>
-                          );
-                        }
+                          </Box>
+                        );
                       })()}
                     </TableCell>
                     <TableCell align="center" sx={{ padding: "8px" }}>
@@ -680,7 +708,29 @@ const TabelaPrincipal = ({
                                     )}
                                   </TableCell>
                                   <TableCell sx={{ fontSize: "0.75rem" }}>
-                                    {ordem.quantidade.toFixed(3) + " Kg"}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        justifyContent: "flex-start",
+                                        alignItems: "baseline",
+                                      }}
+                                    >
+                                      <Typography
+                                        component="span"
+                                        sx={{ mr: 0.5 }}
+                                      >
+                                        {ordem.quantidade.toFixed(3)}
+                                      </Typography>
+                                      <Typography
+                                        component="span"
+                                        sx={{
+                                          fontSize: "0.65rem",
+                                          color: "text.secondary",
+                                        }}
+                                      >
+                                        kg
+                                      </Typography>
+                                    </Box>
                                   </TableCell>
                                   <TableCell
                                     align="right"
@@ -750,10 +800,20 @@ const TabelaPrincipal = ({
                 backgroundColor: alpha(theme.palette.primary.main, 0.05),
               }}
             >
-              <Typography variant="body2" fontWeight="bold" color="primary">
-                Movimentação total:{" "}
-                {calcularTotalConsiderandoFiltros().toFixed(3)} kg
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "baseline" }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="primary"
+                  sx={{ mr: 0.5 }}
+                >
+                  Movimentação total:{" "}
+                  {calcularTotalConsiderandoFiltros().toFixed(3)}
+                </Typography>
+                <Typography variant="caption" color="primary">
+                  kg
+                </Typography>
+              </Box>
             </TableCell>
           </TableRow>
         </TableBody>
