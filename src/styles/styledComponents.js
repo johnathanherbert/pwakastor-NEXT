@@ -1,5 +1,5 @@
 import { styled, alpha } from "@mui/material/styles";
-import { TableContainer, TableHead, TableRow, TableCell } from "@mui/material";
+import { TableContainer, TableHead, TableRow, TableCell, Paper } from "@mui/material";
 import { TextField } from "@mui/material"; // Assuming TextField is needed for StyledMaterialInput
 
 export const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
@@ -73,4 +73,10 @@ export const StyledMaterialInput = styled(TextField)(({ theme }) => ({
   "& .MuiInputAdornment-root": {
     marginLeft: 0,
   },
+}));
+
+export const ContentCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius * 2,
+  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
 }));

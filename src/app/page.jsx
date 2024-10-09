@@ -18,22 +18,18 @@ import {
   Box,
   Button,
   Checkbox,
-  Chip,
   CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
-  FormControlLabel,
   IconButton,
   List,
   ListItem,
   ListItemSecondaryAction,
   ListItemText,
   Paper,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -43,8 +39,6 @@ import {
   TextField,
   Toolbar,
   Typography,
-  InputAdornment,
-  TextareaAutosize,
 } from "@mui/material";
 
 // Material-UI icons
@@ -53,22 +47,19 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MedicationIcon from "@mui/icons-material/Medication";
 import MenuIcon from "@mui/icons-material/Menu";
 import NumbersIcon from "@mui/icons-material/Numbers";
-import WarningIcon from "@mui/icons-material/Warning";
-import CheckIcon from "@mui/icons-material/Check";
-import ErrorIcon from "@mui/icons-material/Error";
-import ScaleIcon from "@mui/icons-material/Scale";
-
+import SearchIcon from "@mui/icons-material/Search";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 // Custom components
 import Autocomplete from "../components/Autocomplete";
 import Sidebar from "../components/Sidebar";
 import UserMenu from "../components/UserMenu";
 import TabelaPrincipal from "../components/TabelaPrincipal";
 import DetalhamentoMateriais from "../components/DetalhamentoMateriais";
+import ExcelUploader, { fetchUpdateHistory } from "../components/ExcelUploader";
+import Sap from "../components/Sap";
 
 // Supabase client
 import { supabase } from "../supabaseClient";
@@ -382,6 +373,21 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
 
   const inputRef = useRef(null);
+
+  const [sapDialogOpen, setSapDialogOpen] = useState(false);
+
+  const [updateHistory, setUpdateHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
+
+  const handleOpenUploadDialog = () => {
+    setOpenUploadDialog(true);
+  };
+
+  const handleCloseUploadDialog = () => {
+    setOpenUploadDialog(false);
+  };
 
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -1303,6 +1309,41 @@ export default function Home() {
     }
   };
 
+  const handleOpenSapDialog = () => {
+    setSapDialogOpen(true);
+  };
+
+  const handleCloseSapDialog = () => {
+    setSapDialogOpen(false);
+  };
+
+  const handleDataUpdated = async () => {
+    setLoading(true);
+    try {
+      console.log("Atualizando dados...");
+
+      // Verifique se fetchExcipientes existe antes de chamá-la
+      if (typeof fetchExcipientes === "function") {
+        await fetchExcipientes();
+      } else {
+        console.log("fetchExcipientes não está definida, pulando esta etapa");
+      }
+
+      const history = await fetchUpdateHistory();
+      setUpdateHistory(history);
+      console.log("Dados atualizados com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar dados:", error);
+      // Não lance o erro aqui, apenas registre-o
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    handleDataUpdated();
+  }, []);
+
   if (isLoading) {
     return (
       <Box
@@ -1569,17 +1610,47 @@ export default function Home() {
           </SidebarContainer>
           <MainContent>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Typography
-                variant="h6"
-                gutterBottom
+              <Box
                 sx={{
-                  fontWeight: "bold",
-                  color: theme.palette.primary.main,
-                  mb: 2,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                Gestão de Materiais
-              </Typography>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{
+                    fontWeight: "bold",
+                    color: theme.palette.primary.main,
+                    mb: 2,
+                  }}
+                >
+                  Gestão de Materiais
+                </Typography>
+                <Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={handleOpenUploadDialog}
+                  >
+                    Atualizar Dados
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<SearchIcon />}
+                    onClick={handleOpenSapDialog}
+                    sx={{ ml: 1 }}
+                  >
+                    Consulta SAP
+                  </Button>
+                  <ExcelUploader
+                    onDataUpdated={handleDataUpdated}
+                    openUploadDialog={openUploadDialog}
+                    handleCloseUploadDialog={handleCloseUploadDialog}
+                  />
+                </Box>
+              </Box>
               <Box
                 sx={{
                   display: "flex",
@@ -1962,6 +2033,16 @@ export default function Home() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Sap
+        open={sapDialogOpen}
+        onClose={handleCloseSapDialog}
+        theme={theme}
+        user={user}
+        supabase={supabase}
+      />
+
+      <ExcelUploader onDataUpdated={handleDataUpdated} />
     </ThemeProvider>
   );
 }

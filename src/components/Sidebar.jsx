@@ -16,6 +16,7 @@ import {
   Scale as ScaleIcon,
   Settings as SettingsIcon,
   Dashboard as DashboardIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
 import { styled } from "@mui/material/styles";
@@ -43,6 +44,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
     { text: "Início", icon: <HomeIcon />, path: "/" },
     { text: "Pesagem", icon: <ScaleIcon />, path: "#" },
     { text: "Rejunka Dashboard", icon: <DashboardIcon />, path: "#" },
+    { text: "Busca SAP", icon: <SearchIcon />, path: "/sap" },
     { text: "Configurações", icon: <SettingsIcon />, path: "#" },
   ];
 
