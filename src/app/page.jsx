@@ -1344,6 +1344,59 @@ export default function Home() {
     handleDataUpdated();
   }, []);
 
+  const handleUpdateSAPValues = async (excipient, codigo) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("materials_database")
+        .select("qtd_materia_prima")
+        .eq("codigo_materia_prima", codigo);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const saldoTotal = data.reduce((total, item) => total + parseFloat(item.qtd_materia_prima || 0), 0);
+        
+        // Atualizar o valor do input
+        handleMateriaisNaAreaChange(excipient, saldoTotal.toFixed(3));
+      } else {
+        console.log("Nenhum dado encontrado para o código:", codigo);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados do SAP:", error);
+    }
+  };
+
+  const handleUpdateAllSAPValues = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      for (const [excipient, data] of Object.entries(filteredExcipientes)) {
+        const codigo = data.codigo;
+        if (codigo) {
+          const { data: sapData, error } = await supabase
+            .from("materials_database")
+            .select("qtd_materia_prima")
+            .eq("codigo_materia_prima", codigo);
+
+          if (error) throw error;
+
+          if (sapData && sapData.length > 0) {
+            const saldoTotal = sapData.reduce((total, item) => total + parseFloat(item.qtd_materia_prima || 0), 0);
+            handleMateriaisNaAreaChange(excipient, saldoTotal.toFixed(3));
+          }
+        }
+      }
+      console.log("Todos os valores do SAP foram atualizados com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar todos os valores do SAP:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -1688,6 +1741,8 @@ export default function Home() {
                       theme={theme}
                       calcularMovimentacaoTotal={calcularMovimentacaoTotal}
                       getOrdensAtendidas={getOrdensAtendidas}
+                      handleUpdateSAPValues={handleUpdateSAPValues}
+                      handleUpdateAllSAPValues={handleUpdateAllSAPValues}
                     />
                   </Box>
                 </Box>

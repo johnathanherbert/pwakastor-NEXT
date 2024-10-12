@@ -80,16 +80,32 @@ const DetalhamentoMateriais = ({
     return opsDoAtivo.length > 0 ? opsDoAtivo.join(", ") : "Nenhuma OP";
   };
 
+  // Estilos comuns para células
+  const cellStyle = {
+    padding: "8px",
+    fontSize: "0.75rem",
+  };
+
+  const headerCellStyle = {
+    ...cellStyle,
+    fontWeight: "bold",
+    fontSize: "0.8rem",
+  };
+
   const renderDialogContent = () => {
     if (!selectedAtivo || !filteredExcipientes) return null;
 
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Box>
           <Typography
-            variant="h6"
+            variant="subtitle1"
             gutterBottom
-            sx={{ color: theme.palette.primary.main, fontWeight: "bold" }}
+            sx={{
+              color: theme.palette.primary.main,
+              fontWeight: "bold",
+              fontSize: "0.9rem",
+            }}
           >
             Excipientes Disponíveis para Pesar
           </Typography>
@@ -97,25 +113,14 @@ const DetalhamentoMateriais = ({
             <Table size="small">
               <StyledTableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>
-                    Excipiente
+                  <TableCell sx={headerCellStyle}>Excipiente</TableCell>
+                  <TableCell align="right" sx={headerCellStyle}>
+                    Qtd. Necessária (kg)
                   </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                  >
-                    Quantidade Necessária (kg)
+                  <TableCell align="right" sx={headerCellStyle}>
+                    Qtd. na Área (kg)
                   </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                  >
-                    Quantidade na Área (kg)
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                  >
+                  <TableCell align="center" sx={headerCellStyle}>
                     Status
                   </TableCell>
                 </TableRow>
@@ -147,14 +152,18 @@ const DetalhamentoMateriais = ({
                         : "indisponivel";
                     return (
                       <StyledDetailTableRow key={excipient}>
-                        <TableCell>{excipient}</TableCell>
-                        <TableCell align="right">
+                        <TableCell sx={cellStyle}>{excipient}</TableCell>
+                        <TableCell align="right" sx={cellStyle}>
                           {quantidadeNecessaria.toFixed(3)} Kg
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align="right" sx={cellStyle}>
                           {quantidadeNaArea.toFixed(3)} Kg
                         </TableCell>
-                        <StatusCell align="center" status={status}>
+                        <StatusCell
+                          align="center"
+                          status={status}
+                          sx={cellStyle}
+                        >
                           {status === "completo"
                             ? "Disponível"
                             : status === "parcial"
@@ -171,9 +180,13 @@ const DetalhamentoMateriais = ({
 
         <Box>
           <Typography
-            variant="h6"
+            variant="subtitle1"
             gutterBottom
-            sx={{ color: theme.palette.error.main, fontWeight: "bold" }}
+            sx={{
+              color: theme.palette.error.main,
+              fontWeight: "bold",
+              fontSize: "0.9rem",
+            }}
           >
             Excipientes Faltando Solicitar
           </Typography>
@@ -181,14 +194,9 @@ const DetalhamentoMateriais = ({
             <Table size="small">
               <StyledTableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>
-                    Excipiente
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                  >
-                    Quantidade Faltante (kg)
+                  <TableCell sx={headerCellStyle}>Excipiente</TableCell>
+                  <TableCell align="right" sx={headerCellStyle}>
+                    Qtd. Faltante (kg)
                   </TableCell>
                 </TableRow>
               </StyledTableHead>
@@ -218,8 +226,8 @@ const DetalhamentoMateriais = ({
                     if (quantidadeFaltante > 0) {
                       return (
                         <StyledDetailTableRow key={excipient}>
-                          <TableCell>{excipient}</TableCell>
-                          <TableCell align="right">
+                          <TableCell sx={cellStyle}>{excipient}</TableCell>
+                          <TableCell align="right" sx={cellStyle}>
                             {quantidadeFaltante.toFixed(3)} Kg
                           </TableCell>
                         </StyledDetailTableRow>
@@ -239,26 +247,11 @@ const DetalhamentoMateriais = ({
   return (
     <>
       <StyledTableContainer>
-        <Table size="small" sx={{ minWidth: 300 }}>
+        <Table size="small" sx={{ minWidth: 250 }}>
           <StyledTableHead>
             <TableRow>
-              <TableCell
-                sx={{
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  padding: "16px",
-                }}
-              >
-                Ativo
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  padding: "16px",
-                }}
-              >
+              <TableCell sx={headerCellStyle}>Ativo</TableCell>
+              <TableCell align="center" sx={headerCellStyle}>
                 Status
               </TableCell>
             </TableRow>
@@ -283,9 +276,8 @@ const DetalhamentoMateriais = ({
                     component="th"
                     scope="row"
                     sx={{
+                      ...cellStyle,
                       fontWeight: "medium",
-                      fontSize: "0.9rem",
-                      padding: "16px",
                     }}
                   >
                     {ativo}
@@ -294,10 +286,10 @@ const DetalhamentoMateriais = ({
                     align="center"
                     status={status}
                     sx={{
+                      ...cellStyle,
                       fontWeight: "medium",
-                      fontSize: "0.8rem",
                       borderRadius: "4px",
-                      padding: "4px 8px",
+                      padding: "2px 4px",
                       backgroundColor: getStatusColor(status),
                       color: theme.palette.text.primary,
                     }}
@@ -332,8 +324,8 @@ const DetalhamentoMateriais = ({
             backgroundColor: theme.palette.primary.main,
             color: theme.palette.primary.contrastText,
             fontWeight: "bold",
-            fontSize: "1.2rem",
-            py: 2,
+            fontSize: "1rem",
+            py: 1,
           }}
         >
           <Box
@@ -344,7 +336,7 @@ const DetalhamentoMateriais = ({
             }}
           >
             <Typography
-              variant="h5"
+              variant="h6"
               component="span"
               sx={{ fontWeight: "bold" }}
             >
@@ -356,9 +348,10 @@ const DetalhamentoMateriais = ({
                 fontWeight: "bold",
                 color: theme.palette.primary.contrastText,
                 backgroundColor: alpha(theme.palette.primary.contrastText, 0.2),
-                padding: "2px 6px",
+                padding: "1px 4px",
                 borderRadius: "4px",
                 display: "inline-block",
+                fontSize: "0.7rem",
               }}
             >
               OPs:{" "}
@@ -366,10 +359,10 @@ const DetalhamentoMateriais = ({
             </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>{renderDialogContent()}</DialogContent>
+        <DialogContent sx={{ p: 2 }}>{renderDialogContent()}</DialogContent>
         <DialogActions
           sx={{
-            p: 2,
+            p: 1,
             backgroundColor: alpha(theme.palette.primary.main, 0.05),
           }}
         >
@@ -377,7 +370,7 @@ const DetalhamentoMateriais = ({
             onClick={handleCloseDialog}
             variant="contained"
             color="primary"
-            sx={{ fontWeight: "bold" }}
+            sx={{ fontWeight: "bold", fontSize: "0.8rem" }}
           >
             Fechar
           </Button>

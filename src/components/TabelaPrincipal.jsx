@@ -29,6 +29,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { styled } from "@mui/material/styles";
 import RemoveIcon from "@mui/icons-material/Remove";
+import UpdateIcon from "@mui/icons-material/Update";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 import {
   StyledTableContainer,
@@ -86,6 +88,8 @@ const TabelaPrincipal = ({
   theme,
   calcularMovimentacaoTotal,
   getOrdensAtendidas,
+  handleUpdateSAPValues, // Nova prop para atualizar valores do SAP
+  handleUpdateAllSAPValues, // Nova prop para atualizar todos os valores do SAP
 }) => {
   const [ordensDialogOpen, setOrdensDialogOpen] = useState(false);
   const [selectedExcipient, setSelectedExcipient] = useState(null);
@@ -306,74 +310,47 @@ const TabelaPrincipal = ({
     }, 0);
   };
 
+  // Estilos comuns para células
+  const cellStyle = {
+    padding: "4px 6px",
+    fontSize: "0.7rem",
+  };
+
+  const headerCellStyle = {
+    ...cellStyle,
+    fontWeight: "bold",
+    color: theme.palette.primary.main,
+  };
+
   return (
     <StyledTableContainer>
       <Table size="small" sx={{ minWidth: 650 }}>
         <StyledTableHead>
           <TableRow>
-            <TableCell
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Código
-            </TableCell>
-            <TableCell
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Excipiente
-            </TableCell>
-            <TableCell
-              align="right"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
+            <TableCell sx={headerCellStyle}>Código</TableCell>
+            <TableCell sx={headerCellStyle}>Excipiente</TableCell>
+            <TableCell align="right" sx={headerCellStyle}>
               Total
             </TableCell>
-            <TableCell
-              align="right"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
+            <TableCell align="right" sx={headerCellStyle}>
               Na Área
             </TableCell>
-            <TableCell
-              align="right"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
+            <TableCell align="right" sx={headerCellStyle}>
               Falta solicitar
             </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                padding: "8px",
-                color: theme.palette.primary.main,
-              }}
-            >
+            <TableCell align="center" sx={headerCellStyle}>
               Status
+            </TableCell>
+            <TableCell align="center" sx={headerCellStyle}>
+              <Button
+                variant="contained"
+                startIcon={<RefreshIcon />}
+                onClick={handleUpdateAllSAPValues}
+                size="small"
+                sx={{ fontSize: "0.65rem", padding: "2px 6px" }}
+              >
+                Atualizar Todos
+              </Button>
             </TableCell>
           </TableRow>
         </StyledTableHead>
@@ -381,10 +358,10 @@ const TabelaPrincipal = ({
           {Object.entries(filteredExcipientes).map(
             ([excipient, { total, ordens, codigo }]) => {
               const naArea = materiaisNaArea[excipient] || 0;
-              // Calcular totalNaoPesado considerando apenas as ordens não pesadas
-              const totalNaoPesado = ordens.reduce((sum, ordem) => {
-                return sum + (ordem.pesado ? 0 : ordem.quantidade);
-              }, 0);
+              const totalNaoPesado = ordens.reduce(
+                (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
+                0
+              );
               const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
               return (
                 <React.Fragment key={excipient}>
@@ -403,50 +380,12 @@ const TabelaPrincipal = ({
                       backgroundColor: alpha(getStatusColor(status), 0.1),
                     }}
                   >
-                    <TableCell
-                      sx={{
-                        padding: "8px",
-                        fontSize: "0.75rem",
-                        fontWeight: "medium",
-                      }}
-                    >
-                      {codigo}
+                    <TableCell sx={cellStyle}>{codigo}</TableCell>
+                    <TableCell sx={cellStyle}>{excipient}</TableCell>
+                    <TableCell align="right" sx={cellStyle}>
+                      {totalNaoPesado.toFixed(3)} kg
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        padding: "8px",
-                        fontSize: "0.75rem",
-                        fontWeight: "medium",
-                      }}
-                    >
-                      {excipient}
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ padding: "8px", fontSize: "0.75rem" }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          alignItems: "baseline",
-                        }}
-                      >
-                        <Typography component="span" sx={{ mr: 0.5 }}>
-                          {totalNaoPesado.toFixed(3)}
-                        </Typography>
-                        <Typography
-                          component="span"
-                          sx={{ fontSize: "0.65rem", color: "text.secondary" }}
-                        >
-                          kg
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ padding: "8px", fontSize: "0.75rem" }}
-                    >
+                    <TableCell align="right" sx={cellStyle}>
                       <StyledMaterialInput
                         type="number"
                         value={inputValues[excipient] || ""}
@@ -461,21 +400,15 @@ const TabelaPrincipal = ({
                           ),
                         }}
                         sx={{
-                          width: "100px", // Aumentado de 80px para 100px
+                          width: "70px",
                           "& .MuiInputBase-input": {
-                            padding: "8px 12px", // Ajustado o padding interno
+                            padding: "4px 6px",
+                            fontSize: "0.7rem",
                           },
                         }}
                       />
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        padding: "6px",
-                        fontSize: "0.7rem",
-                        fontWeight: "bold",
-                      }}
-                    >
+                    <TableCell align="right" sx={cellStyle}>
                       {(() => {
                         const faltaSolicitarValue = totalNaoPesado - naArea;
                         const color =
@@ -488,46 +421,28 @@ const TabelaPrincipal = ({
                             : naArea;
 
                         return (
-                          <Box
+                          <Typography
+                            component="span"
                             sx={{
-                              display: "flex",
-                              justifyContent: "flex-end",
-                              alignItems: "baseline",
+                              color: color,
+                              fontWeight: "bold",
+                              fontSize: "0.7rem",
                             }}
                           >
-                            <Typography
-                              component="span"
-                              sx={{
-                                color: color,
-                                fontWeight: "bold",
-                                fontSize: "0.7rem",
-                                mr: 0.5,
-                              }}
-                            >
-                              {value.toFixed(3)}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              sx={{
-                                color: color,
-                                fontSize: "0.6rem",
-                              }}
-                            >
-                              kg
-                            </Typography>
-                          </Box>
+                            {value.toFixed(3)} kg
+                          </Typography>
                         );
                       })()}
                     </TableCell>
-                    <TableCell align="center" sx={{ padding: "8px" }}>
+                    <TableCell align="center" sx={cellStyle}>
                       <Chip
                         label={getStatusLabel(status)}
                         sx={{
                           backgroundColor: getStatusColor(status),
                           color: theme.palette.text.primary,
                           fontWeight: "medium",
-                          fontSize: "0.75rem",
-                          height: "24px",
+                          fontSize: "0.65rem",
+                          height: "18px",
                         }}
                         icon={
                           status === "pesado" ? (
@@ -537,16 +452,25 @@ const TabelaPrincipal = ({
                           ) : null
                         }
                         onClick={(e) => {
-                          e.stopPropagation(); // Impede que o clique se propague para a linha
+                          e.stopPropagation();
                           handleStatusClick(excipient);
                         }}
                       />
+                    </TableCell>
+                    <TableCell align="center" sx={cellStyle}>
+                      <IconButton
+                        onClick={() => handleUpdateSAPValues(excipient, codigo)}
+                        size="small"
+                        color="primary"
+                      >
+                        <UpdateIcon fontSize="small" />
+                      </IconButton>
                     </TableCell>
                   </StyledTableRow>
                   <StyledExpandedRow>
                     <TableCell
                       style={{ paddingBottom: 0, paddingTop: 0 }}
-                      colSpan={6} // Ajustado para 6 para acomodar a nova coluna
+                      colSpan={7}
                     >
                       <Collapse
                         in={expandedExcipient === excipient || allExpanded}
@@ -561,7 +485,7 @@ const TabelaPrincipal = ({
                               0.5
                             ),
                             borderRadius: 1,
-                            padding: 2,
+                            padding: 1,
                           }}
                         >
                           <Typography
@@ -571,7 +495,8 @@ const TabelaPrincipal = ({
                             sx={{
                               fontWeight: "bold",
                               color: theme.palette.primary.main,
-                              marginBottom: "12px",
+                              marginBottom: "6px",
+                              fontSize: "0.75rem",
                             }}
                           >
                             Detalhes do Excipiente: {codigo} - {excipient}
@@ -592,57 +517,23 @@ const TabelaPrincipal = ({
                                   ),
                                 }}
                               >
-                                <TableCell
-                                  sx={{
-                                    fontWeight: "bold",
-                                    fontSize: "0.75rem",
-                                    color: theme.palette.primary.main,
-                                  }}
-                                >
+                                <TableCell sx={headerCellStyle}>
                                   Código
                                 </TableCell>
-                                <TableCell
-                                  sx={{
-                                    fontWeight: "bold",
-                                    fontSize: "0.75rem",
-                                    color: theme.palette.primary.main,
-                                  }}
-                                >
+                                <TableCell sx={headerCellStyle}>
                                   Ordem
                                 </TableCell>
-                                <TableCell
-                                  sx={{
-                                    fontWeight: "bold",
-                                    fontSize: "0.75rem",
-                                    color: theme.palette.primary.main,
-                                  }}
-                                >
-                                  Qtd
-                                </TableCell>
-                                <TableCell
-                                  align="right"
-                                  sx={{
-                                    fontWeight: "bold",
-                                    fontSize: "0.75rem",
-                                    color: theme.palette.primary.main,
-                                  }}
-                                >
+                                <TableCell sx={headerCellStyle}>Qtd</TableCell>
+                                <TableCell align="right" sx={headerCellStyle}>
                                   Status
                                 </TableCell>
-                                <TableCell
-                                  align="center"
-                                  sx={{
-                                    fontWeight: "bold",
-                                    fontSize: "0.75rem",
-                                    color: theme.palette.primary.main,
-                                  }}
-                                >
+                                <TableCell align="center" sx={headerCellStyle}>
                                   Pesado
                                 </TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {ordens.map((ordem, index) => (
+                              {ordens.map((ordem) => (
                                 <TableRow
                                   key={ordem.id}
                                   hover
@@ -661,81 +552,47 @@ const TabelaPrincipal = ({
                                     },
                                   }}
                                 >
-                                  <TableCell
-                                    sx={{
-                                      fontSize: "0.75rem",
-                                    }}
-                                  >
-                                    {ordem.codigo}{" "}
-                                    {/* Alterado para exibir o código da receita */}
+                                  <TableCell sx={cellStyle}>
+                                    {ordem.codigo}
                                   </TableCell>
                                   <TableCell
                                     component="th"
                                     scope="row"
                                     sx={{
-                                      fontSize: "0.75rem",
-                                      borderLeft: `4px solid ${
+                                      ...cellStyle,
+                                      borderLeft: `3px solid ${
                                         ordem.pesado
                                           ? theme.palette.success.main
                                           : theme.palette.warning.main
                                       }`,
                                     }}
                                   >
-                                    {ordem.op ? (
-                                      <>
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            fontWeight: "bold",
-                                            color: theme.palette.primary.main,
-                                            backgroundColor: alpha(
-                                              theme.palette.primary.main,
-                                              0.1
-                                            ),
-                                            padding: "1px 3px",
-                                            borderRadius: "2px",
-                                            display: "inline-block",
-                                            marginRight: "4px",
-                                            fontSize: "0.65rem",
-                                          }}
-                                        >
-                                          OP: {ordem.op}
-                                        </Typography>
-                                        {ordem.nome}
-                                      </>
-                                    ) : (
-                                      ordem.nome
-                                    )}
-                                  </TableCell>
-                                  <TableCell sx={{ fontSize: "0.75rem" }}>
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        justifyContent: "flex-start",
-                                        alignItems: "baseline",
-                                      }}
-                                    >
+                                    {ordem.op && (
                                       <Typography
-                                        component="span"
-                                        sx={{ mr: 0.5 }}
-                                      >
-                                        {ordem.quantidade.toFixed(3)}
-                                      </Typography>
-                                      <Typography
-                                        component="span"
+                                        variant="caption"
                                         sx={{
-                                          fontSize: "0.65rem",
-                                          color: "text.secondary",
+                                          fontWeight: "bold",
+                                          color: theme.palette.primary.main,
+                                          backgroundColor: alpha(
+                                            theme.palette.primary.main,
+                                            0.1
+                                          ),
+                                          padding: "1px 2px",
+                                          borderRadius: "2px",
+                                          display: "inline-block",
+                                          marginRight: "3px",
+                                          fontSize: "0.6rem",
                                         }}
                                       >
-                                        kg
+                                        OP: {ordem.op}
                                       </Typography>
-                                    </Box>
+                                    )}
+                                    {ordem.nome}
                                   </TableCell>
-                                  <TableCell
-                                    align="right"
-                                    sx={{ fontSize: "0.75rem" }}
-                                  >
+                                  <TableCell sx={cellStyle}>
+                                    {ordem.quantidade.toFixed(3)} kg
+                                  </TableCell>
+                                  <TableCell align="right" sx={cellStyle}>
                                     <Chip
                                       icon={
                                         ordem.pesado ? (
@@ -753,7 +610,8 @@ const TabelaPrincipal = ({
                                       size="small"
                                       sx={{
                                         fontWeight: "bold",
-                                        fontSize: "0.65rem",
+                                        fontSize: "0.6rem",
+                                        height: "16px",
                                         backgroundColor: ordem.pesado
                                           ? alpha(
                                               theme.palette.success.main,
@@ -769,7 +627,7 @@ const TabelaPrincipal = ({
                                       }}
                                     />
                                   </TableCell>
-                                  <TableCell align="center">
+                                  <TableCell align="center" sx={cellStyle}>
                                     <Checkbox
                                       checked={ordem.pesado}
                                       onChange={() =>
@@ -793,27 +651,22 @@ const TabelaPrincipal = ({
           )}
           <TableRow>
             <TableCell
-              colSpan={6}
+              colSpan={7}
               sx={{
                 borderTop: `2px solid ${theme.palette.primary.main}`,
-                padding: "8px",
+                padding: "4px 6px",
                 backgroundColor: alpha(theme.palette.primary.main, 0.05),
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "baseline" }}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="primary"
-                  sx={{ mr: 0.5 }}
-                >
-                  Movimentação total:{" "}
-                  {calcularTotalConsiderandoFiltros().toFixed(3)}
-                </Typography>
-                <Typography variant="caption" color="primary">
-                  kg
-                </Typography>
-              </Box>
+              <Typography
+                variant="body2"
+                fontWeight="bold"
+                color="primary"
+                sx={{ fontSize: "0.75rem" }}
+              >
+                Movimentação total:{" "}
+                {calcularTotalConsiderandoFiltros().toFixed(3)} kg
+              </Typography>
             </TableCell>
           </TableRow>
         </TableBody>

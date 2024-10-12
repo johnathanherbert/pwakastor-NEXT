@@ -30,7 +30,11 @@ export const fetchUpdateHistory = async () => {
   }
 };
 
-const ExcelUploader = ({ onDataUpdated, openUploadDialog, handleCloseUploadDialog }) => {
+const ExcelUploader = ({
+  onDataUpdated,
+  openUploadDialog,
+  handleCloseUploadDialog,
+}) => {
   const [uploading, setUploading] = useState(false);
   const [user, setUser] = useState(null);
   const [pastedData, setPastedData] = useState("");
@@ -79,7 +83,7 @@ const ExcelUploader = ({ onDataUpdated, openUploadDialog, handleCloseUploadDialo
       alert("Dados atualizados com sucesso!");
     } catch (error) {
       console.error("Erro ao processar dados:", error);
-      alert(`Erro ao processar dados: ${error.message || 'Erro desconhecido'}`);
+      alert(`Erro ao processar dados: ${error.message || "Erro desconhecido"}`);
     } finally {
       setUploading(false);
       handleCloseUploadDialog();
@@ -92,7 +96,7 @@ const ExcelUploader = ({ onDataUpdated, openUploadDialog, handleCloseUploadDialo
       const { error: deleteError } = await supabase
         .from("materials_database")
         .delete()
-        .neq('id', 0);  // Isso deletará todas as linhas, pois 'id' nunca será 0
+        .neq("id", 0); // Isso deletará todas as linhas, pois 'id' nunca será 0
 
       if (deleteError) {
         console.error("Erro ao deletar dados existentes:", deleteError);
