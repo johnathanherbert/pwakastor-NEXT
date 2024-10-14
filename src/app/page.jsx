@@ -1588,7 +1588,7 @@ export default function Home() {
                   onClick={() => handleOrdemClick(ordem)}
                   sx={{
                     borderRadius: 1,
-                    mb: 1,
+                    mb: 0.5, // Reduzido de 1 para 0.5
                     "&.Mui-selected": {
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                     },
@@ -1603,25 +1603,27 @@ export default function Home() {
                             sx={{
                               fontWeight: "bold",
                               color: theme.palette.primary.main,
-                              backgroundColor: alpha(
-                                theme.palette.primary.main,
-                                0.1
-                              ),
-                              padding: "2px 6px",
-                              borderRadius: "4px",
+                              backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                              padding: "1px 4px", // Reduzido de 2px 6px
+                              borderRadius: "3px", // Reduzido de 4px
                               display: "inline-block",
-                              mb: 0.5,
+                              mr: 1, // Adicionado margem à direita
                             }}
                           >
                             OP: {ordem.op}
                           </Typography>
                         )}
-                        <Typography variant="body2" component="div">
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{ verticalAlign: "middle" }}
+                        >
                           {ordem.nome}
                         </Typography>
                       </>
                     }
                     secondary={`Código: ${ordem.codigo}`}
+                    secondaryTypographyProps={{ variant: "caption" }} // Reduzido o tamanho do texto secundário
                   />
                   <ListItemSecondaryAction>
                     {!ordem.op && (
@@ -1632,8 +1634,9 @@ export default function Home() {
                           e.stopPropagation();
                           handleOpenDialog(ordem.id);
                         }}
+                        size="small" // Reduzido o tamanho do botão
                       >
-                        <AddCircleOutlineIcon />
+                        <AddCircleOutlineIcon fontSize="small" />
                       </IconButton>
                     )}
                     <IconButton
@@ -1643,8 +1646,9 @@ export default function Home() {
                         e.stopPropagation();
                         handleEditOrdem(ordem);
                       }}
+                      size="small" // Reduzido o tamanho do botão
                     >
-                      <EditIcon />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       edge="end"
@@ -1653,8 +1657,9 @@ export default function Home() {
                         e.stopPropagation();
                         handleDeleteOrdem(ordem.id);
                       }}
+                      size="small" // Reduzido o tamanho do botão
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>

@@ -13,6 +13,7 @@ import {
   DialogActions,
   Button,
   Box,
+  colors,
 } from "@mui/material";
 import {
   StyledTableContainer,
@@ -20,6 +21,7 @@ import {
   StyledDetailTableRow,
   StatusCell,
 } from "../styles/styledComponents";
+import { blue } from "@mui/material/colors";
 
 const DetalhamentoMateriais = ({
   getFilteredAtivos,

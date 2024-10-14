@@ -32,8 +32,6 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import UpdateIcon from "@mui/icons-material/Update";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
 import {
   StyledTableContainer,
@@ -97,7 +95,6 @@ const TabelaPrincipal = ({
   const [ordensDialogOpen, setOrdensDialogOpen] = useState(false);
   const [selectedExcipient, setSelectedExcipient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [faltaSolicitarSort, setFaltaSolicitarSort] = useState("desc");
 
   const handleOpenOrdensDialog = (excipient) => {
     setSelectedExcipient(excipient);
@@ -339,34 +336,6 @@ const TabelaPrincipal = ({
     );
   }, [filteredExcipientes, searchTerm]);
 
-  const toggleFaltaSolicitarSort = () => {
-    setFaltaSolicitarSort(prev => prev === "asc" ? "desc" : "asc");
-  };
-
-  const sortedRows = useMemo(() => {
-    return [...filteredExcipientsList].sort((a, b) => {
-      const [excipientA, { ordens: ordensA }] = a;
-      const [excipientB, { ordens: ordensB }] = b;
-      const naAreaA = materiaisNaArea[excipientA] || 0;
-      const naAreaB = materiaisNaArea[excipientB] || 0;
-      const totalNaoPesadoA = ordensA.reduce(
-        (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
-        0
-      );
-      const totalNaoPesadoB = ordensB.reduce(
-        (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
-        0
-      );
-      const faltaSolicitarA = totalNaoPesadoA - naAreaA;
-      const faltaSolicitarB = totalNaoPesadoB - naAreaB;
-      if (faltaSolicitarSort === "asc") {
-        return faltaSolicitarA - faltaSolicitarB;
-      } else {
-        return faltaSolicitarB - faltaSolicitarA;
-      }
-    });
-  }, [filteredExcipientsList, materiaisNaArea, faltaSolicitarSort]);
-
   return (
     <StyledTableContainer>
       <Table size="small" sx={{ minWidth: 650 }}>
@@ -412,24 +381,7 @@ const TabelaPrincipal = ({
               Na Área
             </TableCell>
             <TableCell align="right" sx={headerCellStyle}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography sx={{ color: 'white', mr: 1 }}>Falta solicitar</Typography>
-                <IconButton 
-                  size="small" 
-                  onClick={toggleFaltaSolicitarSort}
-                  sx={{ 
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: alpha('#ffffff', 0.2),
-                    },
-                  }}
-                >
-                  {faltaSolicitarSort === "asc" ? 
-                    <ArrowUpwardIcon fontSize="small" /> : 
-                    <ArrowDownwardIcon fontSize="small" />
-                  }
-                </IconButton>
-              </Box>
+              Falta solicitar
             </TableCell>
             <TableCell align="center" sx={headerCellStyle}>
               Status
@@ -448,7 +400,7 @@ const TabelaPrincipal = ({
           </TableRow>
         </StyledTableHead>
         <TableBody>
-          {sortedRows.map(
+          {filteredExcipientsList.map(
             ([excipient, { total, ordens, codigo }]) => {
               const naArea = materiaisNaArea[excipient] || 0;
               const totalNaoPesado = ordens.reduce(
