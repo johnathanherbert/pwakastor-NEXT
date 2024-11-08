@@ -32,6 +32,8 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import UpdateIcon from "@mui/icons-material/Update";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
 import {
   StyledTableContainer,
@@ -95,6 +97,7 @@ const TabelaPrincipal = ({
   const [ordensDialogOpen, setOrdensDialogOpen] = useState(false);
   const [selectedExcipient, setSelectedExcipient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [faltaSolicitarSort, setFaltaSolicitarSort] = useState("desc");
 
   const handleOpenOrdensDialog = (excipient) => {
     setSelectedExcipient(excipient);
@@ -314,8 +317,8 @@ const TabelaPrincipal = ({
 
   // Estilos comuns para células
   const cellStyle = {
-    padding: "4px 6px",
-    fontSize: "0.7rem",
+    padding: { xs: "2px 4px", sm: "4px 6px" },
+    fontSize: { xs: "0.6rem", sm: "0.7rem" },
   };
 
   const headerCellStyle = {
@@ -336,14 +339,42 @@ const TabelaPrincipal = ({
     );
   }, [filteredExcipientes, searchTerm]);
 
+  const toggleFaltaSolicitarSort = () => {
+    setFaltaSolicitarSort(prev => prev === "asc" ? "desc" : "asc");
+  };
+
+  const sortedRows = useMemo(() => {
+    return [...filteredExcipientsList].sort((a, b) => {
+      const [excipientA, { ordens: ordensA }] = a;
+      const [excipientB, { ordens: ordensB }] = b;
+      const naAreaA = materiaisNaArea[excipientA] || 0;
+      const naAreaB = materiaisNaArea[excipientB] || 0;
+      const totalNaoPesadoA = ordensA.reduce(
+        (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
+        0
+      );
+      const totalNaoPesadoB = ordensB.reduce(
+        (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
+        0
+      );
+      const faltaSolicitarA = totalNaoPesadoA - naAreaA;
+      const faltaSolicitarB = totalNaoPesadoB - naAreaB;
+      if (faltaSolicitarSort === "asc") {
+        return faltaSolicitarA - faltaSolicitarB;
+      } else {
+        return faltaSolicitarB - faltaSolicitarA;
+      }
+    });
+  }, [filteredExcipientsList, materiaisNaArea, faltaSolicitarSort]);
+
   return (
     <StyledTableContainer>
-      <Table size="small" sx={{ minWidth: 650 }}>
+      <Table size="small" sx={{ minWidth: { xs: 450, sm: 650 } }}>
         <StyledTableHead>
           <TableRow>
             <TableCell sx={headerCellStyle}>Código</TableCell>
             <TableCell sx={headerCellStyle}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
                 Excipiente
                 <TextField
                   size="small"
@@ -359,7 +390,9 @@ const TabelaPrincipal = ({
                     sx: {
                       fontSize: "0.7rem",
                       height: "24px",
-                      ml: 1,
+                      ml: { xs: 0, sm: 1 },
+                      mt: { xs: 1, sm: 0 },
+                      width: { xs: '100%', sm: 'auto' },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: "transparent",
                       },
@@ -381,7 +414,24 @@ const TabelaPrincipal = ({
               Na Área
             </TableCell>
             <TableCell align="right" sx={headerCellStyle}>
-              Falta solicitar
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                <Typography sx={{ color: 'white', mr: 1, display: { xs: 'none', sm: 'block' } }}>Falta solicitar</Typography>
+                <IconButton 
+                  size="small" 
+                  onClick={toggleFaltaSolicitarSort}
+                  sx={{ 
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: alpha('#ffffff', 0.2),
+                    },
+                  }}
+                >
+                  {faltaSolicitarSort === "asc" ? 
+                    <ArrowUpwardIcon fontSize="small" /> : 
+                    <ArrowDownwardIcon fontSize="small" />
+                  }
+                </IconButton>
+              </Box>
             </TableCell>
             <TableCell align="center" sx={headerCellStyle}>
               Status
@@ -392,15 +442,21 @@ const TabelaPrincipal = ({
                 startIcon={<RefreshIcon />}
                 onClick={handleUpdateAllSAPValues}
                 size="small"
-                sx={{ fontSize: "0.65rem", padding: "2px 6px" }}
+                sx={{ 
+                  fontSize: "0.65rem", 
+                  padding: "2px 6px",
+                  whiteSpace: 'nowrap',
+                  minWidth: 'auto',
+                }}
               >
-                Atualizar Todos
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Atualizar Todos</Box>
+                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Atualizar</Box>
               </Button>
             </TableCell>
           </TableRow>
         </StyledTableHead>
         <TableBody>
-          {filteredExcipientsList.map(
+          {sortedRows.map(
             ([excipient, { total, ordens, codigo }]) => {
               const naArea = materiaisNaArea[excipient] || 0;
               const totalNaoPesado = ordens.reduce(
@@ -426,9 +482,11 @@ const TabelaPrincipal = ({
                     }}
                   >
                     <TableCell sx={cellStyle}>{codigo}</TableCell>
-                    <TableCell sx={cellStyle}>{excipient}</TableCell>
+                    <TableCell sx={cellStyle}>
+                      {excipient.length > 20 ? `${excipient.slice(0, 20)}...` : excipient}
+                    </TableCell>
                     <TableCell align="right" sx={cellStyle}>
-                      {totalNaoPesado.toFixed(3)} kg
+                      {totalNaoPesado.toFixed(2)} kg
                     </TableCell>
                     <TableCell align="right" sx={cellStyle}>
                       <StyledMaterialInput
@@ -441,14 +499,16 @@ const TabelaPrincipal = ({
                         size="small"
                         InputProps={{
                           endAdornment: (
-                            <InputAdornment position="end">Kg</InputAdornment>
+                            <InputAdornment position="end">
+                              <Typography variant="caption">Kg</Typography>
+                            </InputAdornment>
                           ),
                         }}
                         sx={{
-                          width: "70px",
+                          width: { xs: "60px", sm: "70px" },
                           "& .MuiInputBase-input": {
-                            padding: "4px 6px",
-                            fontSize: "0.7rem",
+                            padding: { xs: "2px 4px", sm: "4px 6px" },
+                            fontSize: { xs: "0.6rem", sm: "0.7rem" },
                           },
                         }}
                       />
@@ -471,10 +531,10 @@ const TabelaPrincipal = ({
                             sx={{
                               color: color,
                               fontWeight: "bold",
-                              fontSize: "0.7rem",
+                              fontSize: { xs: "0.6rem", sm: "0.7rem" },
                             }}
                           >
-                            {value.toFixed(3)} kg
+                            {value.toFixed(2)} kg
                           </Typography>
                         );
                       })()}
@@ -486,8 +546,8 @@ const TabelaPrincipal = ({
                           backgroundColor: getStatusColor(status),
                           color: theme.palette.text.primary,
                           fontWeight: "medium",
-                          fontSize: "0.65rem",
-                          height: "18px",
+                          fontSize: { xs: "0.55rem", sm: "0.65rem" },
+                          height: { xs: "16px", sm: "18px" },
                         }}
                         icon={
                           status === "pesado" ? (
@@ -541,10 +601,10 @@ const TabelaPrincipal = ({
                               fontWeight: "bold",
                               color: theme.palette.primary.main,
                               marginBottom: "6px",
-                              fontSize: "0.75rem",
+                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
                             }}
                           >
-                            Detalhes do Excipiente: {codigo} - {excipient}
+                            Detalhes: {codigo} - {excipient}
                           </Typography>
                           <Table
                             size="small"
@@ -562,12 +622,8 @@ const TabelaPrincipal = ({
                                   ),
                                 }}
                               >
-                                <TableCell sx={headerCellStyle}>
-                                  Código
-                                </TableCell>
-                                <TableCell sx={headerCellStyle}>
-                                  Ordem
-                                </TableCell>
+                                <TableCell sx={headerCellStyle}>Cód.</TableCell>
+                                <TableCell sx={headerCellStyle}>Ordem</TableCell>
                                 <TableCell sx={headerCellStyle}>Qtd</TableCell>
                                 <TableCell align="right" sx={headerCellStyle}>
                                   Status
@@ -626,16 +682,16 @@ const TabelaPrincipal = ({
                                           borderRadius: "2px",
                                           display: "inline-block",
                                           marginRight: "3px",
-                                          fontSize: "0.6rem",
+                                          fontSize: { xs: "0.5rem", sm: "0.6rem" },
                                         }}
                                       >
                                         OP: {ordem.op}
                                       </Typography>
                                     )}
-                                    {ordem.nome}
+                                    {ordem.nome.length > 15 ? `${ordem.nome.slice(0, 15)}...` : ordem.nome}
                                   </TableCell>
                                   <TableCell sx={cellStyle}>
-                                    {ordem.quantidade.toFixed(3)} kg
+                                    {ordem.quantidade.toFixed(2)} kg
                                   </TableCell>
                                   <TableCell align="right" sx={cellStyle}>
                                     <Chip
@@ -655,8 +711,8 @@ const TabelaPrincipal = ({
                                       size="small"
                                       sx={{
                                         fontWeight: "bold",
-                                        fontSize: "0.6rem",
-                                        height: "16px",
+                                        fontSize: { xs: "0.5rem", sm: "0.6rem" },
+                                        height: { xs: "14px", sm: "16px" },
                                         backgroundColor: ordem.pesado
                                           ? alpha(
                                               theme.palette.success.main,

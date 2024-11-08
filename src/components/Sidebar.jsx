@@ -44,7 +44,6 @@ const Sidebar = ({ open, toggleDrawer }) => {
     { text: "Início", icon: <HomeIcon />, path: "/" },
     { text: "Pesagem", icon: <ScaleIcon />, path: "#" },
     { text: "Rejunka Dashboard", icon: <DashboardIcon />, path: "#" },
-    { text: "Busca SAP", icon: <SearchIcon />, path: "/sap" },
     { text: "Configurações", icon: <SettingsIcon />, path: "#" },
   ];
 

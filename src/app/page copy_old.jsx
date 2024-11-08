@@ -70,6 +70,9 @@ const AppContainer = styled(Box)(({ theme }) => ({
   flexDirection: "column",
   height: "100vh",
   backgroundColor: theme.palette.background.default,
+  [theme.breakpoints.down("md")]: {
+    flexDirection: "column",
+  },
 }));
 
 const AppHeader = styled(AppBar)(({ theme }) => ({
@@ -86,6 +89,12 @@ const SidebarContainer = styled(Paper)(({ theme }) => ({
   borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
   backgroundColor: theme.palette.background.paper,
   boxShadow: "none",
+  [theme.breakpoints.down("md")]: {
+    width: "100%",
+    maxHeight: "40vh",
+    borderRight: "none",
+    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+  },
 }));
 
 const MainContent = styled(Box)(({ theme }) => ({
@@ -93,6 +102,9 @@ const MainContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   overflowY: "auto",
   backgroundColor: theme.palette.background.default,
+  [theme.breakpoints.down("md")]: {
+    padding: theme.spacing(2),
+  },
 }));
 
 const ContentCard = styled(Paper)(({ theme }) => ({
@@ -682,7 +694,7 @@ export default function Home() {
   const handleEditOrdem = async (ordem) => {
     setEditingOrdemDialog(ordem);
 
-    // Buscar os excipientes específicos para esta ordem
+    // Buscar os excipientes especficos para esta ordem
     const { data, error } = await supabase
       .from("DataBase_ems")
       .select("Excipiente, qtd_materia_prima")
@@ -1356,8 +1368,11 @@ export default function Home() {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const saldoTotal = data.reduce((total, item) => total + parseFloat(item.qtd_materia_prima || 0), 0);
-        
+        const saldoTotal = data.reduce(
+          (total, item) => total + parseFloat(item.qtd_materia_prima || 0),
+          0
+        );
+
         // Atualizar o valor do input
         handleMateriaisNaAreaChange(excipient, saldoTotal.toFixed(3));
       } else {
@@ -1384,7 +1399,10 @@ export default function Home() {
           if (error) throw error;
 
           if (sapData && sapData.length > 0) {
-            const saldoTotal = sapData.reduce((total, item) => total + parseFloat(item.qtd_materia_prima || 0), 0);
+            const saldoTotal = sapData.reduce(
+              (total, item) => total + parseFloat(item.qtd_materia_prima || 0),
+              0
+            );
             handleMateriaisNaAreaChange(excipient, saldoTotal.toFixed(3));
           }
         }
@@ -1459,7 +1477,14 @@ export default function Home() {
           </Toolbar>
         </AppHeader>
         <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
-        <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexGrow: 1,
+            overflow: "hidden",
+            flexDirection: { xs: "column", md: "row" },
+          }}
+        >
           <SidebarContainer>
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
@@ -1588,7 +1613,7 @@ export default function Home() {
                   onClick={() => handleOrdemClick(ordem)}
                   sx={{
                     borderRadius: 1,
-                    mb: 1,
+                    mb: 0.5, // Reduzido de 1 para 0.5
                     "&.Mui-selected": {
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                     },
@@ -1607,21 +1632,26 @@ export default function Home() {
                                 theme.palette.primary.main,
                                 0.1
                               ),
-                              padding: "2px 6px",
-                              borderRadius: "4px",
+                              padding: "1px 4px", // Reduzido de 2px 6px
+                              borderRadius: "3px", // Reduzido de 4px
                               display: "inline-block",
-                              mb: 0.5,
+                              mr: 1, // Adicionado margem à direita
                             }}
                           >
                             OP: {ordem.op}
                           </Typography>
                         )}
-                        <Typography variant="body2" component="div">
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{ verticalAlign: "middle" }}
+                        >
                           {ordem.nome}
                         </Typography>
                       </>
                     }
                     secondary={`Código: ${ordem.codigo}`}
+                    secondaryTypographyProps={{ variant: "caption" }} // Reduzido o tamanho do texto secundário
                   />
                   <ListItemSecondaryAction>
                     {!ordem.op && (
@@ -1632,8 +1662,9 @@ export default function Home() {
                           e.stopPropagation();
                           handleOpenDialog(ordem.id);
                         }}
+                        size="small" // Reduzido o tamanho do botão
                       >
-                        <AddCircleOutlineIcon />
+                        <AddCircleOutlineIcon fontSize="small" />
                       </IconButton>
                     )}
                     <IconButton
@@ -1643,8 +1674,9 @@ export default function Home() {
                         e.stopPropagation();
                         handleEditOrdem(ordem);
                       }}
+                      size="small" // Reduzido o tamanho do botão
                     >
-                      <EditIcon />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       edge="end"
@@ -1653,8 +1685,9 @@ export default function Home() {
                         e.stopPropagation();
                         handleDeleteOrdem(ordem.id);
                       }}
+                      size="small" // Reduzido o tamanho do botão
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -1707,14 +1740,14 @@ export default function Home() {
               <Box
                 sx={{
                   display: "flex",
+                  flexDirection: { xs: "column", md: "row" },
                   backgroundColor: theme.palette.background.paper,
-                  borderRadius: "4px", // Reduzido o arredondamento
-                  overflow: "visible", // Alterado para 'visible' para evitar cortes
+                  borderRadius: "4px",
+                  overflow: "visible",
                   border: `1px solid ${theme.palette.divider}`,
                 }}
               >
-                <Box sx={{ width: "65%", p: 1 }}>
-                  {" "}
+                <Box sx={{ width: { xs: "100%", md: "65%" }, p: 1 }}>
                   <Typography
                     variant="subtitle1"
                     sx={{
@@ -1731,7 +1764,7 @@ export default function Home() {
                       filteredExcipientes={filteredExcipientes}
                       materiaisNaArea={materiaisNaArea}
                       faltaSolicitar={faltaSolicitar}
-                      inputValues={inputValues} // Certifique-se de que esta linha está presente
+                      inputValues={inputValues}
                       handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
                       handleDetailClick={handleDetailClick}
                       handleToggleExpandExcipient={handleToggleExpandExcipient}
@@ -1749,12 +1782,18 @@ export default function Home() {
 
                 <Box
                   sx={{
-                    width: "35%",
-                    borderLeft: `1px solid ${theme.palette.divider}`,
+                    width: { xs: "100%", md: "35%" },
+                    borderLeft: {
+                      xs: "none",
+                      md: `1px solid ${theme.palette.divider}`,
+                    },
+                    borderTop: {
+                      xs: `1px solid ${theme.palette.divider}`,
+                      md: "none",
+                    },
                     p: 1,
                   }}
                 >
-                  {" "}
                   <Typography
                     variant="subtitle1"
                     sx={{

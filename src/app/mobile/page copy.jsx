@@ -53,16 +53,18 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import SearchIcon from "@mui/icons-material/Search";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 // Custom components
-import Autocomplete from "../components/Autocomplete";
-import Sidebar from "../components/Sidebar";
-import UserMenu from "../components/UserMenu";
-import TabelaPrincipal from "../components/TabelaPrincipal";
-import DetalhamentoMateriais from "../components/DetalhamentoMateriais";
-import ExcelUploader, { fetchUpdateHistory } from "../components/ExcelUploader";
-import Sap from "../components/Sap";
+import Autocomplete from "../../components/Autocomplete";
+import Sidebar from "../../components/Sidebar";
+import UserMenu from "../../components/UserMenu";
+import TabelaPrincipal from "../../components/TabelaPrincipal";
+import DetalhamentoMateriais from "../../components/DetalhamentoMateriais";
+import ExcelUploader, {
+  fetchUpdateHistory,
+} from "../../components/ExcelUploader";
+import Sap from "../../components/Sap";
 
 // Supabase client
-import { supabase } from "../supabaseClient";
+import { supabase } from "../../supabaseClient";
 
 // Estilos personalizados
 const AppContainer = styled(Box)(({ theme }) => ({
@@ -70,9 +72,6 @@ const AppContainer = styled(Box)(({ theme }) => ({
   flexDirection: "column",
   height: "100vh",
   backgroundColor: theme.palette.background.default,
-  [theme.breakpoints.down("md")]: {
-    flexDirection: "column",
-  },
 }));
 
 const AppHeader = styled(AppBar)(({ theme }) => ({
@@ -89,12 +88,6 @@ const SidebarContainer = styled(Paper)(({ theme }) => ({
   borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
   backgroundColor: theme.palette.background.paper,
   boxShadow: "none",
-  [theme.breakpoints.down("md")]: {
-    width: "100%",
-    maxHeight: "40vh",
-    borderRight: "none",
-    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  },
 }));
 
 const MainContent = styled(Box)(({ theme }) => ({
@@ -102,9 +95,6 @@ const MainContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   overflowY: "auto",
   backgroundColor: theme.palette.background.default,
-  [theme.breakpoints.down("md")]: {
-    padding: theme.spacing(2),
-  },
 }));
 
 const ContentCard = styled(Paper)(({ theme }) => ({
@@ -694,7 +684,7 @@ export default function Home() {
   const handleEditOrdem = async (ordem) => {
     setEditingOrdemDialog(ordem);
 
-    // Buscar os excipientes especficos para esta ordem
+    // Buscar os excipientes específicos para esta ordem
     const { data, error } = await supabase
       .from("DataBase_ems")
       .select("Excipiente, qtd_materia_prima")
@@ -1415,34 +1405,6 @@ export default function Home() {
     }
   };
 
-  const isOrdemCompleta = useCallback(
-    (ordem) => {
-      if (!filteredExcipientes || !pesados) return false;
-      return Object.entries(filteredExcipientes).every(([excipient, data]) => {
-        const ordemData = data.ordens.find((o) => o.id === ordem.id);
-        return ordemData && pesados[excipient]?.[ordem.id];
-      });
-    },
-    [filteredExcipientes, pesados]
-  );
-
-  const ordensAgrupadas = useMemo(() => {
-    const grupos = {
-      emAndamento: [],
-      pesadas: [],
-    };
-
-    ordens.forEach((ordem) => {
-      if (isOrdemCompleta(ordem)) {
-        grupos.pesadas.push(ordem);
-      } else {
-        grupos.emAndamento.push(ordem);
-      }
-    });
-
-    return grupos;
-  }, [ordens, isOrdemCompleta]);
-
   if (isLoading) {
     return (
       <Box
@@ -1505,14 +1467,7 @@ export default function Home() {
           </Toolbar>
         </AppHeader>
         <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
-        <Box
-          sx={{
-            display: "flex",
-            flexGrow: 1,
-            overflow: "hidden",
-            flexDirection: { xs: "column", md: "row" },
-          }}
-        >
+        <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
           <SidebarContainer>
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
@@ -1633,13 +1588,7 @@ export default function Home() {
             </Box>
             <Divider />
             <List dense component="nav" aria-label="ordens adicionadas">
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", mt: 2, mb: 1, pl: 2 }}
-              >
-                Em Andamento
-              </Typography>
-              {ordensAgrupadas.emAndamento.map((ordem) => (
+              {ordens.map((ordem) => (
                 <ListItem
                   key={ordem.id}
                   button
@@ -1647,7 +1596,7 @@ export default function Home() {
                   onClick={() => handleOrdemClick(ordem)}
                   sx={{
                     borderRadius: 1,
-                    mb: 0.5,
+                    mb: 0.5, // Reduzido de 1 para 0.5
                     "&.Mui-selected": {
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                     },
@@ -1666,13 +1615,10 @@ export default function Home() {
                                 theme.palette.primary.main,
                                 0.1
                               ),
-                              padding: "1px 4px",
-                              borderRadius: "3px",
+                              padding: "1px 4px", // Reduzido de 2px 6px
+                              borderRadius: "3px", // Reduzido de 4px
                               display: "inline-block",
-                              mr: 1,
-                              textDecoration: isOrdemCompleta(ordem)
-                                ? "line-through"
-                                : "none",
+                              mr: 1, // Adicionado margem à direita
                             }}
                           >
                             OP: {ordem.op}
@@ -1688,7 +1634,7 @@ export default function Home() {
                       </>
                     }
                     secondary={`Código: ${ordem.codigo}`}
-                    secondaryTypographyProps={{ variant: "caption" }}
+                    secondaryTypographyProps={{ variant: "caption" }} // Reduzido o tamanho do texto secundário
                   />
                   <ListItemSecondaryAction>
                     {!ordem.op && (
@@ -1699,7 +1645,7 @@ export default function Home() {
                           e.stopPropagation();
                           handleOpenDialog(ordem.id);
                         }}
-                        size="small"
+                        size="small" // Reduzido o tamanho do botão
                       >
                         <AddCircleOutlineIcon fontSize="small" />
                       </IconButton>
@@ -1711,7 +1657,7 @@ export default function Home() {
                         e.stopPropagation();
                         handleEditOrdem(ordem);
                       }}
-                      size="small"
+                      size="small" // Reduzido o tamanho do botão
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
@@ -1722,116 +1668,13 @@ export default function Home() {
                         e.stopPropagation();
                         handleDeleteOrdem(ordem.id);
                       }}
-                      size="small"
+                      size="small" // Reduzido o tamanho do botão
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>
               ))}
-              {ordensAgrupadas.pesadas.length > 0 && (
-                <>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: "bold", mt: 2, mb: 1, pl: 2 }}
-                  >
-                    Pesadas
-                  </Typography>
-                  {ordensAgrupadas.pesadas.map((ordem) => (
-                    <ListItem
-                      key={ordem.id}
-                      button
-                      selected={selectedOrdem && selectedOrdem.id === ordem.id}
-                      onClick={() => handleOrdemClick(ordem)}
-                      sx={{
-                        borderRadius: 1,
-                        mb: 0.5,
-                        "&.Mui-selected": {
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.1
-                          ),
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <>
-                            {ordem.op && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontWeight: "bold",
-                                  color: theme.palette.primary.main,
-                                  backgroundColor: alpha(
-                                    theme.palette.primary.main,
-                                    0.1
-                                  ),
-                                  padding: "1px 4px",
-                                  borderRadius: "3px",
-                                  display: "inline-block",
-                                  mr: 1,
-                                  textDecoration: isOrdemCompleta(ordem)
-                                    ? "line-through"
-                                    : "none",
-                                }}
-                              >
-                                OP: {ordem.op}
-                              </Typography>
-                            )}
-                            <Typography
-                              variant="body2"
-                              component="span"
-                              sx={{ verticalAlign: "middle" }}
-                            >
-                              {ordem.nome}
-                            </Typography>
-                          </>
-                        }
-                        secondary={`Código: ${ordem.codigo}`}
-                        secondaryTypographyProps={{ variant: "caption" }}
-                      />
-                      <ListItemSecondaryAction>
-                        {!ordem.op && (
-                          <IconButton
-                            edge="end"
-                            aria-label="add-op"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDialog(ordem.id);
-                            }}
-                            size="small"
-                          >
-                            <AddCircleOutlineIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                        <IconButton
-                          edge="end"
-                          aria-label="edit"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditOrdem(ordem);
-                          }}
-                          size="small"
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteOrdem(ordem.id);
-                          }}
-                          size="small"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </>
-              )}
             </List>
           </SidebarContainer>
           <MainContent>
@@ -1880,14 +1723,14 @@ export default function Home() {
               <Box
                 sx={{
                   display: "flex",
-                  flexDirection: { xs: "column", md: "row" },
                   backgroundColor: theme.palette.background.paper,
-                  borderRadius: "4px",
-                  overflow: "visible",
+                  borderRadius: "4px", // Reduzido o arredondamento
+                  overflow: "visible", // Alterado para 'visible' para evitar cortes
                   border: `1px solid ${theme.palette.divider}`,
                 }}
               >
-                <Box sx={{ width: { xs: "100%", md: "65%" }, p: 1 }}>
+                <Box sx={{ width: "65%", p: 1 }}>
+                  {" "}
                   <Typography
                     variant="subtitle1"
                     sx={{
@@ -1904,7 +1747,7 @@ export default function Home() {
                       filteredExcipientes={filteredExcipientes}
                       materiaisNaArea={materiaisNaArea}
                       faltaSolicitar={faltaSolicitar}
-                      inputValues={inputValues}
+                      inputValues={inputValues} // Certifique-se de que esta linha está presente
                       handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
                       handleDetailClick={handleDetailClick}
                       handleToggleExpandExcipient={handleToggleExpandExcipient}
@@ -1922,18 +1765,12 @@ export default function Home() {
 
                 <Box
                   sx={{
-                    width: { xs: "100%", md: "35%" },
-                    borderLeft: {
-                      xs: "none",
-                      md: `1px solid ${theme.palette.divider}`,
-                    },
-                    borderTop: {
-                      xs: `1px solid ${theme.palette.divider}`,
-                      md: "none",
-                    },
+                    width: "35%",
+                    borderLeft: `1px solid ${theme.palette.divider}`,
                     p: 1,
                   }}
                 >
+                  {" "}
                   <Typography
                     variant="subtitle1"
                     sx={{

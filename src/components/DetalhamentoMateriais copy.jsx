@@ -45,11 +45,9 @@ const DetalhamentoMateriais = ({
     setSelectedAtivo(null);
   };
 
-  // Modifique a função getStatusColor
+  // Adicione esta função getStatusColor
   const getStatusColor = (status) => {
     switch (status) {
-      case "pesado":
-        return alpha(theme.palette.success.light, 0.5); // Verde mais claro para "Pesado"
       case "completo":
         return alpha(theme.palette.success.main, 0.1);
       case "parcial":
@@ -140,36 +138,25 @@ const DetalhamentoMateriais = ({
                       )
                   )
                   .map(([excipient, data]) => {
-                    const ordensDoAtivo = data.ordens.filter(
-                      (ordem) => ordem && ordem.nome === selectedAtivo
-                    );
-                    const quantidadeNecessaria = ordensDoAtivo.reduce(
-                      (sum, ordem) =>
-                        sum + (ordem.pesado ? 0 : ordem.quantidade),
-                      0
-                    );
+                    const quantidadeNecessaria = data.ordens
+                      .filter((ordem) => ordem && ordem.nome === selectedAtivo)
+                      .reduce(
+                        (sum, ordem) =>
+                          sum + (ordem.pesado ? 0 : ordem.quantidade),
+                        0
+                      );
                     const quantidadeNaArea = materiaisNaArea[excipient] || 0;
-                    const todosPesados = ordensDoAtivo.every(
-                      (ordem) => ordem.pesado
-                    );
-                    const status = todosPesados
-                      ? "pesado"
-                      : quantidadeNaArea >= quantidadeNecessaria
-                      ? "completo"
-                      : quantidadeNaArea > 0
-                      ? "parcial"
-                      : "indisponivel";
+                    const status =
+                      quantidadeNaArea >= quantidadeNecessaria
+                        ? "completo"
+                        : quantidadeNaArea > 0
+                        ? "parcial"
+                        : "indisponivel";
                     return (
                       <StyledDetailTableRow key={excipient}>
-                        <TableCell sx={cellStyle}>
-                          {todosPesados ? <s>{excipient}</s> : excipient}
-                        </TableCell>
+                        <TableCell sx={cellStyle}>{excipient}</TableCell>
                         <TableCell align="right" sx={cellStyle}>
-                          {todosPesados ? (
-                            <s>{quantidadeNecessaria.toFixed(3)} Kg</s>
-                          ) : (
-                            `${quantidadeNecessaria.toFixed(3)} Kg`
-                          )}
+                          {quantidadeNecessaria.toFixed(3)} Kg
                         </TableCell>
                         <TableCell align="right" sx={cellStyle}>
                           {quantidadeNaArea.toFixed(3)} Kg
@@ -177,14 +164,9 @@ const DetalhamentoMateriais = ({
                         <StatusCell
                           align="center"
                           status={status}
-                          sx={{
-                            ...cellStyle,
-                            backgroundColor: getStatusColor(status),
-                          }}
+                          sx={cellStyle}
                         >
-                          {status === "pesado"
-                            ? "Pesado"
-                            : status === "completo"
+                          {status === "completo"
                             ? "Disponível"
                             : status === "parcial"
                             ? "Parcial"
@@ -314,9 +296,7 @@ const DetalhamentoMateriais = ({
                       color: theme.palette.text.primary,
                     }}
                   >
-                    {status === "pesado"
-                      ? "Pesado"
-                      : status === "completo"
+                    {status === "completo"
                       ? "Disponível"
                       : status === "parcial"
                       ? "Parcial"
