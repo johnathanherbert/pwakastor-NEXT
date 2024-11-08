@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useMemo } from "react";
 import {
   Table,
@@ -340,7 +341,7 @@ const TabelaPrincipal = ({
   }, [filteredExcipientes, searchTerm]);
 
   const toggleFaltaSolicitarSort = () => {
-    setFaltaSolicitarSort(prev => prev === "asc" ? "desc" : "asc");
+    setFaltaSolicitarSort((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
   const sortedRows = useMemo(() => {
@@ -374,7 +375,9 @@ const TabelaPrincipal = ({
           <TableRow>
             <TableCell sx={headerCellStyle}>Código</TableCell>
             <TableCell sx={headerCellStyle}>
-              <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+              <Box
+                sx={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}
+              >
                 Excipiente
                 <TextField
                   size="small"
@@ -392,7 +395,7 @@ const TabelaPrincipal = ({
                       height: "24px",
                       ml: { xs: 0, sm: 1 },
                       mt: { xs: 1, sm: 0 },
-                      width: { xs: '100%', sm: 'auto' },
+                      width: { xs: "100%", sm: "auto" },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: "transparent",
                       },
@@ -414,22 +417,37 @@ const TabelaPrincipal = ({
               Na Área
             </TableCell>
             <TableCell align="right" sx={headerCellStyle}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <Typography sx={{ color: 'white', mr: 1, display: { xs: 'none', sm: 'block' } }}>Falta solicitar</Typography>
-                <IconButton 
-                  size="small" 
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: "white",
+                    mr: 1,
+                    display: { xs: "none", sm: "block" },
+                  }}
+                >
+                  Falta solicitar
+                </Typography>
+                <IconButton
+                  size="small"
                   onClick={toggleFaltaSolicitarSort}
-                  sx={{ 
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: alpha('#ffffff', 0.2),
+                  sx={{
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: alpha("#ffffff", 0.2),
                     },
                   }}
                 >
-                  {faltaSolicitarSort === "asc" ? 
-                    <ArrowUpwardIcon fontSize="small" /> : 
+                  {faltaSolicitarSort === "asc" ? (
+                    <ArrowUpwardIcon fontSize="small" />
+                  ) : (
                     <ArrowDownwardIcon fontSize="small" />
-                  }
+                  )}
                 </IconButton>
               </Box>
             </TableCell>
@@ -442,314 +460,315 @@ const TabelaPrincipal = ({
                 startIcon={<RefreshIcon />}
                 onClick={handleUpdateAllSAPValues}
                 size="small"
-                sx={{ 
-                  fontSize: "0.65rem", 
+                sx={{
+                  fontSize: "0.65rem",
                   padding: "2px 6px",
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto',
+                  whiteSpace: "nowrap",
+                  minWidth: "auto",
                 }}
               >
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Atualizar Todos</Box>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Atualizar</Box>
+                <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                  Atualizar Todos
+                </Box>
+                <Box sx={{ display: { xs: "block", sm: "none" } }}>
+                  Atualizar
+                </Box>
               </Button>
             </TableCell>
           </TableRow>
         </StyledTableHead>
         <TableBody>
-          {sortedRows.map(
-            ([excipient, { total, ordens, codigo }]) => {
-              const naArea = materiaisNaArea[excipient] || 0;
-              const totalNaoPesado = ordens.reduce(
-                (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
-                0
-              );
-              const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
-              return (
-                <React.Fragment key={excipient}>
-                  <StyledTableRow
-                    hover
-                    onClick={() => handleToggleExpandExcipient(excipient)}
-                    sx={{
-                      cursor: "pointer",
-                      transition: "background-color 0.3s",
-                      "&:hover": {
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.08
+          {sortedRows.map(([excipient, { total, ordens, codigo }]) => {
+            const naArea = materiaisNaArea[excipient] || 0;
+            const totalNaoPesado = ordens.reduce(
+              (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
+              0
+            );
+            const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
+            return (
+              <React.Fragment key={excipient}>
+                <StyledTableRow
+                  hover
+                  onClick={() => handleToggleExpandExcipient(excipient)}
+                  sx={{
+                    cursor: "pointer",
+                    transition: "background-color 0.3s",
+                    "&:hover": {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    },
+                    backgroundColor: alpha(getStatusColor(status), 0.1),
+                  }}
+                >
+                  <TableCell sx={cellStyle}>{codigo}</TableCell>
+                  <TableCell sx={cellStyle}>
+                    {excipient.length > 20
+                      ? `${excipient.slice(0, 20)}...`
+                      : excipient}
+                  </TableCell>
+                  <TableCell align="right" sx={cellStyle}>
+                    {totalNaoPesado.toFixed(2)} kg
+                  </TableCell>
+                  <TableCell align="right" sx={cellStyle}>
+                    <StyledMaterialInput
+                      type="number"
+                      value={inputValues[excipient] || ""}
+                      onChange={(e) =>
+                        handleMateriaisNaAreaChange(excipient, e.target.value)
+                      }
+                      variant="filled"
+                      size="small"
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Typography variant="caption">Kg</Typography>
+                          </InputAdornment>
                         ),
-                      },
-                      backgroundColor: alpha(getStatusColor(status), 0.1),
-                    }}
-                  >
-                    <TableCell sx={cellStyle}>{codigo}</TableCell>
-                    <TableCell sx={cellStyle}>
-                      {excipient.length > 20 ? `${excipient.slice(0, 20)}...` : excipient}
-                    </TableCell>
-                    <TableCell align="right" sx={cellStyle}>
-                      {totalNaoPesado.toFixed(2)} kg
-                    </TableCell>
-                    <TableCell align="right" sx={cellStyle}>
-                      <StyledMaterialInput
-                        type="number"
-                        value={inputValues[excipient] || ""}
-                        onChange={(e) =>
-                          handleMateriaisNaAreaChange(excipient, e.target.value)
-                        }
-                        variant="filled"
-                        size="small"
-                        InputProps={{
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Typography variant="caption">Kg</Typography>
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          width: { xs: "60px", sm: "70px" },
-                          "& .MuiInputBase-input": {
-                            padding: { xs: "2px 4px", sm: "4px 6px" },
-                            fontSize: { xs: "0.6rem", sm: "0.7rem" },
-                          },
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="right" sx={cellStyle}>
-                      {(() => {
-                        const faltaSolicitarValue = totalNaoPesado - naArea;
-                        const color =
-                          faltaSolicitarValue > 0 || naArea === 0
-                            ? theme.palette.error.main
-                            : theme.palette.success.main;
-                        const value =
-                          faltaSolicitarValue > 0 || naArea === 0
-                            ? faltaSolicitarValue
-                            : naArea;
+                      }}
+                      sx={{
+                        width: { xs: "60px", sm: "70px" },
+                        "& .MuiInputBase-input": {
+                          padding: { xs: "2px 4px", sm: "4px 6px" },
+                          fontSize: { xs: "0.6rem", sm: "0.7rem" },
+                        },
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="right" sx={cellStyle}>
+                    {(() => {
+                      const faltaSolicitarValue = totalNaoPesado - naArea;
+                      const color =
+                        faltaSolicitarValue > 0 || naArea === 0
+                          ? theme.palette.error.main
+                          : theme.palette.success.main;
+                      const value =
+                        faltaSolicitarValue > 0 || naArea === 0
+                          ? faltaSolicitarValue
+                          : naArea;
 
-                        return (
-                          <Typography
-                            component="span"
-                            sx={{
-                              color: color,
-                              fontWeight: "bold",
-                              fontSize: { xs: "0.6rem", sm: "0.7rem" },
-                            }}
-                          >
-                            {value.toFixed(2)} kg
-                          </Typography>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell align="center" sx={cellStyle}>
-                      <Chip
-                        label={getStatusLabel(status)}
-                        sx={{
-                          backgroundColor: getStatusColor(status),
-                          color: theme.palette.text.primary,
-                          fontWeight: "medium",
-                          fontSize: { xs: "0.55rem", sm: "0.65rem" },
-                          height: { xs: "16px", sm: "18px" },
-                        }}
-                        icon={
-                          status === "pesado" ? (
-                            <CheckIcon fontSize="small" />
-                          ) : status.startsWith("atende") ? (
-                            <RemoveIcon fontSize="small" />
-                          ) : null
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStatusClick(excipient);
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={cellStyle}>
-                      <IconButton
-                        onClick={() => handleUpdateSAPValues(excipient, codigo)}
-                        size="small"
-                        color="primary"
-                      >
-                        <UpdateIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </StyledTableRow>
-                  <StyledExpandedRow>
-                    <TableCell
-                      style={{ paddingBottom: 0, paddingTop: 0 }}
-                      colSpan={7}
-                    >
-                      <Collapse
-                        in={expandedExcipient === excipient || allExpanded}
-                        timeout="auto"
-                        unmountOnExit
-                      >
-                        <Box
+                      return (
+                        <Typography
+                          component="span"
                           sx={{
-                            margin: 1,
-                            backgroundColor: alpha(
-                              theme.palette.background.paper,
-                              0.5
-                            ),
-                            borderRadius: 1,
-                            padding: 1,
+                            color: color,
+                            fontWeight: "bold",
+                            fontSize: { xs: "0.6rem", sm: "0.7rem" },
                           }}
                         >
-                          <Typography
-                            variant="subtitle2"
-                            gutterBottom
-                            component="div"
-                            sx={{
-                              fontWeight: "bold",
-                              color: theme.palette.primary.main,
-                              marginBottom: "6px",
-                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                            }}
-                          >
-                            Detalhes: {codigo} - {excipient}
-                          </Typography>
-                          <Table
-                            size="small"
-                            aria-label="purchases"
-                            sx={{
-                              backgroundColor: theme.palette.background.paper,
-                            }}
-                          >
-                            <TableHead>
+                          {value.toFixed(2)} kg
+                        </Typography>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell align="center" sx={cellStyle}>
+                    <Chip
+                      label={getStatusLabel(status)}
+                      sx={{
+                        backgroundColor: getStatusColor(status),
+                        color: theme.palette.text.primary,
+                        fontWeight: "medium",
+                        fontSize: { xs: "0.55rem", sm: "0.65rem" },
+                        height: { xs: "16px", sm: "18px" },
+                      }}
+                      icon={
+                        status === "pesado" ? (
+                          <CheckIcon fontSize="small" />
+                        ) : status.startsWith("atende") ? (
+                          <RemoveIcon fontSize="small" />
+                        ) : null
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusClick(excipient);
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={cellStyle}>
+                    <IconButton
+                      onClick={() => handleUpdateSAPValues(excipient, codigo)}
+                      size="small"
+                      color="primary"
+                    >
+                      <UpdateIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </StyledTableRow>
+                <StyledExpandedRow>
+                  <TableCell
+                    style={{ paddingBottom: 0, paddingTop: 0 }}
+                    colSpan={7}
+                  >
+                    <Collapse
+                      in={expandedExcipient === excipient || allExpanded}
+                      timeout="auto"
+                      unmountOnExit
+                    >
+                      <Box
+                        sx={{
+                          margin: 1,
+                          backgroundColor: alpha(
+                            theme.palette.background.paper,
+                            0.5
+                          ),
+                          borderRadius: 1,
+                          padding: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          gutterBottom
+                          component="div"
+                          sx={{
+                            fontWeight: "bold",
+                            color: theme.palette.primary.main,
+                            marginBottom: "6px",
+                            fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                          }}
+                        >
+                          Detalhes: {codigo} - {excipient}
+                        </Typography>
+                        <Table
+                          size="small"
+                          aria-label="purchases"
+                          sx={{
+                            backgroundColor: theme.palette.background.paper,
+                          }}
+                        >
+                          <TableHead>
+                            <TableRow
+                              sx={{
+                                backgroundColor: alpha(
+                                  theme.palette.primary.main,
+                                  0.1
+                                ),
+                              }}
+                            >
+                              <TableCell sx={headerCellStyle}>Cód.</TableCell>
+                              <TableCell sx={headerCellStyle}>Ordem</TableCell>
+                              <TableCell sx={headerCellStyle}>Qtd</TableCell>
+                              <TableCell align="right" sx={headerCellStyle}>
+                                Status
+                              </TableCell>
+                              <TableCell align="center" sx={headerCellStyle}>
+                                Pesado
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {ordens.map((ordem) => (
                               <TableRow
+                                key={ordem.id}
+                                hover
                                 sx={{
-                                  backgroundColor: alpha(
-                                    theme.palette.primary.main,
-                                    0.1
-                                  ),
+                                  "&:nth-of-type(odd)": {
+                                    backgroundColor: alpha(
+                                      theme.palette.action.hover,
+                                      0.05
+                                    ),
+                                  },
+                                  "&:hover": {
+                                    backgroundColor: alpha(
+                                      theme.palette.action.hover,
+                                      0.1
+                                    ),
+                                  },
                                 }}
                               >
-                                <TableCell sx={headerCellStyle}>Cód.</TableCell>
-                                <TableCell sx={headerCellStyle}>Ordem</TableCell>
-                                <TableCell sx={headerCellStyle}>Qtd</TableCell>
-                                <TableCell align="right" sx={headerCellStyle}>
-                                  Status
+                                <TableCell sx={cellStyle}>
+                                  {ordem.codigo}
                                 </TableCell>
-                                <TableCell align="center" sx={headerCellStyle}>
-                                  Pesado
-                                </TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {ordens.map((ordem) => (
-                                <TableRow
-                                  key={ordem.id}
-                                  hover
+                                <TableCell
+                                  component="th"
+                                  scope="row"
                                   sx={{
-                                    "&:nth-of-type(odd)": {
-                                      backgroundColor: alpha(
-                                        theme.palette.action.hover,
-                                        0.05
-                                      ),
-                                    },
-                                    "&:hover": {
-                                      backgroundColor: alpha(
-                                        theme.palette.action.hover,
-                                        0.1
-                                      ),
-                                    },
+                                    ...cellStyle,
+                                    borderLeft: `3px solid ${
+                                      ordem.pesado
+                                        ? theme.palette.success.main
+                                        : theme.palette.warning.main
+                                    }`,
                                   }}
                                 >
-                                  <TableCell sx={cellStyle}>
-                                    {ordem.codigo}
-                                  </TableCell>
-                                  <TableCell
-                                    component="th"
-                                    scope="row"
-                                    sx={{
-                                      ...cellStyle,
-                                      borderLeft: `3px solid ${
-                                        ordem.pesado
-                                          ? theme.palette.success.main
-                                          : theme.palette.warning.main
-                                      }`,
-                                    }}
-                                  >
-                                    {ordem.op && (
-                                      <Typography
-                                        variant="caption"
-                                        sx={{
-                                          fontWeight: "bold",
-                                          color: theme.palette.primary.main,
-                                          backgroundColor: alpha(
-                                            theme.palette.primary.main,
-                                            0.1
-                                          ),
-                                          padding: "1px 2px",
-                                          borderRadius: "2px",
-                                          display: "inline-block",
-                                          marginRight: "3px",
-                                          fontSize: { xs: "0.5rem", sm: "0.6rem" },
-                                        }}
-                                      >
-                                        OP: {ordem.op}
-                                      </Typography>
-                                    )}
-                                    {ordem.nome.length > 15 ? `${ordem.nome.slice(0, 15)}...` : ordem.nome}
-                                  </TableCell>
-                                  <TableCell sx={cellStyle}>
-                                    {ordem.quantidade.toFixed(2)} kg
-                                  </TableCell>
-                                  <TableCell align="right" sx={cellStyle}>
-                                    <Chip
-                                      icon={
-                                        ordem.pesado ? (
-                                          <CheckCircleIcon fontSize="small" />
-                                        ) : (
-                                          <ScaleIcon fontSize="small" />
-                                        )
-                                      }
-                                      label={
-                                        ordem.pesado ? "Pesado" : "Não Pesado"
-                                      }
-                                      color={
-                                        ordem.pesado ? "success" : "warning"
-                                      }
-                                      size="small"
+                                  {ordem.op && (
+                                    <Typography
+                                      variant="caption"
                                       sx={{
                                         fontWeight: "bold",
-                                        fontSize: { xs: "0.5rem", sm: "0.6rem" },
-                                        height: { xs: "14px", sm: "16px" },
-                                        backgroundColor: ordem.pesado
-                                          ? alpha(
-                                              theme.palette.success.main,
-                                              0.1
-                                            )
-                                          : alpha(
-                                              theme.palette.warning.main,
-                                              0.1
-                                            ),
-                                        color: ordem.pesado
-                                          ? theme.palette.success.main
-                                          : theme.palette.warning.main,
+                                        color: theme.palette.primary.main,
+                                        backgroundColor: alpha(
+                                          theme.palette.primary.main,
+                                          0.1
+                                        ),
+                                        padding: "1px 2px",
+                                        borderRadius: "2px",
+                                        display: "inline-block",
+                                        marginRight: "3px",
+                                        fontSize: {
+                                          xs: "0.5rem",
+                                          sm: "0.6rem",
+                                        },
                                       }}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="center" sx={cellStyle}>
-                                    <Checkbox
-                                      checked={ordem.pesado}
-                                      onChange={() =>
-                                        togglePesado(excipient, ordem.id)
-                                      }
-                                      size="small"
-                                      color="primary"
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </StyledExpandedRow>
-                </React.Fragment>
-              );
-            }
-          )}
+                                    >
+                                      OP: {ordem.op}
+                                    </Typography>
+                                  )}
+                                  {ordem.nome.length > 15
+                                    ? `${ordem.nome.slice(0, 15)}...`
+                                    : ordem.nome}
+                                </TableCell>
+                                <TableCell sx={cellStyle}>
+                                  {ordem.quantidade.toFixed(2)} kg
+                                </TableCell>
+                                <TableCell align="right" sx={cellStyle}>
+                                  <Chip
+                                    icon={
+                                      ordem.pesado ? (
+                                        <CheckCircleIcon fontSize="small" />
+                                      ) : (
+                                        <ScaleIcon fontSize="small" />
+                                      )
+                                    }
+                                    label={
+                                      ordem.pesado ? "Pesado" : "Não Pesado"
+                                    }
+                                    color={ordem.pesado ? "success" : "warning"}
+                                    size="small"
+                                    sx={{
+                                      fontWeight: "bold",
+                                      fontSize: { xs: "0.5rem", sm: "0.6rem" },
+                                      height: { xs: "14px", sm: "16px" },
+                                      backgroundColor: ordem.pesado
+                                        ? alpha(theme.palette.success.main, 0.1)
+                                        : alpha(
+                                            theme.palette.warning.main,
+                                            0.1
+                                          ),
+                                      color: ordem.pesado
+                                        ? theme.palette.success.main
+                                        : theme.palette.warning.main,
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell align="center" sx={cellStyle}>
+                                  <Checkbox
+                                    checked={ordem.pesado}
+                                    onChange={() =>
+                                      togglePesado(excipient, ordem.id)
+                                    }
+                                    size="small"
+                                    color="primary"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Box>
+                    </Collapse>
+                  </TableCell>
+                </StyledExpandedRow>
+              </React.Fragment>
+            );
+          })}
           <TableRow>
             <TableCell
               colSpan={7}
