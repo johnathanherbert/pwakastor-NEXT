@@ -1,92 +1,67 @@
 import React from "react";
-import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Divider,
-  Box,
-  Typography,
-} from "@mui/material";
-import {
-  Menu as MenuIcon,
-  Home as HomeIcon,
-  Scale as ScaleIcon,
-  Settings as SettingsIcon,
-  Dashboard as DashboardIcon,
-  Search as SearchIcon,
-} from "@mui/icons-material";
 import Link from "next/link";
-import { styled } from "@mui/material/styles";
-
-const DrawerHeader = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(0, 1),
-  ...theme.mixins.toolbar,
-  justifyContent: "flex-start",
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-}));
-
-const StyledListItem = styled(ListItem)(({ theme }) => ({
-  borderRadius: theme.shape.borderRadius,
-  margin: theme.spacing(0.5, 1),
-  "&:hover": {
-    backgroundColor: theme.palette.action.hover,
-  },
-}));
+import { 
+  Bars3Icon,
+  HomeIcon,
+  ScaleIcon,
+  Cog6ToothIcon,
+  ChartBarIcon
+} from "@heroicons/react/24/outline";
 
 const Sidebar = ({ open, toggleDrawer }) => {
   const menuItems = [
-    { text: "Início", icon: <HomeIcon />, path: "/" },
-    { text: "Pesagem", icon: <ScaleIcon />, path: "#" },
-    { text: "Rejunka Dashboard", icon: <DashboardIcon />, path: "#" },
-    { text: "Configurações", icon: <SettingsIcon />, path: "#" },
+    { text: "Início", icon: <HomeIcon className="h-5 w-5" />, path: "/" },
+    { text: "Pesagem", icon: <ScaleIcon className="h-5 w-5" />, path: "#" },
+    { text: "Rejunka Dashboard", icon: <ChartBarIcon className="h-5 w-5" />, path: "#" },
+    { text: "Configurações", icon: <Cog6ToothIcon className="h-5 w-5" />, path: "#" },
   ];
 
+  if (!open) return null;
+
   return (
-    <Drawer
-      anchor="left"
-      open={open}
-      onClose={toggleDrawer(false)}
-      PaperProps={{
-        sx: {
-          width: 240,
-          backgroundColor: "background.default",
-        },
-      }}
-    >
-      <DrawerHeader>
-        <IconButton color="inherit" onClick={toggleDrawer(false)} edge="start">
-          <MenuIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
-          Menu
-        </Typography>
-      </DrawerHeader>
-      <Divider />
-      <List>
-        {menuItems.map((item, index) => (
-          <Link href={item.path} key={item.text} passHref>
-            <StyledListItem button component="a">
-              <ListItemIcon sx={{ color: "primary.main" }}>
+    <>
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        onClick={toggleDrawer(false)}
+      />
+
+      {/* Drawer */}
+      <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-slate-800 shadow-xl z-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 h-14 flex items-center">
+          <button
+            onClick={toggleDrawer(false)}
+            className="p-2 hover:bg-blue-700 rounded-lg"
+          >
+            <Bars3Icon className="h-5 w-5" />
+          </button>
+          <span className="ml-2 font-bold">Menu</span>
+        </div>
+
+        {/* Divider */}
+        <div className="border-b border-gray-200 dark:border-gray-700" />
+
+        {/* Menu Items */}
+        <nav className="p-2">
+          {menuItems.map((item) => (
+            <Link 
+              href={item.path} 
+              key={item.text}
+              className="flex items-center gap-3 px-3 py-2 
+                text-gray-700 dark:text-slate-200 
+                rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 
+                transition-colors"
+            >
+              <span className="text-blue-600 dark:text-blue-400">
                 {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontWeight: "medium",
-                  color: "text.primary",
-                }}
-              />
-            </StyledListItem>
-          </Link>
-        ))}
-      </List>
-    </Drawer>
+              </span>
+              <span className="font-medium">{item.text}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </>
   );
 };
 

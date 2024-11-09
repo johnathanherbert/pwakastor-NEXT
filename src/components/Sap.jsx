@@ -1,32 +1,8 @@
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-} from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import SearchIcon from "@mui/icons-material/Search";
-import {
-  StyledTableContainer,
-  StyledTableHead,
-  StyledTableRow,
-  StyledMaterialInput,
-  ContentCard,
-} from "../styles/styledComponents";
 import { supabase } from "../supabaseClient";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
-export default function Sap({ open, onClose, theme, user }) {
+export default function Sap({ open, onClose, user }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [materialData, setMaterialData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -75,108 +51,109 @@ export default function Sap({ open, onClose, theme, user }) {
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Consulta de Material</DialogTitle>
-      <DialogContent>
-        <Box sx={{ mt: 2, mb: 2 }}>
-          <StyledMaterialInput
-            variant="filled"
-            label="Código do Material"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-            size="small"
-            sx={{ mr: 2, width: "200px" }}
-          />
-          <Button
-            variant="contained"
-            startIcon={<SearchIcon />}
-            onClick={handleSearch}
-            disabled={loading}
-          >
-            Buscar
-          </Button>
-        </Box>
+    <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-8">
+      <div className="flex min-h-screen items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
 
-        {loading && <Typography align="center">Carregando...</Typography>}
-        {error && (
-          <Typography color="error" align="center">
-            {error}
-          </Typography>
-        )}
+        <div
+          className="relative w-full max-w-lg md:max-w-xl lg:max-w-2xl bg-white dark:bg-gray-800 
+                        rounded-xl shadow-xl transform transition-all p-6"
+        >
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Digite o código do material..."
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+                       disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white" />
+              ) : (
+                <MagnifyingGlassIcon className="h-5 w-5" />
+              )}
+              <span>Buscar</span>
+            </button>
+          </div>
 
-        {materialData && (
-          <ContentCard elevation={3}>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ textAlign: "center", fontWeight: "bold" }}
-            >
-              Detalhes do Material
-            </Typography>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
-            >
-              <Typography>
-                <strong>Código:</strong> {materialData.codigo_materia_prima}
-              </Typography>
-              <Typography>
-                <strong>Descrição:</strong> {materialData.descricao}
-              </Typography>
-            </Box>
-            <Typography align="center" sx={{ mb: 2 }}>
-              <strong>Saldo Total:</strong>{" "}
-              {materialData.saldo_total.toFixed(3)}{" "}
-              {materialData.unidade_medida}
-            </Typography>
-            <Typography
-              variant="subtitle1"
-              gutterBottom
-              sx={{ textAlign: "center", fontWeight: "bold" }}
-            >
-              Lotes Disponíveis
-            </Typography>
-            <StyledTableContainer>
-              <Table size="small">
-                <StyledTableHead>
-                  <TableRow>
-                    <TableCell>Lote</TableCell>
-                    <TableCell align="right">Quantidade</TableCell>
-                  </TableRow>
-                </StyledTableHead>
-                <TableBody>
-                  {materialData.lotes.map((lote, index) => (
-                    <StyledTableRow key={index}>
-                      <TableCell>{lote.lote}</TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          label={`${parseFloat(lote.quantidade).toFixed(3)} ${
-                            materialData.unidade_medida
-                          }`}
-                          sx={{
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              0.1
-                            ),
-                            color: theme.palette.primary.main,
-                            fontWeight: "bold",
-                          }}
-                        />
-                      </TableCell>
-                    </StyledTableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </StyledTableContainer>
-          </ContentCard>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
-          Fechar
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {materialData && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Informações do Material</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Código</p>
+                    <p className="font-medium">{materialData.codigo_materia_prima}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Descrição</p>
+                    <p className="font-medium">{materialData.descricao}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Unidade de Medida</p>
+                    <p className="font-medium">{materialData.unidade_medida}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Saldo Total</p>
+                    <p className="font-medium">{materialData.saldo_total?.toFixed(3)} {materialData.unidade_medida}</p>
+                  </div>
+                </div>
+              </div>
+
+              {materialData.lotes && materialData.lotes.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Lote
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Quantidade
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {materialData.lotes.map((lote, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {lote.lote}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {parseFloat(lote.quantidade).toFixed(3)} {materialData.unidade_medida}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

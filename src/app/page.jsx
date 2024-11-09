@@ -1,57 +1,9 @@
-// pages/index.js
 "use client";
 import React from "react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 
-// Material-UI imports
-import {
-  alpha,
-  createTheme,
-  styled,
-  ThemeProvider,
-} from "@mui/material/styles";
-import {
-  AppBar,
-  Autocomplete as MuiAutocomplete,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  ListItemText,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Toolbar,
-  Typography,
-} from "@mui/material";
-
-// Material-UI icons
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import MedicationIcon from "@mui/icons-material/Medication";
-import MenuIcon from "@mui/icons-material/Menu";
-import NumbersIcon from "@mui/icons-material/Numbers";
-import SearchIcon from "@mui/icons-material/Search";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 // Custom components
 import Autocomplete from "../components/Autocomplete";
 import Sidebar from "../components/Sidebar";
@@ -64,190 +16,21 @@ import Sap from "../components/Sap";
 // Supabase client
 import { supabase } from "../supabaseClient";
 
-// Estilos personalizados
-const AppContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-  height: "100vh",
-  backgroundColor: theme.palette.background.default,
-  [theme.breakpoints.down("md")]: {
-    flexDirection: "column",
-  },
-}));
-
-const AppHeader = styled(AppBar)(({ theme }) => ({
-  backgroundColor: "rgba(255, 255, 255, 0.8)",
-  backdropFilter: "blur(10px)",
-  boxShadow: "none",
-  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  color: theme.palette.text.primary, // Adicione esta linha
-}));
-
-const SidebarContainer = styled(Paper)(({ theme }) => ({
-  width: "25%",
-  overflowY: "auto",
-  borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: "none",
-  [theme.breakpoints.down("md")]: {
-    width: "100%",
-    maxHeight: "40vh",
-    borderRight: "none",
-    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  },
-}));
-
-const MainContent = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  overflowY: "auto",
-  backgroundColor: theme.palette.background.default,
-  [theme.breakpoints.down("md")]: {
-    padding: theme.spacing(2),
-  },
-}));
-
-const ContentCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
-  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
-}));
-
-const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: "none",
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-}));
-
-const StyledTableHead = styled(TableHead)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  "& th": {
-    color: theme.palette.primary.contrastText,
-    fontWeight: "bold",
-  },
-}));
-
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  "&:nth-of-type(odd)": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.05),
-  },
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.1),
-  },
-}));
-
-const StyledExpandedRow = styled(TableRow)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.secondary.light, 0.05),
-}));
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    borderRadius: 8,
-    transition: "all 0.3s",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.12),
-      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    border: "none",
-  },
-  "& .MuiInputLabel-outlined": {
-    color: alpha(theme.palette.text.primary, 0.7),
-  },
-  "& .MuiInputBase-input": {
-    color: theme.palette.text.primary,
-  },
-}));
-
-const StyledFilledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiFilledInput-root": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    borderRadius: 4,
-    transition: "background-color 0.3s, box-shadow 0.3s",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.12),
-      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-  "& .MuiFilledInput-input": {
-    padding: "10px 12px",
-  },
-  "& .MuiInputLabel-filled": {
-    transform: "translate(12px, 12px) scale(1)",
-  },
-  "& .MuiInputLabel-filled.MuiInputLabel-shrink": {
-    transform: "translate(12px, -9px) scale(0.75)",
-  },
-}));
-
-// Atualize o tema
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#004B5F",
-    },
-    secondary: {
-      main: "#0a4064",
-    },
-    background: {
-      default: "#F2F2F7",
-      paper: "#FFFFFF",
-    },
-  },
-  typography: {
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  shape: {
-    borderRadius: 12,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          borderRadius: 20,
-          padding: "8px 16px",
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          "& .MuiOutlinedInput-root": {
-            backgroundColor: "rgba(255, 255, 255, 0.09)",
-            borderRadius: 8,
-            transition: "all 0.3s",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.13)",
-            },
-            "&.Mui-focused": {
-              backgroundColor: "rgba(255, 255, 255, 0.15)",
-              boxShadow: "0 0 0 2px rgba(0, 75, 95, 0.2)",
-            },
-          },
-          "& .MuiOutlinedInput-notchedOutline": {
-            border: "none",
-          },
-          "& .MuiInputLabel-outlined": {
-            color: "rgba(0, 0, 0, 0.6)",
-          },
-          "& .MuiInputBase-input": {
-            color: "rgba(0, 0, 0, 0.87)",
-          },
-        },
-      },
-    },
-  },
-});
+// Icons
+import {
+  PlusCircleIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  PencilIcon,
+  TrashIcon,
+  BeakerIcon,
+  Bars3Icon,
+  HashtagIcon,
+  MagnifyingGlassIcon,
+  CloudArrowUpIcon,
+  CheckIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
 const EXCIPIENTES_ESPECIAIS = [
   "LACTOSE (200)",
@@ -259,81 +42,6 @@ const EXCIPIENTES_ESPECIAIS = [
   "AMIDO",
   "CELULOSE+LACTOSE",
 ];
-
-// Adicione este estilo CSS personalizado no início do seu arquivo, junto com os outros estilos
-const removeArrows = {
-  "& input[type=number]": {
-    MozAppearance: "textfield",
-    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-      WebkitAppearance: "none",
-      margin: 0,
-    },
-  },
-};
-
-// Atualize o StyledFilledTextField ou crie um novo estilo específico para este input
-const StyledMaterialInput = styled(TextField)(({ theme }) => ({
-  "& .MuiFilledInput-root": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    borderRadius: 4,
-    transition: "background-color 0.3s, box-shadow 0.3s",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.12),
-      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-  "& .MuiFilledInput-input": {
-    padding: "10px 12px",
-    fontSize: "0.875rem",
-    textAlign: "right",
-  },
-  "& .MuiInputAdornment-root": {
-    marginLeft: 0,
-  },
-}));
-
-// Atualize o DetailTable para se parecer mais com a tabela principal
-const DetailTable = styled(Table)(({ theme }) => ({
-  "& .MuiTableCell-head": {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    fontWeight: "bold",
-    padding: "12px 16px",
-  },
-  "& .MuiTableCell-body": {
-    fontSize: "0.875rem",
-    padding: "10px 16px",
-  },
-}));
-
-// Adicione este novo componente estilizado para as linhas da tabela
-const StyledDetailTableRow = styled(TableRow)(({ theme }) => ({
-  "&:nth-of-type(odd)": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.05),
-  },
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.1),
-  },
-}));
-
-const StatusCell = styled(TableCell)(({ status, theme }) => ({
-  backgroundColor:
-    status === "completo"
-      ? alpha(theme.palette.success.main, 0.2)
-      : status === "parcial"
-      ? alpha(theme.palette.warning.main, 0.2)
-      : alpha(theme.palette.grey[300], 0.5),
-  color:
-    status === "completo"
-      ? theme.palette.success.dark
-      : status === "parcial"
-      ? theme.palette.warning.dark
-      : theme.palette.text.secondary,
-  fontWeight: "bold",
-}));
 
 export default function Home() {
   const [ordens, setOrdens] = useState([]);
@@ -393,12 +101,18 @@ export default function Home() {
 
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
 
+  const [inputType, setInputType] = useState("codigo");
+
+  const [opModalOpen, setOpModalOpen] = useState(false);
+  const [newOP, setNewOP] = useState("");
+  const [selectedOrdemId, setSelectedOrdemId] = useState(null);
+
   const handleOpenUploadDialog = () => {
-    setOpenUploadDialog(true);
+    setOpenDialog(true);
   };
 
   const handleCloseUploadDialog = () => {
-    setOpenUploadDialog(false);
+    setOpenDialog(false);
   };
 
   useEffect(() => {
@@ -413,67 +127,6 @@ export default function Home() {
     setDarkMode(newMode);
     localStorage.setItem("darkMode", JSON.stringify(newMode));
   };
-
-  const theme = createTheme({
-    palette: {
-      mode: darkMode ? "dark" : "light",
-      primary: {
-        main: "#004B5F",
-      },
-      secondary: {
-        main: "#0a4064",
-      },
-      background: {
-        default: darkMode ? "#121212" : "#F2F2F7",
-        paper: darkMode ? "#1E1E1E" : "#FFFFFF",
-      },
-    },
-    typography: {
-      fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    },
-    shape: {
-      borderRadius: 12,
-    },
-    components: {
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: "none",
-            borderRadius: 20,
-            padding: "8px 16px",
-          },
-        },
-      },
-      MuiTextField: {
-        styleOverrides: {
-          root: {
-            "& .MuiOutlinedInput-root": {
-              backgroundColor: "rgba(255, 255, 255, 0.09)",
-              borderRadius: 8,
-              transition: "all 0.3s",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.13)",
-              },
-              "&.Mui-focused": {
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                boxShadow: "0 0 0 2px rgba(0, 75, 95, 0.2)",
-              },
-            },
-            "& .MuiOutlinedInput-notchedOutline": {
-              border: "none",
-            },
-            "& .MuiInputLabel-outlined": {
-              color: "rgba(0, 0, 0, 0.6)",
-            },
-            "& .MuiInputBase-input": {
-              color: "rgba(0, 0, 0, 0.87)",
-            },
-          },
-        },
-      },
-    },
-  });
 
   const loadState = useCallback(async (userId) => {
     try {
@@ -605,40 +258,22 @@ export default function Home() {
 
     let codigo, nome, excipientesData;
 
-    if (addMode === "codigo") {
-      const { data, error } = await supabase
-        .from("DataBase_ems")
-        .select(
-          "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
-        )
-        .eq("Codigo_Receita", ativo);
+    // Busca por código
+    const { data, error } = await supabase
+      .from("DataBase_ems")
+      .select(
+        "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
+      )
+      .eq("Codigo_Receita", ativo);
 
-      if (error || !data || data.length === 0) {
-        alert("Código não encontrado");
-        return;
-      }
-
-      codigo = data[0].Codigo_Receita;
-      nome = data[0].Ativo;
-      excipientesData = data;
-    } else {
-      // Busca por ativo
-      const { data, error } = await supabase
-        .from("DataBase_ems")
-        .select(
-          "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
-        )
-        .ilike("Ativo", `%${ativo}%`);
-
-      if (error || !data || data.length === 0) {
-        alert("Ativo não encontrado");
-        return;
-      }
-
-      codigo = data[0].Codigo_Receita;
-      nome = data[0].Ativo;
-      excipientesData = data;
+    if (error || !data || data.length === 0) {
+      alert("Código não encontrado");
+      return;
     }
+
+    codigo = data[0].Codigo_Receita;
+    nome = data[0].Ativo;
+    excipientesData = data;
 
     let op = null;
     if (autoIncrementOP) {
@@ -662,8 +297,6 @@ export default function Home() {
     };
 
     setOrdens((prevOrdens) => [...prevOrdens, novaOrdem]);
-    // Removemos a linha que limpa o input
-    // setAtivo("");
 
     // Atualizar pesados
     const newPesados = { ...pesados };
@@ -809,64 +442,71 @@ export default function Home() {
     });
   };
 
-  const calcularExcipientes = async (
-    ordensAtuais = ordens,
-    pesadosAtual = pesados
-  ) => {
-    if (ordensAtuais.length === 0) {
-      setExcipientes({});
-      return;
-    }
-
-    let newExcipientes = {};
-
-    for (let ordem of ordensAtuais) {
-      const { data, error } = await supabase
-        .from("DataBase_ems")
-        .select("Excipiente, qtd_materia_prima, codigo_materia_prima")
-        .eq("Codigo_Receita", ordem.codigo);
-
-      if (error) {
-        console.error("Erro ao buscar excipientes:", error);
+  const calcularExcipientes = useCallback(
+    async (ordensAtuais = [], pesadosAtuais = {}) => {
+      if (!ordensAtuais || ordensAtuais.length === 0) {
+        setExcipientes({});
         return;
       }
 
-      data.forEach((item) => {
-        const codigoMateriaPrima = String(item.codigo_materia_prima);
-        const codigoExcipiente =
-          codigoMateriaPrima && codigoMateriaPrima.startsWith("1")
-            ? "0" + codigoMateriaPrima
-            : codigoMateriaPrima;
+      let newExcipientes = {};
 
-        if (!newExcipientes[item.Excipiente]) {
-          newExcipientes[item.Excipiente] = {
-            total: 0,
-            ordens: [],
-            codigo: codigoExcipiente,
-          };
+      for (let ordem of ordensAtuais) {
+        const { data, error } = await supabase
+          .from("DataBase_ems")
+          .select("Excipiente, qtd_materia_prima, codigo_materia_prima")
+          .eq("Codigo_Receita", ordem.codigo);
+
+        if (error) {
+          console.error("Erro ao buscar excipientes:", error);
+          return;
         }
-        // Só adiciona ao total e totalNaoPesado se não estiver pesado
-        if (!pesadosAtual[item.Excipiente]?.[ordem.id]) {
-          newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
-        }
-        newExcipientes[item.Excipiente].ordens.push({
-          id: ordem.id,
-          codigo: ordem.codigo,
-          quantidade: item.qtd_materia_prima,
-          nome: ordem.nome,
-          op: ordem.op,
-          pesado: pesadosAtual[item.Excipiente]?.[ordem.id] || false,
+
+        data.forEach((item) => {
+          const codigoMateriaPrima = String(item.codigo_materia_prima);
+          const codigoExcipiente =
+            codigoMateriaPrima && codigoMateriaPrima.startsWith("1")
+              ? "0" + codigoMateriaPrima
+              : codigoMateriaPrima;
+
+          if (!newExcipientes[item.Excipiente]) {
+            newExcipientes[item.Excipiente] = {
+              total: 0,
+              ordens: [],
+              codigo: codigoExcipiente,
+            };
+          }
+
+          // Verifica se o excipiente e a ordem existem em pesadosAtuais
+          const isPesado = pesadosAtuais[item.Excipiente]?.[ordem.id] || false;
+
+          // Só adiciona ao total se não estiver pesado
+          if (!isPesado) {
+            newExcipientes[item.Excipiente].total += item.qtd_materia_prima;
+          }
+
+          newExcipientes[item.Excipiente].ordens.push({
+            id: ordem.id,
+            codigo: ordem.codigo,
+            quantidade: item.qtd_materia_prima,
+            nome: ordem.nome,
+            op: ordem.op,
+            pesado: isPesado,
+          });
         });
+      }
+
+      // Arredonda os totais para 3 casas decimais
+      Object.keys(newExcipientes).forEach((key) => {
+        newExcipientes[key].total = Number(
+          newExcipientes[key].total.toFixed(3)
+        );
       });
-    }
 
-    // Arredonda os totais para 3 casas decimais
-    Object.keys(newExcipientes).forEach((key) => {
-      newExcipientes[key].total = Number(newExcipientes[key].total.toFixed(3));
-    });
-
-    setExcipientes(newExcipientes);
-  };
+      setExcipientes(newExcipientes);
+    },
+    []
+  );
 
   const testConnection = async () => {
     const { data, error } = await supabase
@@ -894,47 +534,31 @@ export default function Home() {
   };
 
   const filteredExcipientes = useMemo(() => {
-    let filtered = excipientes;
+    let filtered = { ...excipientes };
 
     if (selectedOrdem) {
-      filtered = Object.fromEntries(
-        Object.entries(excipientes)
-          .map(([excipient, data]) => {
-            const filteredOrdens = data.ordens.filter(
-              (o) => o.nome === selectedOrdem.nome
-            );
-            const filteredTotal = filteredOrdens.reduce(
-              (sum, o) => sum + o.quantidade,
-              0
-            );
-            const filteredTotalNaoPesado = filteredOrdens.reduce(
-              (sum, o) => (o.pesado ? sum : sum + o.quantidade),
-              0
-            );
-            return [
-              excipient,
-              {
-                ...data,
-                ordens: filteredOrdens,
-                total: filteredTotal,
-                totalNaoPesado: filteredTotalNaoPesado,
-              },
-            ];
-          })
-          .filter(([_, data]) => data.ordens.length > 0)
+      filtered = Object.keys(selectedOrdem.excipientes).reduce(
+        (acc, excipiente) => {
+          if (excipientes[excipiente]) {
+            acc[excipiente] = excipientes[excipiente];
+          }
+          return acc;
+        },
+        {}
       );
     }
 
     if (filtrarExcipientesEspeciais) {
-      filtered = Object.fromEntries(
-        Object.entries(filtered).filter(([excipient]) =>
-          EXCIPIENTES_ESPECIAIS.includes(excipient)
-        )
-      );
+      filtered = Object.entries(filtered).reduce((acc, [excipiente, dados]) => {
+        if (EXCIPIENTES_ESPECIAIS.includes(excipiente)) {
+          acc[excipiente] = dados;
+        }
+        return acc;
+      }, {});
     }
 
     return filtered;
-  }, [selectedOrdem, excipientes, filtrarExcipientesEspeciais]);
+  }, [excipientes, selectedOrdem, filtrarExcipientesEspeciais]);
 
   const calcularMovimentacaoTotal = useCallback(() => {
     return Object.values(filteredExcipientes).reduce(
@@ -996,15 +620,16 @@ export default function Home() {
 
   const handleLogout = async () => {
     if (user) {
-      await saveState(user.id); // Salva o estado final antes de deslogar
-      localStorage.removeItem(`appState_${user.id}`);
+      try {
+        await saveState(user.id); // Salva o estado final antes de deslogar
+        localStorage.removeItem(`appState_${user.id}`);
+        await supabase.auth.signOut();
+        setUser(null); // Atualiza o estado local diretamente
+        router.push("/login");
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+      }
     }
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
-  const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
   };
 
   const getOPList = (ordens, nomeSelecionado) => {
@@ -1065,8 +690,10 @@ export default function Home() {
   };
 
   const toggleAddMode = () => {
-    setAddMode((prevMode) => (prevMode === "codigo" ? "ativo" : "codigo"));
-    setAtivo(""); // Limpar o campo ao mudar o modo
+    const newMode = addMode === "codigo" ? "ativo" : "codigo";
+    setAddMode(newMode);
+    setInputType(newMode);
+    setAtivo(""); // Limpa o input ao trocar
   };
 
   // Função para atualizar a quantidade de materiais na área
@@ -1304,23 +931,6 @@ export default function Home() {
     return [...new Set(ordens.map((ordem) => ordem.nome))];
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "pesado":
-        return alpha(theme.palette.success.main, 0.1);
-      case "ok":
-        return alpha(theme.palette.success.main, 0.1);
-      case status.startsWith("atende") ? status : "":
-        return alpha(theme.palette.warning.main, 0.1);
-      case "warning":
-        return alpha(theme.palette.warning.main, 0.1);
-      case "error":
-        return alpha(theme.palette.error.main, 0.1);
-      default:
-        return alpha(theme.palette.grey[300], 0.1);
-    }
-  };
-
   const handleOpenSapDialog = () => {
     setSapDialogOpen(true);
   };
@@ -1443,840 +1053,803 @@ export default function Home() {
     return grupos;
   }, [ordens, isOrdemCompleta]);
 
+  // Função para selecionar ordem
+  const handleSelectOrdem = useCallback(
+    (ordem) => {
+      setSelectedOrdem(ordem);
+      // Atualiza os excipientes filtrados baseado na ordem selecionada
+      if (ordem) {
+        const filteredByOrdem = Object.entries(excipientes).reduce(
+          (acc, [excipient, data]) => {
+            const ordensDoExcipiente = data.ordens.filter(
+              (o) => o.nome === ordem.nome
+            );
+            if (ordensDoExcipiente.length > 0) {
+              acc[excipient] = {
+                ...data,
+                ordens: ordensDoExcipiente,
+                totalNaoPesado: ordensDoExcipiente.reduce(
+                  (sum, o) => sum + (o.pesado ? 0 : o.quantidade),
+                  0
+                ),
+              };
+            }
+            return acc;
+          },
+          {}
+        );
+      } else {
+        // Se nenhuma ordem selecionada, restaura todos os excipientes
+        calcularExcipientes(ordens, pesados);
+      }
+    },
+    [excipientes, ordens, pesados, calcularExcipientes]
+  );
+
+  // Adicione esta função helper
+  const isOrdemPesada = (ordem, pesados) => {
+    // Verifica se todos os excipientes da ordem estão pesados
+    return Object.keys(ordem.excipientes).every(
+      (excipiente) => pesados[excipiente]?.[ordem.id]
+    );
+  };
+
+  // Função para validar input numérico
+  const handleInputChange = (value) => {
+    if (addMode === "codigo") {
+      // Permite apenas números
+      const numericValue = value.replace(/\D/g, "");
+      setAtivo(numericValue);
+    } else {
+      setAtivo(value);
+    }
+  };
+
+  // Função para abrir o modal de OP
+  const handleOpenOPModal = (ordemId) => {
+    setSelectedOrdemId(ordemId);
+    setNewOP("");
+    setOpModalOpen(true);
+  };
+
+  // Função para salvar a OP
+  const handleSaveOP = () => {
+    if (newOP.length !== 7 || !/^\d+$/.test(newOP)) {
+      alert("A OP deve conter exatamente 7 números");
+      return;
+    }
+
+    setOrdens((prevOrdens) =>
+      prevOrdens.map((ordem) =>
+        ordem.id === selectedOrdemId ? { ...ordem, op: newOP } : ordem
+      )
+    );
+
+    setOpModalOpen(false);
+    setNewOP("");
+    setSelectedOrdemId(null);
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      completo: {
+        className: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
+        title: "Todos os excipientes necessários estão disponíveis na área",
+        text: "Completo"
+      },
+      parcial: {
+        className: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/50",
+        title: "Alguns excipientes estão disponíveis, mas não todos",
+        text: "Parcial"
+      },
+      indisponivel: {
+        className: "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/50",
+        title: "Nenhum excipiente necessário está disponível na área",
+        text: "Indisponível"
+      },
+      pesado: {
+        className: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
+        title: "Todos os excipientes desta ordem foram pesados",
+        text: "Pesado"
+      }
+    };
+
+    return badges[status] || badges.indisponivel;
+  };
+
   if (isLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          width: "100vw",
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
-        }}
-      >
-        <CircularProgress
-          size={60}
-          thickness={4}
-          sx={{ color: theme.palette.primary.main }}
-        />
-      </Box>
+      <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
+        <div
+          className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 
+          border-blue-600 dark:border-blue-400"
+        ></div>
+      </div>
     );
   }
 
   if (!user) {
-    return null; // ou um componente de carregamento
+    return null;
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <AppContainer>
-        <AppHeader position="static">
-          <Toolbar variant="dense">
-            <IconButton
-              edge="start"
-              color="inherit" // Mude para "inherit"
-              aria-label="menu"
-              onClick={toggleDrawer(true)}
-              size="small"
-              sx={{ mr: 2 }}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      {/* Navbar Superior Fixo */}
+      <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/95 border-b dark:border-gray-700/50 z-50 h-16 backdrop-blur-sm transition-all duration-200">
+        <div className="h-full px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setDrawerOpen(!drawerOpen)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg transition-colors duration-200"
             >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1, fontWeight: "bold", color: "inherit" }} // Mude para "inherit"
-            >
+              <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            </button>
+            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
               Pesagem
-            </Typography>
-            {/* <FormControlLabel
-              control={
-                <Switch
-                  checked={darkMode}
-                  onChange={toggleDarkMode}
-                  icon={<Brightness7Icon />}
-                  checkedIcon={<Brightness4Icon />}
-                />
-              }
-              label={darkMode ? "Modo Escuro" : "Modo Claro"}
-            /> */}
-            <UserMenu user={user} onUserUpdate={handleUserUpdate} />
-          </Toolbar>
-        </AppHeader>
-        <Sidebar open={drawerOpen} toggleDrawer={toggleDrawer} />
-        <Box
-          sx={{
-            display: "flex",
-            flexGrow: 1,
-            overflow: "hidden",
-            flexDirection: { xs: "column", md: "row" },
-          }}
-        >
-          <SidebarContainer>
-            <Box sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-                Gestão de Ordens
-              </Typography>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mb: 2,
-                  width: "100%",
-                }}
+            </h1>
+          </div>
+
+          {/* Ações Rápidas */}
+          <div className="flex items-center gap-4">
+            {/* Botões de Ação */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenSapDialog}
+                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                         text-blue-600 dark:text-blue-400 
+                         bg-blue-50 dark:bg-blue-900/30 
+                         hover:bg-blue-100 dark:hover:bg-blue-900/50 
+                         border border-blue-200 dark:border-blue-700/50
+                         rounded-lg transition-all duration-200
+                         hover:shadow-md dark:hover:shadow-blue-900/20"
+                title="Consulta SAP"
               >
-                <Box sx={{ flexGrow: 1, position: "relative" }}>
+                <MagnifyingGlassIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Consulta SAP</span>
+              </button>
+
+              <button
+                onClick={handleUpdateAllSAPValues}
+                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                         text-green-600 dark:text-green-400 
+                         bg-green-50 dark:bg-green-900/30 
+                         hover:bg-green-100 dark:hover:bg-green-900/50 
+                         border border-green-200 dark:border-green-700/50
+                         rounded-lg transition-all duration-200
+                         hover:shadow-md dark:hover:shadow-green-900/20"
+                title="Atualizar Dados"
+              >
+                <ArrowPathIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Atualizar Dados</span>
+              </button>
+
+              <button
+                onClick={handleOpenUploadDialog}
+                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                         text-purple-600 dark:text-purple-400 
+                         bg-purple-50 dark:bg-purple-900/30 
+                         hover:bg-purple-100 dark:hover:bg-purple-900/50 
+                         border border-purple-200 dark:border-purple-700/50
+                         rounded-lg transition-all duration-200
+                         hover:shadow-md dark:hover:shadow-purple-900/20"
+                title="Upload Excel"
+              >
+                <CloudArrowUpIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Upload Excel</span>
+              </button>
+            </div>
+            <UserMenu user={user} />
+          </div>
+        </div>
+      </nav>
+
+      {/* Layout Principal */}
+      <div className="flex pt-16">
+        <Sidebar
+          open={drawerOpen}
+          toggleDrawer={(state) => setDrawerOpen(state)}
+        />
+
+        {/* Conteúdo Principal */}
+        <div className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Coluna Lateral Esquerda - 3 colunas */}
+            <div className="col-span-12 lg:col-span-3 space-y-4">
+              {/* Card de Estatísticas */}
+              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      Total de Ordens
+                    </p>
+                    <p className="text-xl font-semibold text-blue-700 dark:text-blue-300">
+                      {ordens.length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      Ordens Pesadas
+                    </p>
+                    <p className="text-xl font-semibold text-green-700 dark:text-green-300">
+                      {
+                        ordens.filter((ordem) => isOrdemPesada(ordem, pesados))
+                          .length
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card de Adição de Ordens */}
+              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 transition-colors">
+                <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-t-xl">
+                  <h3 className="text-base font-semibold text-white dark:text-white/90 flex items-center gap-2">
+                    <PlusCircleIcon className="w-4 h-4" />
+                    Nova Ordem
+                  </h3>
+                </div>
+
+                <div className="p-4 space-y-4">
+                  {/* Input Principal - Alternando entre tipos */}
                   {addMode === "codigo" ? (
-                    <StyledTextField
-                      fullWidth
-                      type="number"
-                      label="Código Receita"
-                      value={ativo}
-                      onChange={(e) => setAtivo(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      size="small"
-                      margin="dense"
-                      variant="outlined"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={ativo}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        ref={inputRef}
+                        placeholder="Digite o código (Ex: 2213345)"
+                        className="w-full px-3 py-2 
+                          bg-white dark:bg-gray-700
+                          border border-gray-200 dark:border-gray-600 
+                          text-gray-900 dark:text-gray-100
+                          placeholder-gray-400 dark:placeholder-gray-400
+                          rounded-lg text-sm 
+                          focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                          focus:border-transparent transition-colors"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">
+                        Apenas números
+                      </span>
+                    </div>
                   ) : (
                     <Autocomplete
-                      fullWidth
-                      label="Ativo"
                       value={ativo}
                       onChange={setAtivo}
                       onKeyPress={handleKeyPress}
-                      size="small"
-                      margin="dense"
-                      variant="outlined"
-                      TextFieldComponent={StyledTextField}
+                      ref={inputRef}
+                      placeholder="Digite o nome do ativo (Ex: AMOXICILINA)"
+                      className="w-full dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                     />
                   )}
-                </Box>
-                <IconButton onClick={toggleAddMode} sx={{ ml: 1 }}>
-                  {addMode === "codigo" ? <MedicationIcon /> : <NumbersIcon />}
-                </IconButton>
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mt: 2,
-                  mb: 2,
-                  gap: 1,
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color={autoIncrementOP ? "primary" : "inherit"}
-                  onClick={toggleAutoIncrementOP}
-                  size="small"
-                  sx={{
-                    flexGrow: 1,
-                    whiteSpace: "nowrap",
-                    padding: "6px 8px",
-                    minWidth: "auto",
-                  }}
-                  startIcon={
-                    autoIncrementOP ? (
-                      <CheckCircleIcon />
-                    ) : (
-                      <CheckCircleOutlineIcon />
-                    )
-                  }
-                >
-                  Auto OP
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddOrdem}
-                  size="small"
-                  sx={{
-                    flexGrow: 1,
-                    whiteSpace: "nowrap",
-                    padding: "6px 8px",
-                    minWidth: "auto",
-                  }}
-                >
-                  Add Ordem
-                </Button>
-              </Box>
-              {autoIncrementOP && (
-                <>
-                  <StyledTextField
-                    fullWidth
-                    type="number"
-                    label="OP Inicial"
-                    value={initialOP}
-                    onChange={(e) => setInitialOP(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    size="small"
-                    margin="dense"
-                    variant="outlined"
-                  />
-                  <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                    <Typography variant="caption" sx={{ flexGrow: 1 }}>
-                      Próxima OP:{" "}
-                      {initialOP
-                        ? parseInt(initialOP) + 1
-                        : lastOP
-                        ? lastOP + 1
-                        : 2213345}
-                    </Typography>
-                    <Button size="small" onClick={resetOP}>
-                      Reset
-                    </Button>
-                  </Box>
-                </>
-              )}
-            </Box>
-            <Divider />
-            <List dense component="nav" aria-label="ordens adicionadas">
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", mt: 2, mb: 1, pl: 2 }}
-              >
-                Em Andamento
-              </Typography>
-              {ordensAgrupadas.emAndamento.map((ordem) => (
-                <ListItem
-                  key={ordem.id}
-                  button
-                  selected={selectedOrdem && selectedOrdem.id === ordem.id}
-                  onClick={() => handleOrdemClick(ordem)}
-                  sx={{
-                    borderRadius: 1,
-                    mb: 0.5,
-                    "&.Mui-selected": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    },
-                  }}
-                >
-                  <ListItemText
-                    primary={
-                      <>
-                        {ordem.op && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: "bold",
-                              color: theme.palette.primary.main,
-                              backgroundColor: alpha(
-                                theme.palette.primary.main,
-                                0.1
-                              ),
-                              padding: "1px 4px",
-                              borderRadius: "3px",
-                              display: "inline-block",
-                              mr: 1,
-                              textDecoration: isOrdemCompleta(ordem)
-                                ? "line-through"
-                                : "none",
-                            }}
-                          >
-                            OP: {ordem.op}
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="body2"
-                          component="span"
-                          sx={{ verticalAlign: "middle" }}
-                        >
-                          {ordem.nome}
-                        </Typography>
-                      </>
-                    }
-                    secondary={`Código: ${ordem.codigo}`}
-                    secondaryTypographyProps={{ variant: "caption" }}
-                  />
-                  <ListItemSecondaryAction>
-                    {!ordem.op && (
-                      <IconButton
-                        edge="end"
-                        aria-label="add-op"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDialog(ordem.id);
-                        }}
-                        size="small"
+
+                  {/* Botões */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={toggleAddMode}
+                      className={`px-3 py-2 text-sm rounded-lg flex-1 flex items-center justify-center gap-1
+                                ${
+                                  addMode === "codigo"
+                                    ? "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-700"
+                                    : "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700"
+                                }`}
+                    >
+                      {addMode === "codigo" ? (
+                        <>
+                          <BeakerIcon className="w-4 h-4" />
+                          Usar Ativo
+                        </>
+                      ) : (
+                        <>
+                          <HashtagIcon className="w-4 h-4" />
+                          Usar Código
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleAddOrdem}
+                      className="px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
+                               hover:bg-blue-700 dark:hover:bg-blue-600 
+                               flex items-center justify-center gap-1 flex-1 transition-colors"
+                    >
+                      <PlusCircleIcon className="w-4 h-4" />
+                      <span className="text-sm">Adicionar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de Ordens */}
+              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-md border dark:border-gray-700/50">
+                {/* Header */}
+                <div className="p-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+                      Ordens em Andamento
+                    </h2>
+                    {selectedOrdem && (
+                      <button
+                        onClick={() => handleSelectOrdem(null)}
+                        className="text-xs text-blue-400 dark:text-blue-600 hover:text-blue-300 dark:hover:text-blue-500"
                       >
-                        <AddCircleOutlineIcon fontSize="small" />
-                      </IconButton>
+                        Limpar Filtro
+                      </button>
                     )}
-                    <IconButton
-                      edge="end"
-                      aria-label="edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditOrdem(ordem);
-                      }}
-                      size="small"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteOrdem(ordem.id);
-                      }}
-                      size="small"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-              {ordensAgrupadas.pesadas.length > 0 && (
-                <>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: "bold", mt: 2, mb: 1, pl: 2 }}
-                  >
-                    Pesadas
-                  </Typography>
-                  {ordensAgrupadas.pesadas.map((ordem) => (
-                    <ListItem
-                      key={ordem.id}
-                      button
-                      selected={selectedOrdem && selectedOrdem.id === ordem.id}
-                      onClick={() => handleOrdemClick(ordem)}
-                      sx={{
-                        borderRadius: 1,
-                        mb: 0.5,
-                        "&.Mui-selected": {
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.1
-                          ),
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <>
-                            {ordem.op && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontWeight: "bold",
-                                  color: theme.palette.primary.main,
-                                  backgroundColor: alpha(
-                                    theme.palette.primary.main,
-                                    0.1
-                                  ),
-                                  padding: "1px 4px",
-                                  borderRadius: "3px",
-                                  display: "inline-block",
-                                  mr: 1,
-                                  textDecoration: isOrdemCompleta(ordem)
-                                    ? "line-through"
-                                    : "none",
-                                }}
-                              >
-                                OP: {ordem.op}
-                              </Typography>
-                            )}
-                            <Typography
-                              variant="body2"
-                              component="span"
-                              sx={{ verticalAlign: "middle" }}
-                            >
-                              {ordem.nome}
-                            </Typography>
-                          </>
-                        }
-                        secondary={`Código: ${ordem.codigo}`}
-                        secondaryTypographyProps={{ variant: "caption" }}
-                      />
-                      <ListItemSecondaryAction>
-                        {!ordem.op && (
-                          <IconButton
-                            edge="end"
-                            aria-label="add-op"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDialog(ordem.id);
-                            }}
-                            size="small"
+                  </div>
+                </div>
+
+                {/* Lista de Ordens */}
+                <div className="divide-y dark:divide-gray-700/50">
+                  {/* Ordens em Andamento */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 transition-colors">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                      Em Andamento
+                    </h3>
+                    <div className="space-y-2 max-h-[calc(50vh-200px)] overflow-y-auto">
+                      {ordens
+                        .filter(
+                          (ordem) =>
+                            !isOrdemPesada(ordem, pesados) &&
+                            (!selectedOrdem ||
+                              ordem.nome === selectedOrdem.nome)
+                        )
+                        .map((ordem) => (
+                          <div
+                            key={ordem.id}
+                            onClick={() => handleSelectOrdem(ordem)}
+                            className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border
+                              ${
+                                selectedOrdem?.id === ordem.id
+                                  ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50 shadow-md dark:shadow-blue-900/20"
+                                  : "bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700/50 border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600"
+                              }`}
                           >
-                            <AddCircleOutlineIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                        <IconButton
-                          edge="end"
-                          aria-label="edit"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditOrdem(ordem);
-                          }}
-                          size="small"
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteOrdem(ordem.id);
-                          }}
-                          size="small"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </>
-              )}
-            </List>
-          </SidebarContainer>
-          <MainContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{
-                    fontWeight: "bold",
-                    color: theme.palette.primary.main,
-                    mb: 2,
-                  }}
-                >
-                  Gestão de Materiais
-                </Typography>
-                <Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<CloudUploadIcon />}
-                    onClick={handleOpenUploadDialog}
-                  >
-                    Atualizar Dados
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<SearchIcon />}
-                    onClick={handleOpenSapDialog}
-                    sx={{ ml: 1 }}
-                  >
-                    Consulta SAP
-                  </Button>
-                  <ExcelUploader
-                    onDataUpdated={handleDataUpdated}
-                    openUploadDialog={openUploadDialog}
-                    handleCloseUploadDialog={handleCloseUploadDialog}
-                  />
-                </Box>
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: { xs: "column", md: "row" },
-                  backgroundColor: theme.palette.background.paper,
-                  borderRadius: "4px",
-                  overflow: "visible",
-                  border: `1px solid ${theme.palette.divider}`,
-                }}
-              >
-                <Box sx={{ width: { xs: "100%", md: "65%" }, p: 1 }}>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: "bold",
-                      color: theme.palette.text.secondary,
-                      p: 2,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    }}
-                  >
-                    Tabela Principal
-                  </Typography>
-                  <Box sx={{ p: 2 }}>
-                    <TabelaPrincipal
-                      filteredExcipientes={filteredExcipientes}
-                      materiaisNaArea={materiaisNaArea}
-                      faltaSolicitar={faltaSolicitar}
-                      inputValues={inputValues}
-                      handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
-                      handleDetailClick={handleDetailClick}
-                      handleToggleExpandExcipient={handleToggleExpandExcipient}
-                      expandedExcipient={expandedExcipient}
-                      allExpanded={allExpanded}
-                      togglePesado={togglePesado}
-                      theme={theme}
-                      calcularMovimentacaoTotal={calcularMovimentacaoTotal}
-                      getOrdensAtendidas={getOrdensAtendidas}
-                      handleUpdateSAPValues={handleUpdateSAPValues}
-                      handleUpdateAllSAPValues={handleUpdateAllSAPValues}
-                    />
-                  </Box>
-                </Box>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                                {ordem.nome}
+                              </span>
 
-                <Box
-                  sx={{
-                    width: { xs: "100%", md: "35%" },
-                    borderLeft: {
-                      xs: "none",
-                      md: `1px solid ${theme.palette.divider}`,
-                    },
-                    borderTop: {
-                      xs: `1px solid ${theme.palette.divider}`,
-                      md: "none",
-                    },
-                    p: 1,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: "bold",
-                      color: theme.palette.text.secondary,
-                      p: 2,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    }}
-                  >
-                    Detalhamento de Materiais
-                  </Typography>
-                  <Box sx={{ p: 2 }}>
-                    <DetalhamentoMateriais
-                      getFilteredAtivos={getFilteredAtivos}
-                      getAtivoStatus={getAtivoStatus}
-                      handleDetailClick={handleDetailClick}
-                      theme={theme}
-                      ordens={ordens}
-                      filteredExcipientes={filteredExcipientes}
-                      materiaisNaArea={materiaisNaArea}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-          </MainContent>
-        </Box>
-      </AppContainer>
+                              {/* Status Badge */}
+                              <span
+                                title={getStatusBadge(getAtivoStatus(ordem.nome)).title}
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${getStatusBadge(getAtivoStatus(ordem.nome)).className}`}
+                              >
+                                {getStatusBadge(getAtivoStatus(ordem.nome)).text}
+                              </span>
+                            </div>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Adicionar OP</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="op"
-            label="Número da OP"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={opNumber}
-            onChange={(e) => setOpNumber(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleAddOP}>Adicionar</Button>
-        </DialogActions>
-      </Dialog>
+                            <div className="flex items-center gap-2 mt-2">
+                              {/* OP Badge */}
+                              <span
+                                className="inline-flex items-center px-2 py-1 rounded-md 
+                                bg-gray-100 dark:bg-gray-800 
+                                border border-gray-200 dark:border-gray-700
+                                transition-colors"
+                              >
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-1">
+                                  OP:
+                                </span>
+                                <span className="text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
+                                  {ordem.op
+                                    ? String(ordem.op).padStart(7, "0")
+                                    : "N/A"}
+                                </span>
+                              </span>
 
-      <Dialog
-        open={!!editingOrdemDialog}
-        onClose={handleCloseEditDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="h6">
-              Editar Ordem: {editingOrdemDialog?.nome}
-            </Typography>
-            {editingOrdemDialog?.op && (
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: "bold",
-                  color: theme.palette.primary.main,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  display: "inline-block",
-                }}
-              >
-                OP: {editingOrdemDialog?.op}
-              </Typography>
-            )}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSelectAll}
-              startIcon={
-                selectAllChecked ? (
-                  <CheckCircleIcon />
-                ) : (
-                  <CheckCircleOutlineIcon />
-                )
-              }
-            >
-              {selectAllChecked ? "Desmarcar Todos" : "Marcar Todos"}
-            </Button>
-          </Box>
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Excipiente</TableCell>
-                  <TableCell align="right">Quantidade (kg)</TableCell>
-                  <TableCell align="center">Pesado</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(editingExcipientes).map(
-                  ([excipient, { quantidade, pesado }]) => (
-                    <TableRow key={excipient}>
-                      <TableCell>{excipient}</TableCell>
-                      <TableCell align="right">
-                        {quantidade.toFixed(3)}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Checkbox
-                          checked={pesado}
-                          onChange={() => handleToggleExcipiente(excipient)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSaveEditDialog}
-            variant="contained"
-            color="primary"
-          >
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
+                              {/* Ações */}
+                              <div className="flex items-center gap-1 ml-auto">
+                                {/* Botão Adicionar OP */}
+                                {!ordem.op && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenOPModal(ordem.id);
+                                    }}
+                                    className="inline-flex items-center px-2 py-1 text-xs 
+                                      text-blue-600 dark:text-blue-400 
+                                      bg-blue-50 dark:bg-blue-900/30 
+                                      hover:bg-blue-100 dark:hover:bg-blue-900/50 
+                                      border border-blue-200 dark:border-blue-700 
+                                      rounded transition-all duration-200
+                                      hover:shadow-md dark:hover:shadow-blue-900/20"
+                                  >
+                                    <PlusCircleIcon className="w-3.5 h-3.5 mr-1" />
+                                    Adicionar OP
+                                  </button>
+                                )}
 
-      <Dialog
-        open={detailDialogOpen}
-        onClose={handleCloseDetailDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography
-              variant="h5"
-              component="span"
-              sx={{ fontWeight: "bold" }}
-            >
-              Detalhes do Ativo: {selectedExcipientDetail}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: "bold",
-                color: theme.palette.primary.main,
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "inline-block",
-              }}
-            >
-              OPs: {getOPList(ordens, selectedExcipientDetail)}
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedExcipientDetail && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <Box>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  Excipientes Disponíveis para Pesar
-                </Typography>
-                <StyledTableContainer>
-                  <DetailTable size="small">
-                    <StyledTableHead>
-                      <TableRow>
-                        <TableCell>Excipiente</TableCell>
-                        <TableCell align="right">
-                          Quantidade Necessária (kg)
-                        </TableCell>
-                        <TableCell align="right">
-                          Quantidade na Área (kg)
-                        </TableCell>
-                        <TableCell align="center">Status</TableCell>
-                      </TableRow>
-                    </StyledTableHead>
-                    <TableBody>
-                      {Object.entries(filteredExcipientes)
-                        .filter(([_, data]) =>
-                          data.ordens.some(
-                            (ordem) => ordem.nome === selectedExcipientDetail
-                          )
-                        )
-                        .map(([excipient, data]) => {
-                          const quantidadeNecessaria = data.ordens
-                            .filter(
-                              (ordem) => ordem.nome === selectedExcipientDetail
-                            )
-                            .reduce((sum, ordem) => {
-                              // Só adiciona à quantidade necessária se não estiver pesado
-                              return (
-                                sum + (ordem.pesado ? 0 : ordem.quantidade)
-                              );
-                            }, 0);
-                          const quantidadeNaArea =
-                            materiaisNaArea[excipient] || 0;
-                          const status =
-                            quantidadeNaArea >= quantidadeNecessaria
-                              ? "completo"
-                              : quantidadeNaArea > 0
-                              ? "parcial"
-                              : "indisponivel";
-                          return (
-                            <StyledDetailTableRow key={excipient}>
-                              <TableCell>{excipient}</TableCell>
-                              <TableCell align="right">
-                                {quantidadeNecessaria.toFixed(3) + " Kg"}
-                              </TableCell>
-                              <TableCell align="right">
-                                {quantidadeNaArea.toFixed(3) + " Kg"}
-                              </TableCell>
-                              <StatusCell align="center" status={status}>
-                                {status === "completo"
-                                  ? "Disponível"
-                                  : status === "parcial"
-                                  ? "Parcial"
-                                  : "Indisponível"}
-                              </StatusCell>
-                            </StyledDetailTableRow>
-                          );
-                        })}
-                    </TableBody>
-                  </DetailTable>
-                </StyledTableContainer>
-              </Box>
+                                {/* Botão Editar */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditOrdem(ordem);
+                                  }}
+                                  className="p-1.5 text-blue-600 dark:text-blue-400 
+                                    bg-blue-50 dark:bg-blue-900/30 
+                                    hover:bg-blue-100 dark:hover:bg-blue-900/50 
+                                    border border-blue-200 dark:border-blue-700 
+                                    rounded-lg transition-all duration-200
+                                    hover:shadow-md dark:hover:shadow-blue-900/20"
+                                  title="Editar Ordem"
+                                >
+                                  <PencilIcon className="w-3.5 h-3.5" />
+                                </button>
 
-              <Box>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ color: theme.palette.error.main }}
-                >
-                  Excipientes Faltando Solicitar
-                </Typography>
-                <StyledTableContainer>
-                  <DetailTable size="small">
-                    <StyledTableHead>
-                      <TableRow>
-                        <TableCell>Excipiente</TableCell>
-                        <TableCell align="right">
-                          Quantidade Faltante (kg)
-                        </TableCell>
-                      </TableRow>
-                    </StyledTableHead>
-                    <TableBody>
-                      {Object.entries(filteredExcipientes)
-                        .filter(([_, data]) =>
-                          data.ordens.some(
-                            (ordem) => ordem.nome === selectedExcipientDetail
-                          )
-                        )
-                        .map(([excipient, data]) => {
-                          const quantidadeNecessaria = data.ordens
-                            .filter(
-                              (ordem) => ordem.nome === selectedExcipientDetail
-                            )
-                            .reduce((sum, ordem) => {
-                              // Só adiciona à quantidade necessária se não estiver pesado
-                              return (
-                                sum + (ordem.pesado ? 0 : ordem.quantidade)
-                              );
-                            }, 0);
-                          const quantidadeNaArea =
-                            materiaisNaArea[excipient] || 0;
-                          const quantidadeFaltante = Math.max(
-                            quantidadeNecessaria - quantidadeNaArea,
-                            0
-                          );
-                          if (quantidadeFaltante > 0) {
-                            return (
-                              <StyledDetailTableRow key={excipient}>
-                                <TableCell>{excipient}</TableCell>
-                                <TableCell align="right">
-                                  {quantidadeFaltante.toFixed(3) + " Kg"}
-                                </TableCell>
-                              </StyledDetailTableRow>
-                            );
-                          }
-                          return null;
-                        })
-                        .filter(Boolean)}
-                    </TableBody>
-                  </DetailTable>
-                </StyledTableContainer>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleCloseDetailDialog}
-            variant="contained"
-            color="primary"
-          >
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
+                                {/* Botão Remover */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteOrdem(ordem.id);
+                                  }}
+                                  className="p-1.5 text-red-600 dark:text-red-400 
+                                    bg-red-50 dark:bg-red-900/30 
+                                    hover:bg-red-100 dark:hover:bg-red-900/50 
+                                    border border-red-200 dark:border-red-700 
+                                    rounded-lg transition-all duration-200
+                                    hover:shadow-md dark:hover:shadow-red-900/20"
+                                  title="Remover Ordem"
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Ordens Pesadas */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 transition-colors">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                      Pesadas
+                    </h3>
+                    <div className="space-y-2 max-h-[calc(50vh-200px)] overflow-y-auto">
+                      {ordens
+                        .filter((ordem) => isOrdemPesada(ordem, pesados))
+                        .map((ordem) => (
+                          <div
+                            key={ordem.id}
+                            onClick={() => handleSelectOrdem(ordem)}
+                            className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border
+                              ${
+                                selectedOrdem?.id === ordem.id
+                                  ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50 shadow-md dark:shadow-blue-900/20"
+                                  : "bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700/50 border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600"
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                                {ordem.nome}
+                              </span>
+
+                              {/* Status Badge */}
+                              <span
+                                title={getStatusBadge('pesado').title}
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge('pesado').className}`}
+                              >
+                                {getStatusBadge('pesado').text}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-2">
+                              {/* OP Badge */}
+                              <span className="inline-flex items-center px-2 py-1 rounded-md 
+                                bg-gray-100 dark:bg-gray-800 
+                                border border-gray-200 dark:border-gray-700
+                                transition-colors">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-1">
+                                  OP:
+                                </span>
+                                <span className="text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
+                                  {ordem.op ? String(ordem.op).padStart(7, "0") : "N/A"}
+                                </span>
+                              </span>
+
+                              {/* Ações */}
+                              <div className="flex items-center gap-1 ml-auto">
+                                {/* Botão Adicionar OP */}
+                                {!ordem.op && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenOPModal(ordem.id);
+                                    }}
+                                    className="inline-flex items-center px-2 py-1 text-xs 
+                                      text-blue-600 dark:text-blue-400 
+                                      bg-blue-50 dark:bg-blue-900/30 
+                                      hover:bg-blue-100 dark:hover:bg-blue-900/50 
+                                      border border-blue-200 dark:border-blue-700 
+                                      rounded transition-all duration-200
+                                      hover:shadow-md dark:hover:shadow-blue-900/20"
+                                  >
+                                    <PlusCircleIcon className="w-3.5 h-3.5 mr-1" />
+                                    Adicionar OP
+                                  </button>
+                                )}
+
+                                {/* Botão Editar */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditOrdem(ordem);
+                                  }}
+                                  className="p-1.5 text-blue-600 dark:text-blue-400 
+                                    bg-blue-50 dark:bg-blue-900/30 
+                                    hover:bg-blue-100 dark:hover:bg-blue-900/50 
+                                    border border-blue-200 dark:border-blue-700 
+                                    rounded-lg transition-all duration-200
+                                    hover:shadow-md dark:hover:shadow-blue-900/20"
+                                  title="Editar Ordem"
+                                >
+                                  <PencilIcon className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Botão Remover */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteOrdem(ordem.id);
+                                  }}
+                                  className="p-1.5 text-red-600 dark:text-red-400 
+                                    bg-red-50 dark:bg-red-900/30 
+                                    hover:bg-red-100 dark:hover:bg-red-900/50 
+                                    border border-red-200 dark:border-red-700 
+                                    rounded-lg transition-all duration-200
+                                    hover:shadow-md dark:hover:shadow-red-900/20"
+                                  title="Remover Ordem"
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Coluna Principal - 6 colunas */}
+            <div className="col-span-12 lg:col-span-6">
+              <TabelaPrincipal
+                filteredExcipientes={filteredExcipientes}
+                materiaisNaArea={materiaisNaArea}
+                faltaSolicitar={faltaSolicitar}
+                inputValues={inputValues}
+                handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
+                handleDetailClick={handleDetailClick}
+                handleToggleExpandExcipient={handleToggleExpandExcipient}
+                expandedExcipient={expandedExcipient}
+                allExpanded={allExpanded}
+                togglePesado={togglePesado}
+                calcularMovimentacaoTotal={calcularMovimentacaoTotal}
+                getOrdensAtendidas={getOrdensAtendidas}
+                handleUpdateSAPValues={handleUpdateSAPValues}
+                handleUpdateAllSAPValues={handleUpdateAllSAPValues}
+                handleEditOrdem={handleEditOrdem}
+              />
+            </div>
+
+            {/* Coluna de Detalhamento - 3 colunas */}
+            <div className="col-span-12 lg:col-span-3">
+              <DetalhamentoMateriais
+                getFilteredAtivos={getFilteredAtivos}
+                getAtivoStatus={getAtivoStatus}
+                ordens={ordens}
+                filteredExcipientes={filteredExcipientes}
+                materiaisNaArea={materiaisNaArea}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modais */}
+      <ExcelUploader
+        onDataUpdated={handleDataUpdated}
+        openUploadDialog={openDialog}
+        handleCloseUploadDialog={handleCloseUploadDialog}
+      />
 
       <Sap
         open={sapDialogOpen}
-        onClose={handleCloseSapDialog}
-        theme={theme}
+        onClose={() => setSapDialogOpen(false)}
         user={user}
-        supabase={supabase}
       />
 
-      <ExcelUploader onDataUpdated={handleDataUpdated} />
-    </ThemeProvider>
+      {/* Modal de Edição de Ordem */}
+      {editingOrdemDialog && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
+
+            <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4 rounded-t-xl">
+                <h3 className="text-lg font-semibold text-white dark:text-white/90">
+                  {editingOrdemDialog.nome}
+                </h3>
+                <p className="text-sm text-white/80 dark:text-white/70 mt-1">
+                  OP: {editingOrdemDialog.op || "Não definida"}
+                </p>
+                <span className="px-3 py-1 bg-white/10 dark:bg-white/5 rounded-lg text-sm text-white dark:text-white/90">
+                  {
+                    Object.values(editingExcipientes).filter((e) => e.pesado)
+                      .length
+                  }{" "}
+                  / {Object.keys(editingExcipientes).length} pesados
+                </span>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                {/* Selecionar Todos */}
+                <div
+                  className="flex items-center justify-between p-3 
+                  bg-blue-50 dark:bg-blue-900/30 
+                  border border-blue-100 dark:border-blue-800 
+                  rounded-lg"
+                >
+                  <div>
+                    <span className="font-medium text-blue-900 dark:text-blue-100">
+                      Selecionar todos
+                    </span>
+                    <p className="text-sm text-blue-600 dark:text-blue-300">
+                      Marcar todos os excipientes como pesados
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selectAllChecked}
+                    onChange={handleSelectAll}
+                    className="h-5 w-5 rounded 
+                      text-blue-600 dark:text-blue-500
+                      border-blue-300 dark:border-blue-700 
+                      focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                </div>
+
+                {/* Lista de Excipientes */}
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                  {Object.entries(editingExcipientes).map(
+                    ([excipient, data]) => (
+                      <div
+                        key={excipient}
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors
+                        ${
+                          data.pesado
+                            ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
+                            : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={data.pesado}
+                            onChange={() => handleToggleExcipiente(excipient)}
+                            className="h-5 w-5 rounded 
+                              text-blue-600 dark:text-blue-500
+                              border-blue-300 dark:border-blue-700 
+                              focus:ring-blue-500 dark:focus:ring-blue-400"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {excipient}
+                            </p>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              Quantidade: {data.quantidade.toFixed(3)} kg
+                            </span>
+                          </div>
+                        </div>
+                        {data.pesado && (
+                          <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <CheckIcon className="w-4 h-4" />
+                            Pesado
+                          </span>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
+                <button
+                  onClick={handleCloseEditDialog}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 
+                  bg-gray-100 dark:bg-gray-700 
+                  hover:bg-gray-200 dark:hover:bg-gray-600 
+                  rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveEditDialog}
+                  className="px-4 py-2 text-white 
+                  bg-blue-600 dark:bg-blue-500 
+                  hover:bg-blue-700 dark:hover:bg-blue-600 
+                  rounded-lg transition-colors"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Adição de OP */}
+      {opModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div
+              className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+              onClick={() => setOpModalOpen(false)}
+            />
+
+            <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                  Adicionar Ordem de Produção
+                </h3>
+              </div>
+
+              <div className="p-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Número da OP
+                </label>
+                <input
+                  type="text"
+                  value={newOP}
+                  onChange={(e) => setNewOP(e.target.value)}
+                  placeholder="Digite os 7 números da OP"
+                  className="w-full px-3 py-2 
+                    bg-white dark:bg-gray-700
+                    border border-gray-200 dark:border-gray-600 
+                    text-gray-900 dark:text-gray-100
+                    placeholder-gray-400 dark:placeholder-gray-400
+                    rounded-lg text-sm
+                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                    focus:border-transparent transition-colors"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  A OP deve conter exatamente 7 números
+                </p>
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex justify-end gap-3">
+                <button
+                  onClick={() => setOpModalOpen(false)}
+                  className="px-4 py-2 text-sm 
+                    text-gray-700 dark:text-gray-300 
+                    bg-white dark:bg-gray-700 
+                    border border-gray-200 dark:border-gray-600
+                    hover:bg-gray-50 dark:hover:bg-gray-600 
+                    rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveOP}
+                  disabled={
+                    !newOP || newOP.length !== 7 || !/^\d+$/.test(newOP)
+                  }
+                  className="px-4 py-2 text-sm text-white 
+                    bg-blue-600 dark:bg-blue-500 
+                    hover:bg-blue-700 dark:hover:bg-blue-600 
+                    rounded-lg transition-colors 
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

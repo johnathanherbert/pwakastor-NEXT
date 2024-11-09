@@ -3,80 +3,20 @@ import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { useRouter } from "next/navigation";
 import {
-  TextField,
-  Button,
-  Box,
-  Typography,
-  Container,
-  Link,
-  Snackbar,
-  Alert,
-  Paper,
-} from "@mui/material";
-import {
-  ThemeProvider,
-  createTheme,
-  alpha,
-  styled,
-} from "@mui/material/styles";
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#004B5F",
-    },
-    secondary: {
-      main: "#0a4064",
-    },
-    background: {
-      default: "#F2F2F7",
-      paper: "#FFFFFF",
-    },
-  },
-  typography: {
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  shape: {
-    borderRadius: 12,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          borderRadius: 20,
-          padding: "8px 16px",
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          "& .MuiOutlinedInput-root": {
-            borderRadius: 10,
-          },
-        },
-      },
-    },
-  },
-});
-
-const ContentCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
-  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
-}));
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
-  const [snackbar, setSnackbar] = useState({
+  const [alert, setAlert] = useState({
     open: false,
     message: "",
-    severity: "info",
+    type: "info", // success, error, warning, info
   });
   const router = useRouter();
 
@@ -91,18 +31,12 @@ export default function Login() {
       });
       if (error) {
         if (error.message.includes("Email rate limit exceeded")) {
-          setSnackbar({
-            open: true,
-            message:
-              "Muitas tentativas de login. Por favor, tente novamente mais tarde.",
-            severity: "warning",
-          });
+          showAlert(
+            "Muitas tentativas de login. Por favor, tente novamente mais tarde.",
+            "warning"
+          );
         } else {
-          setSnackbar({
-            open: true,
-            message: error.message,
-            severity: "error",
-          });
+          showAlert(error.message, "error");
         }
       } else {
         router.push("/");
@@ -114,34 +48,26 @@ export default function Login() {
       });
       if (error) {
         if (error.message.includes("User already registered")) {
-          setSnackbar({
-            open: true,
-            message: "Este email já está registrado. Por favor, faça login.",
-            severity: "warning",
-          });
+          showAlert(
+            "Este email já está registrado. Por favor, faça login.",
+            "warning"
+          );
           setIsLogin(true);
         } else {
-          setSnackbar({
-            open: true,
-            message: error.message,
-            severity: "error",
-          });
+          showAlert(error.message, "error");
         }
       } else if (data?.user) {
         if (data.session) {
-          setSnackbar({
-            open: true,
-            message: "Registro bem-sucedido! Você será redirecionado em breve.",
-            severity: "success",
-          });
+          showAlert(
+            "Registro bem-sucedido! Você será redirecionado em breve.",
+            "success"
+          );
           setTimeout(() => router.push("/"), 2000);
         } else {
-          setSnackbar({
-            open: true,
-            message:
-              "Registro bem-sucedido! Por favor, verifique seu email para confirmar a conta.",
-            severity: "success",
-          });
+          showAlert(
+            "Registro bem-sucedido! Por favor, verifique seu email para confirmar a conta.",
+            "success"
+          );
           setIsLogin(true);
         }
       }
@@ -150,11 +76,9 @@ export default function Login() {
     setLoading(false);
   };
 
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbar({ ...snackbar, open: false });
+  const showAlert = (message, type) => {
+    setAlert({ open: true, message, type });
+    setTimeout(() => setAlert({ ...alert, open: false }), 6000);
   };
 
   const resetFields = () => {
@@ -163,113 +87,131 @@ export default function Login() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.palette.background.default,
-        }}
-      >
-        <Container component="main" maxWidth="xs">
-          <ContentCard>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <Typography
-                component="h1"
-                variant="h4"
-                sx={{
-                  mb: 4,
-                  fontWeight: "bold",
-                  color: "primary.main",
-                  textAlign: "center",
-                }}
-              >
-                Pesagem Novamed
-              </Typography>
-              <Typography component="h2" variant="h5" sx={{ mb: 2 }}>
-                {isLogin ? "Login" : "Registro"}
-              </Typography>
-              <Box
-                component="form"
-                onSubmit={handleAuth}
-                noValidate
-                sx={{ mt: 1 }}
-              >
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-md">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+          <div className="flex flex-col items-center">
+            <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-8 text-center">
+              Pesagem Novamed
+            </h1>
+            <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              {isLogin ? "Login" : "Registro"}
+            </h2>
+
+            <form onSubmit={handleAuth} className="w-full space-y-4">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
                   id="email"
-                  label="Email"
                   name="email"
-                  autoComplete="email"
-                  autoFocus
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  size="small"
+                  className="mt-1 block w-full px-3 py-2 
+                    bg-white dark:bg-gray-700
+                    border border-gray-200 dark:border-gray-600 
+                    rounded-lg text-gray-900 dark:text-gray-100
+                    placeholder-gray-400 dark:placeholder-gray-400
+                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                    focus:border-transparent transition-colors"
                 />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  name="password"
-                  label="Senha"
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Senha
+                </label>
+                <input
                   type="password"
                   id="password"
-                  autoComplete="current-password"
+                  name="password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  size="small"
+                  className="mt-1 block w-full px-3 py-2 
+                    bg-white dark:bg-gray-700
+                    border border-gray-200 dark:border-gray-600 
+                    rounded-lg text-gray-900 dark:text-gray-100
+                    placeholder-gray-400 dark:placeholder-gray-400
+                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                    focus:border-transparent transition-colors"
                 />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  sx={{ mt: 3, mb: 2 }}
-                  disabled={loading}
-                >
-                  {loading ? "Carregando..." : isLogin ? "Entrar" : "Registrar"}
-                </Button>
-                <Link
-                  component="button"
-                  variant="body2"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    resetFields();
-                  }}
-                  sx={{ display: "block", textAlign: "center" }}
-                >
-                  {isLogin
-                    ? "Não tem uma conta? Registre-se"
-                    : "Já tem uma conta? Faça login"}
-                </Link>
-              </Box>
-            </Box>
-          </ContentCard>
-        </Container>
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 px-4 bg-blue-600 dark:bg-blue-500 
+                  hover:bg-blue-700 dark:hover:bg-blue-600 
+                  text-white dark:text-white
+                  rounded-full font-medium 
+                  transition-colors duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 
+                      border-t-2 border-b-2 border-white dark:border-white/90 mr-2">
+                    </div>
+                    Carregando...
+                  </div>
+                ) : isLogin ? (
+                  "Entrar"
+                ) : (
+                  "Registrar"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  resetFields();
+                }}
+                className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                {isLogin
+                  ? "Não tem uma conta? Registre-se"
+                  : "Já tem uma conta? Faça login"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert */}
+      {alert.open && (
+        <div className="fixed bottom-4 right-4 max-w-md">
+          <div
+            className={`rounded-lg p-4 flex items-center 
+              shadow-lg dark:shadow-slate-900/30 ${
+              alert.type === "success"
+                ? "bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                : alert.type === "error"
+                ? "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                : "bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+            }`}
           >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </ThemeProvider>
+            {alert.type === "success" && (
+              <CheckCircleIcon className="h-5 w-5 mr-2" />
+            )}
+            {alert.type === "error" && <XCircleIcon className="h-5 w-5 mr-2" />}
+            {alert.type === "warning" && (
+              <ExclamationCircleIcon className="h-5 w-5 mr-2" />
+            )}
+            <p>{alert.message}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

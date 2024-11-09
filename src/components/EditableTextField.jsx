@@ -1,24 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { TextField, Typography, Box } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { alpha } from "@mui/material/styles";
-
-const StyledBox = styled(Box)(({ theme, isEditing }) => ({
-  backgroundColor: isEditing
-    ? alpha(theme.palette.primary.main, 0.12)
-    : alpha(theme.palette.primary.main, 0.04),
-  borderRadius: 4,
-  padding: "4px 8px",
-  minWidth: "80px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  transition: "background-color 0.3s, box-shadow 0.3s",
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    cursor: "text",
-  },
-}));
 
 const EditableTextField = ({ value, onChange, onFetch, isLoading, codigo }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -30,7 +10,7 @@ const EditableTextField = ({ value, onChange, onFetch, isLoading, codigo }) => {
   }, [value]);
 
   const handleClick = () => {
-    if (!isEditing && !isLoading) {
+    if (!isLoading && !isEditing) {
       onFetch(codigo);
     }
   };
@@ -57,33 +37,40 @@ const EditableTextField = ({ value, onChange, onFetch, isLoading, codigo }) => {
   };
 
   return (
-    <StyledBox
-      isEditing={isEditing}
+    <div
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      sx={{ cursor: isLoading ? "wait" : "pointer" }}
+      className={`
+        inline-flex items-center justify-end min-w-[80px] px-2 py-1 rounded
+        transition-all duration-300
+        ${
+          isEditing
+            ? "bg-blue-100 dark:bg-blue-900/40"
+            : "bg-blue-50 dark:bg-blue-900/20"
+        }
+        ${
+          isLoading
+            ? "cursor-wait"
+            : "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50"
+        }
+      `}
     >
       {isEditing ? (
-        <TextField
-          inputRef={inputRef}
+        <input
+          ref={inputRef}
+          type="text"
           value={localValue}
           onChange={handleChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          variant="standard"
-          size="small"
-          InputProps={{
-            disableUnderline: true,
-            style: { textAlign: "right", fontSize: "0.875rem" },
-          }}
-          sx={{ width: "100%" }}
+          className="w-full bg-transparent text-right text-sm focus:outline-none"
         />
       ) : (
-        <Typography variant="body2" component="span">
+        <span className="text-sm text-gray-900 dark:text-gray-100">
           {isLoading ? "Carregando..." : value}
-        </Typography>
+        </span>
       )}
-    </StyledBox>
+    </div>
   );
 };
 

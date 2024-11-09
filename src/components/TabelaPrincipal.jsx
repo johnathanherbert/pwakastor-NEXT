@@ -1,82 +1,21 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-  IconButton,
-  Collapse,
-  Box,
-  Chip,
-  alpha,
-  InputAdornment,
-  Checkbox,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-} from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ScaleIcon from "@mui/icons-material/Scale";
-import WarningIcon from "@mui/icons-material/Warning";
-import ErrorIcon from "@mui/icons-material/Error";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { styled } from "@mui/material/styles";
-import RemoveIcon from "@mui/icons-material/Remove";
-import UpdateIcon from "@mui/icons-material/Update";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import SearchIcon from "@mui/icons-material/Search";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-
-import {
-  StyledTableContainer,
-  StyledTableHead,
-  StyledTableRow,
-  StyledExpandedRow,
-  StyledDetailTableRow,
-} from "../styles/styledComponents";
-
-const removeArrows = {
-  "& input[type=number]": {
-    MozAppearance: "textfield",
-    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-      WebkitAppearance: "none",
-      margin: 0,
-    },
-  },
-};
-
-const StyledMaterialInput = styled(TextField)(({ theme }) => ({
-  "& .MuiFilledInput-root": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    borderRadius: 4,
-    transition: "background-color 0.3s, box-shadow 0.3s",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.12),
-      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-  "& .MuiFilledInput-input": {
-    padding: "10px 12px",
-    fontSize: "0.875rem",
-    textAlign: "right",
-  },
-  "& .MuiInputAdornment-root": {
-    marginLeft: 0,
-  },
-  ...removeArrows, // Adicione esta linha
-}));
+  CheckIcon,
+  ScaleIcon,
+  WarningIcon,
+  ExclamationCircleIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  CheckCircleIcon,
+  MinusIcon,
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  PencilIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 
 const TabelaPrincipal = ({
   filteredExcipientes,
@@ -89,11 +28,11 @@ const TabelaPrincipal = ({
   expandedExcipient,
   allExpanded,
   togglePesado,
-  theme,
   calcularMovimentacaoTotal,
   getOrdensAtendidas,
-  handleUpdateSAPValues, // Nova prop para atualizar valores do SAP
-  handleUpdateAllSAPValues, // Nova prop para atualizar todos os valores do SAP
+  handleUpdateSAPValues,
+  handleUpdateAllSAPValues,
+  handleEditOrdem,
 }) => {
   const [ordensDialogOpen, setOrdensDialogOpen] = useState(false);
   const [selectedExcipient, setSelectedExcipient] = useState(null);
@@ -133,33 +72,6 @@ const TabelaPrincipal = ({
     return "error";
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "pesado":
-        return alpha(theme.palette.success.main, 0.1);
-      case "ok":
-        return alpha(theme.palette.success.main, 0.1);
-      case status.startsWith("atende") ? status : "":
-        return alpha(theme.palette.warning.main, 0.1);
-      case "warning":
-        return alpha(theme.palette.warning.main, 0.1);
-      case "error":
-        return alpha(theme.palette.error.main, 0.1);
-      default:
-        return alpha(theme.palette.grey[300], 0.1);
-    }
-  };
-
-  const getContrastText = (color) => {
-    // Função simples para determinar se o texto deve ser claro ou escuro
-    const rgb = color
-      .replace(/^#/, "")
-      .match(/.{2}/g)
-      .map((x) => parseInt(x, 16));
-    const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
-    return brightness > 128 ? "#000000" : "#FFFFFF";
-  };
-
   const getStatusLabel = (status) => {
     if (status === "pesado") return "Pesado";
     if (status === "ok") return "OK";
@@ -178,9 +90,6 @@ const TabelaPrincipal = ({
     const { ordensAtendidas, ordensNaoAtendidas } =
       getOrdensAtendidas(selectedExcipient);
 
-    const greenBgColor = alpha(theme.palette.success.main, 0.1);
-    const redBgColor = alpha(theme.palette.error.main, 0.1);
-
     // Calcular a quantidade pendente
     const quantidadePendente = ordensNaoAtendidas.reduce(
       (total, ordem) => total + ordem.quantidade,
@@ -188,113 +97,47 @@ const TabelaPrincipal = ({
     );
 
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Typography
-          variant="h6"
-          sx={{ color: theme.palette.primary.main, fontWeight: "bold" }}
-        >
-          Detalhes das Ordens
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            backgroundColor: alpha(theme.palette.primary.main, 0.05),
-            padding: 2,
-            borderRadius: 1,
-          }}
-        >
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary }}
-            >
-              Material
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: theme.palette.primary.main }}
-            >
-              {selectedExcipient}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: "right" }}>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary }}
-            >
-              Quantidade na Área
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: theme.palette.primary.main }}
-            >
+      <div className="flex flex-col gap-4">
+        <h2 className="text-lg font-bold text-gray-800">{selectedExcipient}</h2>
+        <div className="flex justify-between items-start bg-gray-100 p-4 rounded-md">
+          <div>
+            <p className="text-sm text-gray-500">Material</p>
+            <h3 className="font-bold text-gray-800">{selectedExcipient}</h3>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Quantidade na Área</p>
+            <h3 className="font-bold text-gray-800">
               {(materiaisNaArea[selectedExcipient] || 0).toFixed(3)} Kg
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, mt: 1 }}
-            >
-              Quantidade Pendente
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: theme.palette.error.main }}
-            >
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">Quantidade Pendente</p>
+            <h3 className="font-bold text-red-500">
               {quantidadePendente.toFixed(3)} Kg
-            </Typography>
-          </Box>
-        </Box>
-        <StyledTableContainer>
-          <Table size="small">
-            <StyledTableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>
-                  OP
-                </TableCell>
-                <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>
-                  Nome
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                >
-                  Quantidade
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
-                >
-                  Status
-                </TableCell>
-              </TableRow>
-            </StyledTableHead>
-            <TableBody>
+            </h3>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <tbody>
               {[...ordensAtendidas, ...ordensNaoAtendidas].map((ordem) => {
                 const isAtendida = ordensAtendidas.includes(ordem);
-                const bgColor = isAtendida ? greenBgColor : redBgColor;
+                const bgColorClass = isAtendida ? "bg-green-50" : "bg-red-50";
                 return (
-                  <StyledDetailTableRow key={ordem.id}>
-                    <TableCell sx={{ backgroundColor: bgColor }}>
-                      {ordem.op || "N/A"}
-                    </TableCell>
-                    <TableCell sx={{ backgroundColor: bgColor }}>
-                      {ordem.nome}
-                    </TableCell>
-                    <TableCell align="right" sx={{ backgroundColor: bgColor }}>
+                  <tr key={ordem.id} className={bgColorClass}>
+                    <td className="px-4 py-2">{ordem.op || "N/A"}</td>
+                    <td className="px-4 py-2">{ordem.nome}</td>
+                    <td className="px-4 py-2 text-right">
                       {ordem.quantidade.toFixed(3)} Kg
-                    </TableCell>
-                    <TableCell align="center" sx={{ backgroundColor: bgColor }}>
+                    </td>
+                    <td className="px-4 py-2 text-center">
                       {isAtendida ? "Atende" : "Não Atende"}
-                    </TableCell>
-                  </StyledDetailTableRow>
+                    </td>
+                  </tr>
                 );
               })}
-            </TableBody>
-          </Table>
-        </StyledTableContainer>
-      </Box>
+            </tbody>
+          </table>
+        </div>
+      </div>
     );
   };
 
@@ -314,23 +157,6 @@ const TabelaPrincipal = ({
       }, 0);
       return total + totalOrdens;
     }, 0);
-  };
-
-  // Estilos comuns para células
-  const cellStyle = {
-    padding: { xs: "2px 4px", sm: "4px 6px" },
-    fontSize: { xs: "0.6rem", sm: "0.7rem" },
-  };
-
-  const headerCellStyle = {
-    ...cellStyle,
-    fontWeight: "bold",
-    color: theme.palette.primary.main,
-  };
-
-  // Função para lidar com a pesquisa
-  const handleSearchExcipient = (value) => {
-    setSearchTerm(value);
   };
 
   // Filtrar excipientes com base no termo de pesquisa
@@ -368,473 +194,378 @@ const TabelaPrincipal = ({
     });
   }, [filteredExcipientsList, materiaisNaArea, faltaSolicitarSort]);
 
-  return (
-    <StyledTableContainer>
-      <Table size="small" sx={{ minWidth: { xs: 450, sm: 650 } }}>
-        <StyledTableHead>
-          <TableRow>
-            <TableCell sx={headerCellStyle}>Código</TableCell>
-            <TableCell sx={headerCellStyle}>
-              <Box
-                sx={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}
-              >
-                Excipiente
-                <TextField
-                  size="small"
-                  variant="outlined"
-                  placeholder="Pesquisar..."
-                  onChange={(e) => handleSearchExcipient(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      fontSize: "0.7rem",
-                      height: "24px",
-                      ml: { xs: 0, sm: 1 },
-                      mt: { xs: 1, sm: 0 },
-                      width: { xs: "100%", sm: "auto" },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "transparent",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(0, 0, 0, 0.23)",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: theme.palette.primary.main,
-                      },
-                    },
-                  }}
-                />
-              </Box>
-            </TableCell>
-            <TableCell align="right" sx={headerCellStyle}>
-              Total
-            </TableCell>
-            <TableCell align="right" sx={headerCellStyle}>
-              Na Área
-            </TableCell>
-            <TableCell align="right" sx={headerCellStyle}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Typography
-                  sx={{
-                    color: "white",
-                    mr: 1,
-                    display: { xs: "none", sm: "block" },
-                  }}
-                >
-                  Falta solicitar
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={toggleFaltaSolicitarSort}
-                  sx={{
-                    color: "white",
-                    "&:hover": {
-                      backgroundColor: alpha("#ffffff", 0.2),
-                    },
-                  }}
-                >
-                  {faltaSolicitarSort === "asc" ? (
-                    <ArrowUpwardIcon fontSize="small" />
-                  ) : (
-                    <ArrowDownwardIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Box>
-            </TableCell>
-            <TableCell align="center" sx={headerCellStyle}>
-              Status
-            </TableCell>
-            <TableCell align="center" sx={headerCellStyle}>
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={handleUpdateAllSAPValues}
-                size="small"
-                sx={{
-                  fontSize: "0.65rem",
-                  padding: "2px 6px",
-                  whiteSpace: "nowrap",
-                  minWidth: "auto",
-                }}
-              >
-                <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                  Atualizar Todos
-                </Box>
-                <Box sx={{ display: { xs: "block", sm: "none" } }}>
-                  Atualizar
-                </Box>
-              </Button>
-            </TableCell>
-          </TableRow>
-        </StyledTableHead>
-        <TableBody>
-          {sortedRows.map(([excipient, { total, ordens, codigo }]) => {
-            const naArea = materiaisNaArea[excipient] || 0;
-            const totalNaoPesado = ordens.reduce(
-              (sum, ordem) => sum + (ordem.pesado ? 0 : ordem.quantidade),
-              0
-            );
-            const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
-            return (
-              <React.Fragment key={excipient}>
-                <StyledTableRow
-                  hover
-                  onClick={() => handleToggleExpandExcipient(excipient)}
-                  sx={{
-                    cursor: "pointer",
-                    transition: "background-color 0.3s",
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                    },
-                    backgroundColor: alpha(getStatusColor(status), 0.1),
-                  }}
-                >
-                  <TableCell sx={cellStyle}>{codigo}</TableCell>
-                  <TableCell sx={cellStyle}>
-                    {excipient.length > 20
-                      ? `${excipient.slice(0, 20)}...`
-                      : excipient}
-                  </TableCell>
-                  <TableCell align="right" sx={cellStyle}>
-                    {totalNaoPesado.toFixed(2)} kg
-                  </TableCell>
-                  <TableCell align="right" sx={cellStyle}>
-                    <StyledMaterialInput
-                      type="number"
-                      value={inputValues[excipient] || ""}
-                      onChange={(e) =>
-                        handleMateriaisNaAreaChange(excipient, e.target.value)
-                      }
-                      variant="filled"
-                      size="small"
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <Typography variant="caption">Kg</Typography>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        width: { xs: "60px", sm: "70px" },
-                        "& .MuiInputBase-input": {
-                          padding: { xs: "2px 4px", sm: "4px 6px" },
-                          fontSize: { xs: "0.6rem", sm: "0.7rem" },
-                        },
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="right" sx={cellStyle}>
-                    {(() => {
-                      const faltaSolicitarValue = totalNaoPesado - naArea;
-                      const color =
-                        faltaSolicitarValue > 0 || naArea === 0
-                          ? theme.palette.error.main
-                          : theme.palette.success.main;
-                      const value =
-                        faltaSolicitarValue > 0 || naArea === 0
-                          ? faltaSolicitarValue
-                          : naArea;
+  // Primeiro, vamos melhorar a função getStatusColor para ter mais variações visuais
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pesado":
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 ring-1 ring-green-600/20";
+      case "ok":
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 ring-1 ring-green-600/20";
+      case status.startsWith("atende") ? status : "":
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 ring-1 ring-yellow-600/20";
+      case "warning":
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 ring-1 ring-yellow-600/20";
+      case "error":
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 ring-1 ring-red-600/20";
+      default:
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 ring-1 ring-gray-600/20";
+    }
+  };
 
-                      return (
-                        <Typography
-                          component="span"
-                          sx={{
-                            color: color,
-                            fontWeight: "bold",
-                            fontSize: { xs: "0.6rem", sm: "0.7rem" },
-                          }}
-                        >
-                          {value.toFixed(2)} kg
-                        </Typography>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell align="center" sx={cellStyle}>
-                    <Chip
-                      label={getStatusLabel(status)}
-                      sx={{
-                        backgroundColor: getStatusColor(status),
-                        color: theme.palette.text.primary,
-                        fontWeight: "medium",
-                        fontSize: { xs: "0.55rem", sm: "0.65rem" },
-                        height: { xs: "16px", sm: "18px" },
-                      }}
-                      icon={
-                        status === "pesado" ? (
-                          <CheckIcon fontSize="small" />
-                        ) : status.startsWith("atende") ? (
-                          <RemoveIcon fontSize="small" />
-                        ) : null
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatusClick(excipient);
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={cellStyle}>
-                    <IconButton
-                      onClick={() => handleUpdateSAPValues(excipient, codigo)}
-                      size="small"
-                      color="primary"
-                    >
-                      <UpdateIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </StyledTableRow>
-                <StyledExpandedRow>
-                  <TableCell
-                    style={{ paddingBottom: 0, paddingTop: 0 }}
-                    colSpan={7}
-                  >
-                    <Collapse
-                      in={expandedExcipient === excipient || allExpanded}
-                      timeout="auto"
-                      unmountOnExit
-                    >
-                      <Box
-                        sx={{
-                          margin: 1,
-                          backgroundColor: alpha(
-                            theme.palette.background.paper,
-                            0.5
-                          ),
-                          borderRadius: 1,
-                          padding: 1,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          gutterBottom
-                          component="div"
-                          sx={{
-                            fontWeight: "bold",
-                            color: theme.palette.primary.main,
-                            marginBottom: "6px",
-                            fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                          }}
-                        >
-                          Detalhes: {codigo} - {excipient}
-                        </Typography>
-                        <Table
-                          size="small"
-                          aria-label="purchases"
-                          sx={{
-                            backgroundColor: theme.palette.background.paper,
-                          }}
-                        >
-                          <TableHead>
-                            <TableRow
-                              sx={{
-                                backgroundColor: alpha(
-                                  theme.palette.primary.main,
-                                  0.1
-                                ),
-                              }}
-                            >
-                              <TableCell sx={headerCellStyle}>Cód.</TableCell>
-                              <TableCell sx={headerCellStyle}>Ordem</TableCell>
-                              <TableCell sx={headerCellStyle}>Qtd</TableCell>
-                              <TableCell align="right" sx={headerCellStyle}>
-                                Status
-                              </TableCell>
-                              <TableCell align="center" sx={headerCellStyle}>
-                                Pesado
-                              </TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {ordens.map((ordem) => (
-                              <TableRow
-                                key={ordem.id}
-                                hover
-                                sx={{
-                                  "&:nth-of-type(odd)": {
-                                    backgroundColor: alpha(
-                                      theme.palette.action.hover,
-                                      0.05
-                                    ),
-                                  },
-                                  "&:hover": {
-                                    backgroundColor: alpha(
-                                      theme.palette.action.hover,
-                                      0.1
-                                    ),
-                                  },
-                                }}
-                              >
-                                <TableCell sx={cellStyle}>
-                                  {ordem.codigo}
-                                </TableCell>
-                                <TableCell
-                                  component="th"
-                                  scope="row"
-                                  sx={{
-                                    ...cellStyle,
-                                    borderLeft: `3px solid ${
-                                      ordem.pesado
-                                        ? theme.palette.success.main
-                                        : theme.palette.warning.main
-                                    }`,
-                                  }}
-                                >
-                                  {ordem.op && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontWeight: "bold",
-                                        color: theme.palette.primary.main,
-                                        backgroundColor: alpha(
-                                          theme.palette.primary.main,
-                                          0.1
-                                        ),
-                                        padding: "1px 2px",
-                                        borderRadius: "2px",
-                                        display: "inline-block",
-                                        marginRight: "3px",
-                                        fontSize: {
-                                          xs: "0.5rem",
-                                          sm: "0.6rem",
-                                        },
-                                      }}
-                                    >
-                                      OP: {ordem.op}
-                                    </Typography>
-                                  )}
-                                  {ordem.nome.length > 15
-                                    ? `${ordem.nome.slice(0, 15)}...`
-                                    : ordem.nome}
-                                </TableCell>
-                                <TableCell sx={cellStyle}>
-                                  {ordem.quantidade.toFixed(2)} kg
-                                </TableCell>
-                                <TableCell align="right" sx={cellStyle}>
-                                  <Chip
-                                    icon={
-                                      ordem.pesado ? (
-                                        <CheckCircleIcon fontSize="small" />
-                                      ) : (
-                                        <ScaleIcon fontSize="small" />
-                                      )
-                                    }
-                                    label={
-                                      ordem.pesado ? "Pesado" : "Não Pesado"
-                                    }
-                                    color={ordem.pesado ? "success" : "warning"}
-                                    size="small"
-                                    sx={{
-                                      fontWeight: "bold",
-                                      fontSize: { xs: "0.5rem", sm: "0.6rem" },
-                                      height: { xs: "14px", sm: "16px" },
-                                      backgroundColor: ordem.pesado
-                                        ? alpha(theme.palette.success.main, 0.1)
-                                        : alpha(
-                                            theme.palette.warning.main,
-                                            0.1
-                                          ),
-                                      color: ordem.pesado
-                                        ? theme.palette.success.main
-                                        : theme.palette.warning.main,
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell align="center" sx={cellStyle}>
-                                  <Checkbox
-                                    checked={ordem.pesado}
-                                    onChange={() =>
-                                      togglePesado(excipient, ordem.id)
-                                    }
-                                    size="small"
-                                    color="primary"
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </Box>
-                    </Collapse>
-                  </TableCell>
-                </StyledExpandedRow>
-              </React.Fragment>
-            );
-          })}
-          <TableRow>
-            <TableCell
-              colSpan={7}
-              sx={{
-                borderTop: `2px solid ${theme.palette.primary.main}`,
-                padding: "4px 6px",
-                backgroundColor: alpha(theme.palette.primary.main, 0.05),
-              }}
+  // Adicione esta função
+  const handleSearchExcipient = (value) => {
+    setSearchTerm(value);
+  };
+
+  const renderTableRow = ([excipient, { total, ordens, codigo }]) => {
+    const naArea = materiaisNaArea[excipient] || 0;
+    const totalNaoPesado = ordens.reduce((acc, ordem) => {
+      return acc + (ordem.pesado ? 0 : ordem.quantidade);
+    }, 0);
+    const status = getExcipientStatus(naArea, totalNaoPesado, ordens);
+
+    return (
+      <React.Fragment key={excipient}>
+        <tr
+          onClick={() => handleToggleExpandExcipient(excipient)}
+          className="hover:bg-gray-50 dark:hover:bg-gray-800/70 cursor-pointer transition-all duration-200 ease-in-out border-b border-gray-200 dark:border-gray-700/50"
+        >
+          {/* Excipiente */}
+          <td className="px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <ChevronRightIcon
+                className={`h-3.5 w-3.5 text-gray-400 dark:text-gray-500 transform transition-transform duration-200 ease-in-out
+                ${expandedExcipient === excipient ? "rotate-90" : ""}`}
+              />
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {excipient}
+              </span>
+            </div>
+          </td>
+
+          {/* Total */}
+          <td className="px-2 py-1.5 text-right">
+            <span className="text-gray-700 dark:text-gray-300">
+              {totalNaoPesado.toFixed(2)} kg
+            </span>
+          </td>
+
+          {/* Na Área */}
+          <td className="px-2 py-1.5 text-right">
+            <div className="flex items-center justify-end gap-1.5">
+              <input
+                type="number"
+                value={inputValues[excipient] || ""}
+                onChange={(e) =>
+                  handleMateriaisNaAreaChange(excipient, e.target.value)
+                }
+                className="w-20 px-1.5 py-0.5 text-right border rounded text-xs 
+                             bg-white dark:bg-gray-800/90 
+                             text-gray-900 dark:text-gray-100
+                             border-gray-300 dark:border-gray-600
+                             focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                             focus:border-transparent
+                             [&::-webkit-inner-spin-button]:appearance-none
+                             [&::-webkit-outer-spin-button]:appearance-none
+                             dark:placeholder-gray-500"
+                placeholder="0.00"
+              />
+              <span className="text-gray-500 dark:text-gray-400 text-xs">
+                kg
+              </span>
+            </div>
+          </td>
+
+          {/* Falta */}
+          <td className="px-2 py-1.5 text-right">
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+              ${
+                totalNaoPesado - naArea > 0
+                  ? "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/40 ring-1 ring-red-600/20 dark:ring-red-400/30"
+                  : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/40 ring-1 ring-green-600/20 dark:ring-green-400/30"
+              }`}
             >
-              <Typography
-                variant="body2"
-                fontWeight="bold"
-                color="primary"
-                sx={{ fontSize: "0.75rem" }}
-              >
-                Movimentação total:{" "}
-                {calcularTotalConsiderandoFiltros().toFixed(3)} kg
-              </Typography>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+              {Math.abs(totalNaoPesado - naArea).toFixed(2)} kg
+            </span>
+          </td>
 
-      <Dialog
-        open={ordensDialogOpen}
-        onClose={handleCloseOrdensDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: 24,
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            fontWeight: "bold",
-            fontSize: "1.2rem",
-            py: 2,
-          }}
-        >
-          Detalhes das Ordens - {selectedExcipient}
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          {selectedExcipient && renderOrdensAtendidas()}
-        </DialogContent>
-        <DialogActions
-          sx={{
-            p: 2,
-            backgroundColor: alpha(theme.palette.primary.main, 0.05),
-          }}
-        >
-          <Button
-            onClick={handleCloseOrdensDialog}
-            variant="contained"
-            color="primary"
-            sx={{ fontWeight: "bold" }}
-          >
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </StyledTableContainer>
+          {/* Status */}
+          <td className="px-2 py-1.5 text-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusClick(excipient);
+              }}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                ${getStatusColor(
+                  status
+                )} hover:opacity-80 transition-opacity duration-200`}
+            >
+              {status === "pesado" && <CheckIcon className="w-3 h-3 mr-1" />}
+              {getStatusLabel(status)}
+            </button>
+          </td>
+
+          {/* SAP */}
+          <td className="px-2 py-1.5 text-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUpdateSAPValues(excipient, codigo);
+              }}
+              className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg
+                       transition-all duration-200 ease-in-out active:scale-95"
+            >
+              <ArrowPathIcon className="w-3.5 h-3.5" />
+            </button>
+          </td>
+        </tr>
+
+        {/* Linha Expandida */}
+        <tr>
+          <td colSpan={6} className="p-0">
+            {expandedExcipient === excipient && (
+              <div className="p-2 m-2 bg-gray-50 dark:bg-gray-800/70 rounded-md border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-gray-900/30">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700/50 text-xs">
+                  <thead className="bg-gray-50 dark:bg-gray-800/90">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Código
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Nome
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Quantidade
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Pesado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900/50 divide-y divide-gray-200 dark:divide-gray-700/50">
+                    {ordens.map((ordem) => (
+                      <tr
+                        key={ordem.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors duration-200"
+                      >
+                        <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">
+                          {ordem.codigo}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center space-x-2">
+                            {ordem.op && (
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 
+                                                         rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50
+                                                         text-blue-800 dark:text-blue-300"
+                              >
+                                OP: {ordem.op}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-900 dark:text-gray-100 truncate max-w-[200px]">
+                              {ordem.nome}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">
+                          {ordem.quantidade.toFixed(2)} kg
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <span
+                            className={`
+                            inline-flex items-center px-2.5 py-0.5 rounded-full text-xs 
+                            font-medium ${
+                              ordem.pesado
+                                ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 ring-1 ring-green-600/20 dark:ring-green-400/30"
+                                : "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 ring-1 ring-yellow-600/20 dark:ring-yellow-400/30"
+                            }
+                          `}
+                          >
+                            {ordem.pesado ? (
+                              <CheckCircleIcon className="w-3 h-3 mr-1" />
+                            ) : (
+                              <ScaleIcon className="w-3 h-3 mr-1" />
+                            )}
+                            {ordem.pesado ? "Pesado" : "Não Pesado"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={ordem.pesado}
+                            onChange={() => togglePesado(excipient, ordem.id)}
+                            className="w-4 h-4 
+                                       text-blue-600 dark:text-blue-500
+                                       border-gray-300 dark:border-gray-600 
+                                       bg-white dark:bg-gray-700
+                                       rounded focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                                       focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                                       transition-colors duration-200
+                                       cursor-pointer
+                                       checked:bg-blue-500 dark:checked:bg-blue-600
+                                       checked:hover:bg-blue-600 dark:checked:hover:bg-blue-700
+                                       checked:focus:bg-blue-500 dark:checked:focus:bg-blue-600"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditOrdem(ordem);
+                            }}
+                            className="p-2 text-blue-600 dark:text-blue-400 
+                                      hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg
+                                      transition-all duration-200 active:scale-95"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </td>
+        </tr>
+      </React.Fragment>
+    );
+  };
+
+  return (
+    <>
+      <div className="flex flex-col gap-3">
+        {/* Card Principal */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Header mais compacto */}
+          <div className="p-2.5 bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-medium text-white flex items-center gap-1.5">
+                <ScaleIcon className="h-3.5 w-3.5" />
+                Materiais em Produção
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar excipiente..."
+                    className="w-48 pl-7 pr-3 py-1 text-xs bg-white/10 border border-white/20 
+                             rounded-md text-white placeholder-white/60 dark:bg-gray-800/30 dark:border-gray-600"
+                    onChange={(e) => handleSearchExcipient(e.target.value)}
+                  />
+                  <MagnifyingGlassIcon className="h-3.5 w-3.5 text-white/60 absolute left-2 top-1/2 transform -translate-y-1/2" />
+                </div>
+                <button
+                  onClick={handleUpdateAllSAPValues}
+                  className="inline-flex items-center px-2 py-1 bg-white/10 text-white 
+                           text-xs rounded-md hover:bg-white/20"
+                >
+                  <ArrowPathIcon className="h-3.5 w-3.5 mr-1" />
+                  Atualizar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela Otimizada */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800">
+                  <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider">
+                    Excipiente
+                  </th>
+                  <th className="px-2 py-1.5 text-right w-24">
+                    <span className="text-xs font-medium text-gray-500 tracking-wider">
+                      Total
+                    </span>
+                  </th>
+                  <th className="px-2 py-1.5 text-right w-24">
+                    <span className="text-xs font-medium text-gray-500 tracking-wider">
+                      Na Área
+                    </span>
+                  </th>
+                  <th className="px-2 py-1.5 text-right w-32">
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-xs font-medium text-gray-500 tracking-wider">
+                        Falta
+                      </span>
+                      <button
+                        onClick={toggleFaltaSolicitarSort}
+                        className="p-0.5 hover:bg-gray-100 rounded"
+                      >
+                        {faltaSolicitarSort === "asc" ? (
+                          <ArrowUpIcon className="h-3 w-3 text-gray-400" />
+                        ) : (
+                          <ArrowDownIcon className="h-3 w-3 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </th>
+                  <th className="px-2 py-1.5 text-center w-24">Status</th>
+                  <th className="px-2 py-1.5 text-center w-16">SAP</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                {sortedRows.map(renderTableRow)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
+          <ScaleIcon className="h-4 w-4" />
+          Movimentação total: {calcularTotalConsiderandoFiltros().toFixed(3)} kg
+        </p>
+      </div>
+
+      {/* Modal de Detalhes */}
+      {ordensDialogOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm 
+                          transition-opacity"
+              onClick={handleCloseOrdensDialog}
+            />
+
+            <div
+              className="relative bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full shadow-xl 
+                          transform transition-all"
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 px-6 py-4 rounded-t-xl">
+                <h2 className="text-xl font-bold text-white">
+                  Detalhes das Ordens - {selectedExcipient}
+                </h2>
+              </div>
+
+              <div className="p-6">
+                {selectedExcipient && renderOrdensAtendidas()}
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 rounded-b-xl flex justify-end">
+                <button
+                  onClick={handleCloseOrdensDialog}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+                           transition-colors duration-200 font-medium"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
