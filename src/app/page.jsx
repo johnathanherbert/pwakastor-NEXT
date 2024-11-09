@@ -1133,25 +1133,29 @@ export default function Home() {
   const getStatusBadge = (status) => {
     const badges = {
       completo: {
-        className: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
+        className:
+          "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
         title: "Todos os excipientes necessários estão disponíveis na área",
-        text: "Completo"
+        text: "Completo",
       },
       parcial: {
-        className: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/50",
+        className:
+          "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/50",
         title: "Alguns excipientes estão disponíveis, mas não todos",
-        text: "Parcial"
+        text: "Parcial",
       },
       indisponivel: {
-        className: "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/50",
+        className:
+          "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800/50",
         title: "Nenhum excipiente necessário está disponível na área",
-        text: "Indisponível"
+        text: "Indisponível",
       },
       pesado: {
-        className: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
+        className:
+          "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
         title: "Todos os excipientes desta ordem foram pesados",
-        text: "Pesado"
-      }
+        text: "Pesado",
+      },
     };
 
     return badges[status] || badges.indisponivel;
@@ -1238,7 +1242,10 @@ export default function Home() {
                 <span className="hidden sm:inline">Upload Excel</span>
               </button>
             </div>
-            <UserMenu user={user} />
+            <UserMenu
+              user={user}
+              onUserUpdate={setUser} // Passando a função setUser como onUserUpdate
+            />
           </div>
         </div>
       </nav>
@@ -1412,10 +1419,19 @@ export default function Home() {
 
                               {/* Status Badge */}
                               <span
-                                title={getStatusBadge(getAtivoStatus(ordem.nome)).title}
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${getStatusBadge(getAtivoStatus(ordem.nome)).className}`}
+                                title={
+                                  getStatusBadge(getAtivoStatus(ordem.nome))
+                                    .title
+                                }
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  getStatusBadge(getAtivoStatus(ordem.nome))
+                                    .className
+                                }`}
                               >
-                                {getStatusBadge(getAtivoStatus(ordem.nome)).text}
+                                {
+                                  getStatusBadge(getAtivoStatus(ordem.nome))
+                                    .text
+                                }
                               </span>
                             </div>
 
@@ -1525,24 +1541,30 @@ export default function Home() {
 
                               {/* Status Badge */}
                               <span
-                                title={getStatusBadge('pesado').title}
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge('pesado').className}`}
+                                title={getStatusBadge("pesado").title}
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  getStatusBadge("pesado").className
+                                }`}
                               >
-                                {getStatusBadge('pesado').text}
+                                {getStatusBadge("pesado").text}
                               </span>
                             </div>
 
                             <div className="flex items-center gap-2 mt-2">
                               {/* OP Badge */}
-                              <span className="inline-flex items-center px-2 py-1 rounded-md 
+                              <span
+                                className="inline-flex items-center px-2 py-1 rounded-md 
                                 bg-gray-100 dark:bg-gray-800 
                                 border border-gray-200 dark:border-gray-700
-                                transition-colors">
+                                transition-colors"
+                              >
                                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mr-1">
                                   OP:
                                 </span>
                                 <span className="text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
-                                  {ordem.op ? String(ordem.op).padStart(7, "0") : "N/A"}
+                                  {ordem.op
+                                    ? String(ordem.op).padStart(7, "0")
+                                    : "N/A"}
                                 </span>
                               </span>
 
