@@ -107,6 +107,8 @@ export default function Home() {
   const [newOP, setNewOP] = useState("");
   const [selectedOrdemId, setSelectedOrdemId] = useState(null);
 
+  const [sugestoes, setSugestoes] = useState([]);
+
   const handleOpenUploadDialog = () => {
     setOpenDialog(true);
   };
@@ -258,21 +260,25 @@ export default function Home() {
 
     let codigo, nome, excipientesData;
 
-    // Busca por código
+    // Busca baseada no modo de adição (código ou ativo)
     const { data, error } = await supabase
       .from("DataBase_ems")
       .select(
         "Codigo_Receita, Ativo, Excipiente, qtd_materia_prima, codigo_materia_prima"
       )
-      .eq("Codigo_Receita", ativo);
+      .eq(addMode === "codigo" ? "Codigo_Receita" : "Ativo", ativo);
 
     if (error || !data || data.length === 0) {
-      alert("Código não encontrado");
+      alert(
+        addMode === "codigo" ? "Código não encontrado" : "Ativo não encontrado"
+      );
       return;
     }
 
-    codigo = data[0].Codigo_Receita;
-    nome = data[0].Ativo;
+    // Se buscar por ativo, pega o primeiro resultado pois pode haver múltiplos registros
+    const primeiroRegistro = data[0];
+    codigo = primeiroRegistro.Codigo_Receita;
+    nome = primeiroRegistro.Ativo;
     excipientesData = data;
 
     let op = null;
@@ -327,7 +333,6 @@ export default function Home() {
   const handleEditOrdem = async (ordem) => {
     setEditingOrdemDialog(ordem);
 
-    // Buscar os excipientes especficos para esta ordem
     const { data, error } = await supabase
       .from("DataBase_ems")
       .select("Excipiente, qtd_materia_prima")
@@ -338,10 +343,16 @@ export default function Home() {
       return;
     }
 
-    const ordemExcipientes = data.reduce((acc, item) => {
-      acc[item.Excipiente] = {
+    const ordemExcipientes = data.reduce((acc, item, index) => {
+      const uniqueKey = `${item.Excipiente}_${index}`;
+      acc[uniqueKey] = {
+        nome: item.Excipiente,
         quantidade: item.qtd_materia_prima,
         pesado: pesados[item.Excipiente]?.[ordem.id] || false,
+        // Adicione o status de PA, inicialmente false
+        pa: false,
+        // Flag para indicar se é um excipiente especial
+        isEspecial: EXCIPIENTES_ESPECIAIS.includes(item.Excipiente),
       };
       return acc;
     }, {});
@@ -377,9 +388,12 @@ export default function Home() {
 
   const handleSaveEditDialog = () => {
     const newPesados = { ...pesados };
-    Object.entries(editingExcipientes).forEach(([excipient, { pesado }]) => {
+    Object.entries(editingExcipientes).forEach(([key, data]) => {
+      const excipient = data.nome;
       if (!newPesados[excipient]) newPesados[excipient] = {};
-      newPesados[excipient][editingOrdemDialog.id] = pesado;
+      newPesados[excipient][editingOrdemDialog.id] = data.pesado;
+      // Salvar o status de PA em algum estado global se necessário
+      // setPAStatus(prev => ({...prev, [excipient]: {...prev[excipient], [editingOrdemDialog.id]: data.pa}}));
     });
     setPesados(newPesados);
     calcularExcipientes(ordens, newPesados);
@@ -568,10 +582,33 @@ export default function Home() {
   }, [filteredExcipientes]);
 
   const handleOrdemClick = (ordem) => {
-    if (selectedOrdem && selectedOrdem.codigo === ordem.codigo) {
+    // Se clicar na ordem já selecionada, remove o filtro
+    if (selectedOrdem && selectedOrdem.id === ordem.id) {
       setSelectedOrdem(null);
+      // Restaura todos os excipientes quando remove o filtro
+      calcularExcipientes(ordens, pesados);
     } else {
       setSelectedOrdem(ordem);
+      // Filtra os excipientes baseado na ordem selecionada
+      const filteredByOrdem = Object.entries(excipientes).reduce(
+        (acc, [excipient, data]) => {
+          const ordensDoExcipiente = data.ordens.filter(
+            (o) => o.nome === ordem.nome
+          );
+          if (ordensDoExcipiente.length > 0) {
+            acc[excipient] = {
+              ...data,
+              ordens: ordensDoExcipiente,
+              totalNaoPesado: ordensDoExcipiente.reduce(
+                (sum, o) => sum + (o.pesado ? 0 : o.quantidade),
+                0
+              ),
+            };
+          }
+          return acc;
+        },
+        {}
+      );
     }
   };
 
@@ -610,7 +647,7 @@ export default function Home() {
         ordem.id === currentOrdemId ? { ...ordem, op: opNumber } : ordem
       );
 
-      // Recalcular excipientes imediatamente após a atualização das ordens
+      // Recalcular excipientes imediatamente aps a atualização das ordens
       calcularExcipientes(newOrdens);
 
       return newOrdens;
@@ -1135,7 +1172,7 @@ export default function Home() {
       completo: {
         className:
           "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50",
-        title: "Todos os excipientes necessários estão disponíveis na área",
+        title: "Todos os excipientes necessários estão disponíveis na rea",
         text: "Completo",
       },
       parcial: {
@@ -1159,6 +1196,28 @@ export default function Home() {
     };
 
     return badges[status] || badges.indisponivel;
+  };
+
+  const buscarSugestoes = async (termo) => {
+    if (!termo || termo.length < 3) {
+      setSugestoes([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("DataBase_ems")
+      .select("Ativo")
+      .ilike("Ativo", `%${termo}%`)
+      .limit(10);
+
+    if (error) {
+      console.error("Erro ao buscar sugestões:", error);
+      return;
+    }
+
+    // Remove duplicatas e ordena
+    const sugestoesUnicas = [...new Set(data.map((item) => item.Ativo))].sort();
+    setSugestoes(sugestoesUnicas);
   };
 
   if (isLoading) {
@@ -1323,12 +1382,36 @@ export default function Home() {
                   ) : (
                     <Autocomplete
                       value={ativo}
-                      onChange={setAtivo}
+                      onChange={(valor) => {
+                        setAtivo(valor);
+                        buscarSugestoes(valor);
+                      }}
                       onKeyPress={handleKeyPress}
                       ref={inputRef}
                       placeholder="Digite o nome do ativo (Ex: AMOXICILINA)"
                       className="w-full dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      sugestoes={sugestoes}
                     />
+                  )}
+
+                  {/* Input de OP - Aparece quando autoIncrementOP está ativo */}
+                  {autoIncrementOP && (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={initialOP}
+                        onChange={(e) => setInitialOP(e.target.value)}
+                        placeholder={`Próxima OP: ${lastOP + 1}`}
+                        className="w-full px-3 py-2 
+                          bg-white dark:bg-gray-700
+                          border border-gray-200 dark:border-gray-600 
+                          text-gray-900 dark:text-gray-100
+                          placeholder-gray-400 dark:placeholder-gray-400
+                          rounded-lg text-sm 
+                          focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                          focus:border-transparent transition-colors"
+                      />
+                    </div>
                   )}
 
                   {/* Botões */}
@@ -1354,6 +1437,33 @@ export default function Home() {
                         </>
                       )}
                     </button>
+
+                    {/* Botão Auto OP */}
+                    <button
+                      onClick={toggleAutoIncrementOP}
+                      className={`px-3 py-2 text-sm rounded-lg flex items-center justify-center gap-1
+                        ${
+                          autoIncrementOP
+                            ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
+                            : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 hover:bg-gray-100 dark:hover:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
+                        }`}
+                      title={
+                        autoIncrementOP ? "Desativar Auto OP" : "Ativar Auto OP"
+                      }
+                    >
+                      {autoIncrementOP ? (
+                        <>
+                          <CheckCircleIcon className="w-4 h-4" />
+                          Auto OP
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircleIcon className="w-4 h-4" />
+                          Add OP
+                        </>
+                      )}
+                    </button>
+
                     <button
                       onClick={handleAddOrdem}
                       className="px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
@@ -1364,6 +1474,20 @@ export default function Home() {
                       <span className="text-sm">Adicionar</span>
                     </button>
                   </div>
+
+                  {/* Mostrar botão de reset quando Auto OP estiver ativo */}
+                  {autoIncrementOP && (
+                    <button
+                      onClick={resetOP}
+                      className="w-full px-3 py-2 mt-2 text-sm text-gray-600 dark:text-gray-400 
+                                bg-gray-50 dark:bg-gray-900/30 
+                                hover:bg-gray-100 dark:hover:bg-gray-900/50 
+                                border border-gray-200 dark:border-gray-700 
+                                rounded-lg transition-colors"
+                    >
+                      Resetar OP para 2213345
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1404,7 +1528,7 @@ export default function Home() {
                         .map((ordem) => (
                           <div
                             key={ordem.id}
-                            onClick={() => handleSelectOrdem(ordem)}
+                            onClick={() => handleOrdemClick(ordem)}
                             className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border
                               ${
                                 selectedOrdem?.id === ordem.id
@@ -1526,7 +1650,7 @@ export default function Home() {
                         .map((ordem) => (
                           <div
                             key={ordem.id}
-                            onClick={() => handleSelectOrdem(ordem)}
+                            onClick={() => handleOrdemClick(ordem)}
                             className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border
                               ${
                                 selectedOrdem?.id === ordem.id
@@ -1687,116 +1811,163 @@ export default function Home() {
           <div className="flex items-center justify-center min-h-screen p-4">
             <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
 
-            <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl">
+            <div className="relative bg-white dark:bg-gray-800/95 rounded-xl shadow-xl w-full max-w-2xl">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4 rounded-t-xl">
-                <h3 className="text-lg font-semibold text-white dark:text-white/90">
-                  {editingOrdemDialog.nome}
-                </h3>
-                <p className="text-sm text-white/80 dark:text-white/70 mt-1">
-                  OP: {editingOrdemDialog.op || "Não definida"}
-                </p>
-                <span className="px-3 py-1 bg-white/10 dark:bg-white/5 rounded-lg text-sm text-white dark:text-white/90">
-                  {
-                    Object.values(editingExcipientes).filter((e) => e.pesado)
-                      .length
-                  }{" "}
-                  / {Object.keys(editingExcipientes).length} pesados
-                </span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white dark:text-white/90">
+                      {editingOrdemDialog.nome}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="inline-flex items-center px-3 py-1 bg-white/10 dark:bg-white/5 rounded-lg text-sm text-white/90">
+                        <HashtagIcon className="w-4 h-4 mr-1.5 text-white/70" />
+                        OP: {editingOrdemDialog.op || "Não definida"}
+                      </span>
+                      <span className="inline-flex items-center px-3 py-1 bg-white/10 dark:bg-white/5 rounded-lg text-sm text-white/90">
+                        <CheckCircleIcon className="w-4 h-4 mr-1.5 text-white/70" />
+                        {
+                          Object.values(editingExcipientes).filter(
+                            (e) => e.pesado
+                          ).length
+                        }
+                        {" / "}
+                        {Object.keys(editingExcipientes).length} pesados
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCloseEditDialog}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <XCircleIcon className="w-6 h-6 text-white/80 hover:text-white" />
+                  </button>
+                </div>
               </div>
 
               {/* Content */}
               <div className="p-6">
                 {/* Selecionar Todos */}
                 <div
-                  className="flex items-center justify-between p-3 
+                  className="flex items-center justify-between p-4 mb-4
                   bg-blue-50 dark:bg-blue-900/30 
                   border border-blue-100 dark:border-blue-800 
-                  rounded-lg"
+                  rounded-xl"
                 >
                   <div>
                     <span className="font-medium text-blue-900 dark:text-blue-100">
-                      Selecionar todos
+                      Selecionar todos os excipientes
                     </span>
-                    <p className="text-sm text-blue-600 dark:text-blue-300">
-                      Marcar todos os excipientes como pesados
+                    <p className="text-sm text-blue-600/80 dark:text-blue-300/80 mt-0.5">
+                      Marcar todos os materiais como pesados
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={selectAllChecked}
-                    onChange={handleSelectAll}
-                    className="h-5 w-5 rounded 
-                      text-blue-600 dark:text-blue-500
-                      border-blue-300 dark:border-blue-700 
-                      focus:ring-blue-500 dark:focus:ring-blue-400"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      {selectAllChecked
+                        ? "Todos selecionados"
+                        : "Selecionar todos"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={selectAllChecked}
+                      onChange={handleSelectAll}
+                      className="h-5 w-5 rounded 
+                        text-blue-600 dark:text-blue-500
+                        border-blue-300 dark:border-blue-700 
+                        focus:ring-blue-500 dark:focus:ring-blue-400"
+                    />
+                  </div>
                 </div>
 
                 {/* Lista de Excipientes */}
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                  {Object.entries(editingExcipientes).map(
-                    ([excipient, data]) => (
-                      <div
-                        key={excipient}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors
-                        ${
-                          data.pesado
-                            ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-                            : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={data.pesado}
-                            onChange={() => handleToggleExcipiente(excipient)}
-                            className="h-5 w-5 rounded 
-                              text-blue-600 dark:text-blue-500
-                              border-blue-300 dark:border-blue-700 
-                              focus:ring-blue-500 dark:focus:ring-blue-400"
-                          />
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">
-                              {excipient}
-                            </p>
+                  {Object.entries(editingExcipientes).map(([key, data]) => (
+                    <div
+                      key={key}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200
+                      ${
+                        data.pesado
+                          ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
+                          : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="checkbox"
+                          checked={data.pesado}
+                          onChange={() => handleToggleExcipiente(key)}
+                          className="h-5 w-5 rounded 
+                            text-blue-600 dark:text-blue-500
+                            border-blue-300 dark:border-blue-700 
+                            focus:ring-blue-500 dark:focus:ring-blue-400"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {data.nome}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
                             <span className="text-sm text-gray-500 dark:text-gray-400">
                               Quantidade: {data.quantidade.toFixed(3)} kg
                             </span>
+
+                            {/* Mostrar opção de PA apenas para excipientes especiais */}
+                            {data.isEspecial && (
+                              <div className="flex items-center gap-2 ml-4">
+                                <button
+                                  disabled // Adiciona disabled para desabilitar o botão
+                                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors
+                                    cursor-not-allowed opacity-50 // Adiciona cursor-not-allowed e opacity-50
+                                    ${
+                                      data.pa
+                                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600"
+                                    }`}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <BeakerIcon className="w-4 h-4" />
+                                    PA {data.pa ? "Ativada" : "Desativada"}
+                                  </span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
+
                         {data.pesado && (
-                          <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <span className="text-green-600 dark:text-green-400 flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-900/30 rounded-lg">
                             <CheckIcon className="w-4 h-4" />
                             Pesado
                           </span>
                         )}
                       </div>
-                    )
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
-                <button
-                  onClick={handleCloseEditDialog}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 
-                  bg-gray-100 dark:bg-gray-700 
-                  hover:bg-gray-200 dark:hover:bg-gray-600 
-                  rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSaveEditDialog}
-                  className="px-4 py-2 text-white 
-                  bg-blue-600 dark:bg-blue-500 
-                  hover:bg-blue-700 dark:hover:bg-blue-600 
-                  rounded-lg transition-colors"
-                >
-                  Salvar Alterações
-                </button>
+              <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-xl border-t border-gray-200 dark:border-gray-700/50">
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={handleCloseEditDialog}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 
+                      bg-gray-100 dark:bg-gray-700 
+                      hover:bg-gray-200 dark:hover:bg-gray-600 
+                      rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEditDialog}
+                    className="px-4 py-2 text-white 
+                      bg-blue-600 dark:bg-blue-500 
+                      hover:bg-blue-700 dark:hover:bg-blue-600 
+                      rounded-lg transition-colors"
+                  >
+                    Salvar Alterações
+                  </button>
+                </div>
               </div>
             </div>
           </div>
