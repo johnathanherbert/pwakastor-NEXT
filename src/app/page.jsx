@@ -1917,7 +1917,7 @@ export default function Home() {
                                 <button
                                   disabled // Adiciona disabled para desabilitar o botão
                                   className={`px-2 py-1 text-xs font-medium rounded-md transition-colors
-                                    cursor-not-allowed opacity-50 // Adiciona cursor-not-allowed e opacity-50
+                                    cursor-not-allowed opacity-50
                                     ${
                                       data.pa
                                         ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
