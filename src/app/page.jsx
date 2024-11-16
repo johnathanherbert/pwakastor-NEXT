@@ -1220,6 +1220,81 @@ export default function Home() {
     setSugestoes(sugestoesUnicas);
   };
 
+  // Adicione esta função de renderização do tooltip
+  const renderOrdemTooltip = (ordem) => {
+    return (
+      <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 
+        absolute left-full top-0 ml-2 z-50 w-80
+        transition-all duration-200 transform scale-95 group-hover:scale-100
+        pointer-events-none"
+      >
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl 
+          ring-1 ring-black/5 dark:ring-white/5
+          border border-gray-100 dark:border-gray-700">
+          {/* Cabeçalho */}
+          <div className="p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {ordem.nome}
+              </span>
+              {ordem.op && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/40 
+                  text-blue-800 dark:text-blue-300 rounded-full">
+                  OP: {ordem.op}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Lista de Excipientes */}
+          <div className="p-3">
+            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 text-left">
+                      Excipiente
+                    </th>
+                    <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 text-right">
+                      Quantidade
+                    </th>
+                    <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 text-center">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {Object.entries(ordem.excipientes).map(([excipiente, dados]) => {
+                    const isPesado = pesados[excipiente]?.[ordem.id] || false;
+                    return (
+                      <tr key={excipiente}>
+                        <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-300">
+                          {excipiente}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-right text-gray-900 dark:text-gray-300">
+                          {dados.quantidade.toFixed(3)} kg
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                            ${isPesado 
+                              ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' 
+                              : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300'}`}
+                          >
+                            {isPesado ? 'Pesado' : 'Pendente'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">

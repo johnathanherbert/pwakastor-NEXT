@@ -16,6 +16,7 @@ import {
   PencilIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import { EXCIPIENTES_ESPECIAIS } from "../app/constants";
 
 const TabelaPrincipal = ({
   filteredExcipientes,
@@ -38,6 +39,7 @@ const TabelaPrincipal = ({
   const [selectedExcipient, setSelectedExcipient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [faltaSolicitarSort, setFaltaSolicitarSort] = useState("desc");
+  const [showAutomaticOnly, setShowAutomaticOnly] = useState(false);
 
   const handleOpenOrdensDialog = (excipient) => {
     setSelectedExcipient(excipient);
@@ -171,7 +173,15 @@ const TabelaPrincipal = ({
   };
 
   const sortedRows = useMemo(() => {
-    return [...filteredExcipientsList].sort((a, b) => {
+    let filtered = [...filteredExcipientsList];
+
+    if (showAutomaticOnly) {
+      filtered = filtered.filter(([excipient]) =>
+        EXCIPIENTES_ESPECIAIS.includes(excipient)
+      );
+    }
+
+    return filtered.sort((a, b) => {
       const [excipientA, { ordens: ordensA }] = a;
       const [excipientB, { ordens: ordensB }] = b;
       const naAreaA = materiaisNaArea[excipientA] || 0;
@@ -192,7 +202,12 @@ const TabelaPrincipal = ({
         return faltaSolicitarB - faltaSolicitarA;
       }
     });
-  }, [filteredExcipientsList, materiaisNaArea, faltaSolicitarSort]);
+  }, [
+    filteredExcipientsList,
+    materiaisNaArea,
+    faltaSolicitarSort,
+    showAutomaticOnly,
+  ]);
 
   // Primeiro, vamos melhorar a função getStatusColor para ter mais variações visuais
   const getStatusColor = (status) => {
@@ -516,6 +531,36 @@ const TabelaPrincipal = ({
                 {sortedRows.map(renderTableRow)}
               </tbody>
             </table>
+          </div>
+
+          {/* Footer com Switch */}
+          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
+              <ScaleIcon className="h-4 w-4" />
+              Movimentação total:{" "}
+              {calcularTotalConsiderandoFiltros().toFixed(3)} kg
+            </p>
+
+            {/* Switch de Pesagem Automática */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 dark:text-gray-300">
+                Pesagem Automática
+              </span>
+              <button
+                onClick={() => setShowAutomaticOnly(!showAutomaticOnly)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none
+                  ${
+                    showAutomaticOnly
+                      ? "bg-blue-600 dark:bg-blue-500"
+                      : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out
+                    ${showAutomaticOnly ? "translate-x-5" : "translate-x-1"}`}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </div>
