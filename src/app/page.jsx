@@ -1435,12 +1435,12 @@ export default function Home() {
                   {addMode === "codigo" ? (
                     <div className="relative">
                       <input
-                        type="text"
+                        type="number"
                         value={ativo}
                         onChange={(e) => handleInputChange(e.target.value)}
                         onKeyPress={handleKeyPress}
                         ref={inputRef}
-                        placeholder="Digite o código (Ex: 2213345)"
+                        placeholder="Digite o código (Ex: 701171)"
                         className="w-full px-3 py-2 
                           bg-white dark:bg-gray-700
                           border border-gray-200 dark:border-gray-600 
@@ -1473,7 +1473,7 @@ export default function Home() {
                   {autoIncrementOP && (
                     <div className="relative">
                       <input
-                        type="text"
+                        type="number"
                         value={initialOP}
                         onChange={(e) => setInitialOP(e.target.value)}
                         placeholder={`Próxima OP: ${lastOP + 1}`}
