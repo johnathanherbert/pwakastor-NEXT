@@ -52,15 +52,24 @@ const ExcelUploader = ({
 
     setUploading(true);
     try {
-      const rows = pastedData.split("\n").map((row) => row.split("\t"));
+      // Divide as linhas e remove linhas vazias ou cabeçalhos desnecessários
+      const rows = pastedData
+        .split("\n")
+        .map(row => row.split("\t"))
+        .filter(row => 
+          row.some(cell => cell?.trim()) && 
+          !row[0]?.includes("Estoques WM") && 
+          !row[0]?.includes("Nº depósito")
+        );
+
       const headers = rows[0];
       const data = rows.slice(1);
 
-      console.log("Headers:", headers);
-      console.log("Primeiras 5 linhas de dados:", data.slice(0, 5));
+      console.log("Headers encontrados:", headers);
+      console.log("Exemplo de dados:", data[0]); // Mostra primeira linha para debug
 
-      await uploadToSupabase(headers, data);
-
+      const recordsUpdated = await uploadToSupabase(headers, data);
+      
       if (onDataUpdated) {
         await onDataUpdated();
       }
@@ -68,7 +77,7 @@ const ExcelUploader = ({
       const newHistory = await fetchUpdateHistory();
       setUpdateHistory(newHistory);
 
-      alert("Dados atualizados com sucesso!");
+      alert(`Dados atualizados com sucesso! ${recordsUpdated} registros inseridos.`);
     } catch (error) {
       console.error("Erro ao processar dados:", error);
       alert(`Erro ao processar dados: ${error.message || "Erro desconhecido"}`);
@@ -84,7 +93,7 @@ const ExcelUploader = ({
       const { error: deleteError } = await supabase
         .from("materials_database")
         .delete()
-        .neq("id", 0); // Isso deletará todas as linhas, pois 'id' nunca será 0
+        .neq("id", 0);
 
       if (deleteError) {
         console.error("Erro ao deletar dados existentes:", deleteError);
@@ -92,35 +101,83 @@ const ExcelUploader = ({
       }
 
       const columnMapping = {
-        Material: "codigo_materia_prima",
+        "Material": "codigo_materia_prima",
         "Texto breve material": "descricao",
-        Lote: "lote",
+        "Lote": "lote",
         "Estoque disponível": "qtd_materia_prima",
-        "Unid.medida básica": "unidade_medida",
-        Centro: "centro",
-        Depósito: "deposito",
+        "UMB": "unidade_medida",
+        "Tipo de estoque": "tipo_estoque",
+        "Data da entrada de mercadorias": "data_entrada",
+        "Último movimento": "data_validade"
       };
 
-      const formattedData = rows.map((row) => {
-        const formattedRow = {};
-        headers.forEach((header, index) => {
-          const mappedColumn = columnMapping[header];
-          if (mappedColumn) {
-            let value = row[index];
-            if (mappedColumn === "qtd_materia_prima") {
-              value = parseFloat(value?.replace(",", ".")) || 0;
-            } else if (typeof value === "string") {
-              value = value.trim();
-            }
-            formattedRow[mappedColumn] = value === "" ? null : value;
-          }
-        });
-        return formattedRow;
-      });
+      const formattedData = rows
+        .filter(row => row.some(cell => cell?.trim())) // Remove linhas vazias
+        .map(row => {
+          const formattedRow = {
+            user_id: user.id
+          };
 
-      const validData = formattedData.filter((row) =>
-        Object.values(row).some((value) => value !== null && value !== "")
+          headers.forEach((header, index) => {
+            const mappedColumn = columnMapping[header];
+            if (mappedColumn) {
+              let value = row[index]?.trim();
+              
+              // Tratamento para quantidade
+              if (mappedColumn === "qtd_materia_prima") {
+                // Primeiro, substitui pontos de milhar por nada e vírgulas por pontos
+                value = value?.replace(/\./g, "").replace(",", ".");
+                const quantidade = parseFloat(value) || 0;
+                const unidade = row[headers.indexOf("UMB")]?.trim();
+                
+                // Converte unidades para padrão
+                if (unidade === "G") {
+                  value = quantidade / 1000; // Converte gramas para quilos
+                } else if (unidade === "UN") {
+                  value = quantidade; // Mantém unidades como estão
+                } else {
+                  value = quantidade; // Para KG e outras unidades
+                }
+              }
+              // Tratamento para datas (formato brasileiro dd/mm/yyyy)
+              else if (mappedColumn === "data_entrada" || mappedColumn === "data_validade") {
+                if (value) {
+                  try {
+                    const [dia, mes, ano] = value.split("/");
+                    value = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+                  } catch (e) {
+                    console.warn(`Erro ao converter data: ${value}`, e);
+                    value = null;
+                  }
+                }
+              }
+              
+              formattedRow[mappedColumn] = value === "" ? null : value;
+            }
+          });
+          return formattedRow;
+        });
+
+      // Agrupa os dados por material e lote
+      const groupedData = formattedData.reduce((acc, item) => {
+        const key = `${item.codigo_materia_prima}-${item.lote}`;
+        if (!acc[key]) {
+          acc[key] = { ...item, qtd_materia_prima: 0 };
+        }
+        acc[key].qtd_materia_prima += parseFloat(item.qtd_materia_prima) || 0;
+        return acc;
+      }, {});
+
+      const validData = Object.values(groupedData).filter(row => 
+        row.codigo_materia_prima && 
+        row.qtd_materia_prima > 0
       );
+
+      if (validData.length === 0) {
+        throw new Error("Nenhum dado válido para inserção");
+      }
+
+      console.log("Dados formatados para inserção:", validData);
 
       // Insere os novos dados
       const { data, error: insertError } = await supabase
@@ -128,17 +185,19 @@ const ExcelUploader = ({
         .insert(validData)
         .select();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Erro ao inserir dados:", insertError);
+        throw insertError;
+      }
 
       // Registra a atualização
       await supabase
         .from("update_history")
-        .insert({ user_id: user.id, records_updated: data.length });
+        .insert({ user_id: user.id, records_updated: validData.length });
 
-      console.log("Dados inseridos com sucesso:", data);
-      alert(
-        `Dados atualizados com sucesso! ${data.length} registros inseridos.`
-      );
+      console.log(`Dados inseridos com sucesso! ${validData.length} registros inseridos.`);
+      return validData.length;
+
     } catch (error) {
       console.error("Erro detalhado ao atualizar dados:", error);
       throw error;

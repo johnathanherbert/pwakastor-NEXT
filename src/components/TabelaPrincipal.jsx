@@ -369,7 +369,7 @@ const TabelaPrincipal = ({
                         className="hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors duration-200"
                       >
                         <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">
-                          {ordem.codigo}
+                          {codigo || '-'}
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex items-center space-x-2">
@@ -426,19 +426,6 @@ const TabelaPrincipal = ({
                                        checked:hover:bg-blue-600 dark:checked:hover:bg-blue-700
                                        checked:focus:bg-blue-500 dark:checked:focus:bg-blue-600"
                           />
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditOrdem(ordem);
-                            }}
-                            className="p-2 text-blue-600 dark:text-blue-400 
-                                      hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg
-                                      transition-all duration-200 active:scale-95"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
                         </td>
                       </tr>
                     ))}
