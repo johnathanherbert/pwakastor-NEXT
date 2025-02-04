@@ -5,25 +5,28 @@ import {
   HomeIcon,
   ScaleIcon,
   Cog6ToothIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ArrowUturnLeftIcon
 } from "@heroicons/react/24/outline";
 
 const Sidebar = ({ open, toggleDrawer }) => {
   const menuItems = [
     { text: "Início", icon: <HomeIcon className="h-5 w-5" />, path: "/" },
-    { text: "Pesagem", icon: <ScaleIcon className="h-5 w-5" />, path: "#" },
-    { text: "Rejunka Dashboard", icon: <ChartBarIcon className="h-5 w-5" />, path: "#" },
-    { text: "Configurações", icon: <Cog6ToothIcon className="h-5 w-5" />, path: "#" },
+    { text: "Devolução", icon: <ArrowUturnLeftIcon className="h-5 w-5" />, path: "/devolucao" },
   ];
 
   if (!open) return null;
+
+  const handleClose = () => {
+    toggleDrawer(false);
+  };
 
   return (
     <>
       {/* Overlay */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 z-40"
-        onClick={toggleDrawer(false)}
+        onClick={handleClose}
       />
 
       {/* Drawer */}
@@ -31,7 +34,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 h-14 flex items-center">
           <button
-            onClick={toggleDrawer(false)}
+            onClick={handleClose}
             className="p-2 hover:bg-blue-700 rounded-lg"
           >
             <Bars3Icon className="h-5 w-5" />
@@ -48,6 +51,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
             <Link 
               href={item.path} 
               key={item.text}
+              onClick={handleClose}
               className="flex items-center gap-3 px-3 py-2 
                 text-gray-700 dark:text-slate-200 
                 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 
