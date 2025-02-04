@@ -54,6 +54,28 @@ const Devolucao = () => {
   // Ref para debounce
   const debounceTimeout = useRef(null);
 
+  // Função de formatação atualizada
+  const formatNumberBR = (number) => {
+    if (number === null || number === undefined) return '';
+    
+    // Verifica se o número é inteiro
+    if (Number.isInteger(number)) {
+      return number.toLocaleString('pt-BR');
+    }
+    
+    // Se não for inteiro, formata com 3 casas decimais
+    return number.toLocaleString('pt-BR', {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+  };
+
+  // Função para converter string BR para número
+  const parseBRNumber = (string) => {
+    if (!string) return 0;
+    return Number(string.replace(/\./g, '').replace(',', '.'));
+  };
+
   // Função para carregar o estado inicial
   const loadInitialState = useCallback(async (userId) => {
     try {
@@ -315,28 +337,67 @@ const Devolucao = () => {
     setError(null);
   };
 
+  // Função para atualizar os valores restantes
+  const updateLotesRestantes = useCallback((items) => {
+    const newLotesRestantes = {};
+    
+    // Inicializa com os valores originais do materialData
+    materialData?.forEach(lote => {
+      newLotesRestantes[lote.lote] = {
+        original: lote.qtd_materia_prima,
+        restante: lote.qtd_materia_prima
+      };
+    });
+
+    // Subtrai as quantidades dos itens de devolução
+    items.forEach(item => {
+      if (newLotesRestantes[item.lote]) {
+        newLotesRestantes[item.lote].restante -= item.quantidade;
+      }
+    });
+
+    setLotesRestantes(newLotesRestantes);
+  }, [materialData]);
+
+  // Função atualizada para remover item
   const handleRemoveItem = (id) => {
-    setDevolucaoItems(devolucaoItems.filter(item => item.id !== id));
+    const newItems = devolucaoItems.filter(item => item.id !== id);
+    setDevolucaoItems(newItems);
+    updateLotesRestantes(newItems);
   };
 
+  // Função atualizada para limpar tabela
   const handleClearTable = () => {
     setDevolucaoItems([]);
+    updateLotesRestantes([]);
   };
 
+  // Função atualizada para atualizar item
   const handleUpdateItem = (id, field, value) => {
-    setDevolucaoItems(devolucaoItems.map(item => 
+    const newItems = devolucaoItems.map(item => 
       item.id === id ? { ...item, [field]: value } : item
-    ));
+    );
+    setDevolucaoItems(newItems);
+    
+    // Só atualiza os lotes restantes se o campo for quantidade
+    if (field === 'quantidade') {
+      updateLotesRestantes(newItems);
+    }
   };
 
-  // Funções de cópia
+  // Adicione o useEffect para atualizar os lotes restantes quando materialData mudar
+  useEffect(() => {
+    updateLotesRestantes(devolucaoItems);
+  }, [materialData, updateLotesRestantes]);
+
+  // Funções de cópia atualizadas
   const handleCopyTable = () => {
     if (!materialData) return;
 
     const headers = ['Lote', 'Quantidade', 'Tipo', 'Data Validade'];
     const rows = materialData.map(lote => [
       lote.lote,
-      lote.qtd_materia_prima,
+      formatNumberBR(lote.qtd_materia_prima),
       lote.tipo_estoque || '-',
       new Date(lote.data_validade).toLocaleDateString()
     ]);
@@ -355,7 +416,7 @@ const Devolucao = () => {
     const rows = devolucaoItems.map(item => [
       item.material,
       item.lote,
-      item.quantidade,
+      formatNumberBR(item.quantidade),
       '',
       item.volume,
       item.pallet
@@ -568,11 +629,11 @@ const Devolucao = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <div className="flex items-center gap-2">
                                 <span className="text-gray-900 dark:text-gray-100">
-                                  {lote.qtd_materia_prima} {lote.unidade_medida}
+                                  {formatNumberBR(lote.qtd_materia_prima)} {lote.unidade_medida}
                                 </span>
-                                {lotesRestantes[lote.lote] && (
+                                {lotesRestantes[lote.lote] && lotesRestantes[lote.lote].restante !== lote.qtd_materia_prima && (
                                   <span className="text-green-600 dark:text-green-400 font-medium">
-                                    (Restante: {lotesRestantes[lote.lote].restante.toFixed(3)} {lote.unidade_medida})
+                                    (Restante: {formatNumberBR(lotesRestantes[lote.lote].restante)} {lote.unidade_medida})
                                   </span>
                                 )}
                               </div>
@@ -665,9 +726,14 @@ const Devolucao = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <input
-                              type="number"
-                              value={item.quantidade}
-                              onChange={(e) => handleUpdateItem(item.id, 'quantidade', e.target.value)}
+                              type="text"
+                              value={formatNumberBR(item.quantidade)}
+                              onChange={(e) => {
+                                const value = parseBRNumber(e.target.value);
+                                if (!isNaN(value)) {
+                                  handleUpdateItem(item.id, 'quantidade', value);
+                                }
+                              }}
                               className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 
                                        rounded bg-white dark:bg-gray-800 
                                        text-gray-900 dark:text-gray-100
@@ -732,7 +798,7 @@ const Devolucao = () => {
                              transition-colors duration-200"
                     onClick={() => handleAddDevolucaoItem(contextMenu.loteData)}
                   >
-                    Devolver Lote Restante ({(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima).toFixed(3)})
+                    Devolver Lote Restante ({formatNumberBR(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima)})
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
@@ -764,9 +830,24 @@ const Devolucao = () => {
                 </h3>
                 <div className="mb-4">
                   <input
-                    type="number"
+                    type="text"
                     value={quantidadeDevolver}
-                    onChange={(e) => setQuantidadeDevolver(e.target.value)}
+                    onChange={(e) => {
+                      // Permite apenas números, vírgula e ponto
+                      const value = e.target.value.replace(/[^\d.,]/g, '');
+                      // Garante apenas uma vírgula ou ponto
+                      if ((value.match(/[.,]/g) || []).length <= 1) {
+                        setQuantidadeDevolver(value);
+                      }
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        const value = parseBRNumber(quantidadeDevolver);
+                        if (!isNaN(value) && value > 0 && value <= (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)) {
+                          handleAddDevolucaoItem(selectedLote, value);
+                        }
+                      }
+                    }}
                     placeholder="Digite a quantidade..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
                              rounded-lg bg-white dark:bg-gray-800 
@@ -778,7 +859,7 @@ const Devolucao = () => {
                   {selectedLote && (
                     <div className="text-sm text-green-600 dark:text-green-400">
                       Quantidade disponível: {
-                        (lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima).toFixed(3)
+                        formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)
                       } {selectedLote.unidade_medida}
                     </div>
                   )}
@@ -796,14 +877,18 @@ const Devolucao = () => {
                     Cancelar
                   </button>
                   <button
-                    onClick={() => handleAddDevolucaoItem(selectedLote, parseFloat(quantidadeDevolver))}
+                    onClick={() => {
+                      const value = parseBRNumber(quantidadeDevolver);
+                      handleAddDevolucaoItem(selectedLote, value);
+                    }}
                     className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
                              hover:bg-blue-700 dark:hover:bg-blue-600
                              disabled:opacity-50 transition-colors duration-200"
                     disabled={
                       !quantidadeDevolver || 
-                      parseFloat(quantidadeDevolver) <= 0 || 
-                      parseFloat(quantidadeDevolver) > (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)
+                      isNaN(parseBRNumber(quantidadeDevolver)) || 
+                      parseBRNumber(quantidadeDevolver) <= 0 || 
+                      parseBRNumber(quantidadeDevolver) > (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)
                     }
                   >
                     Confirmar
