@@ -440,59 +440,57 @@ const Devolucao = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Navbar */}
+      {/* Navbar mais compacta */}
       <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 z-40">
-        <div className="flex items-center h-16">
-          {/* Container esquerdo - Menu e Título */}
-          <div className="flex items-center gap-2 px-4">
+        <div className="flex items-center h-14"> {/* Reduzido de h-16 para h-14 */}
+          <div className="flex items-center gap-2 px-3"> {/* Reduzido padding */}
             <button
               onClick={() => setDrawerOpen(!drawerOpen)}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
             >
-              <Bars3Icon className="h-6 w-6" />
+              <Bars3Icon className="h-5 w-5" /> {/* Reduzido tamanho do ícone */}
             </button>
-            <span className="text-lg font-medium text-blue-600">
+            <span className="text-base font-medium text-blue-600"> {/* Reduzido tamanho da fonte */}
               Devolução
             </span>
           </div>
 
-          {/* Container direito - Calculadora e UserMenu */}
-          <div className="flex-1 flex items-center justify-end gap-4 px-4">
+          <div className="flex-1 flex items-center justify-end gap-3 px-3">
             <Calculator />
             <UserMenu user={user} onUserUpdate={setUser} />
           </div>
         </div>
       </nav>
 
-      {/* Layout Principal */}
-      <div className="flex pt-16">
+      {/* Layout Principal - Ajustado padding top para navbar menor */}
+      <div className="flex pt-14">
         <Sidebar
           open={drawerOpen}
           toggleDrawer={(state) => setDrawerOpen(state)}
         />
 
-        {/* Conteúdo Principal */}
-        <div className="flex-1 p-4 md:p-6">
-          {/* Cabeçalho da Página */}
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-2">
+        {/* Conteúdo Principal - Espaçamentos reduzidos */}
+        <div className="flex-1 p-3 md:p-4">
+          {/* Cabeçalho da Página - Mais compacto */}
+          <div className="mb-4">
+            <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-1">
               Devolução de Materiais
             </h2>
-            <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
               Busque materiais por código e gerencie devoluções
             </p>
           </div>
 
-          {/* Layout em duas colunas com responsividade */}
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 lg:gap-8">
-            {/* Coluna Esquerda - Busca e Informações */}
-            <div className="w-full lg:w-1/3 space-y-4 md:space-y-6">
+          {/* Layout em duas colunas - Gaps reduzidos */}
+          <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
+            {/* Coluna Esquerda - Mais compacta */}
+            <div className="w-full lg:w-1/3 space-y-3">
               {/* Card de Pesquisa */}
-              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
-                <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
+              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
+                <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400 mb-3">
                   Buscar Material
                 </h3>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                   <div className="relative">
                     <input
                       type="text"
@@ -500,58 +498,49 @@ const Devolucao = () => {
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder="Digite o código do material..."
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
                                bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
                                focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
                                placeholder-gray-500 dark:placeholder-gray-400
-                               text-lg font-medium"
+                               text-sm font-medium"
                     />
-                    <MagnifyingGlassIcon className="h-5 w-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                    <MagnifyingGlassIcon className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   </div>
                   <button
                     onClick={handleSearch}
                     disabled={loading}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg 
+                    className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg 
                              hover:from-blue-700 hover:to-blue-600
                              disabled:opacity-50 flex items-center gap-2
-                             transition-all duration-200 justify-center font-semibold
-                             shadow-md hover:shadow-lg text-lg"
+                             transition-all duration-200 justify-center font-medium
+                             shadow-md hover:shadow-lg text-sm"
                   >
                     {loading ? (
-                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     ) : (
-                      <MagnifyingGlassIcon className="h-5 w-5" />
+                      <MagnifyingGlassIcon className="h-4 w-4" />
                     )}
                     <span>Buscar</span>
                   </button>
                 </div>
               </div>
 
-              {/* Mensagem de Erro */}
-              {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl border border-red-200 dark:border-red-800/50 shadow-md">
-                  <p className="flex items-center gap-2 font-medium">
-                    <span className="font-bold">Erro:</span> {error}
-                  </p>
-                </div>
-              )}
-
-              {/* Informações do Material */}
+              {/* Informações do Material - Mais compacto */}
               {materialInfo && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
-                  <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
+                  <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400 mb-3">
                     Informações do Material
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Código</label>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Código</label>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {materialInfo.codigo_materia_prima}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Descrição</label>
-                      <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Descrição</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {materialInfo.nome_materia_prima}
                       </p>
                     </div>
@@ -560,38 +549,38 @@ const Devolucao = () => {
               )}
             </div>
 
-            {/* Coluna Direita - Tabelas */}
+            {/* Coluna Direita - Tabelas mais compactas */}
             <div className="flex-1">
               {/* Resultados da Busca */}
               {materialData && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-4 md:mb-6">
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-start">
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-3">
+                  <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-center">
                       <div>
-                        <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+                        <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400">
                           Lotes Disponíveis
                         </h3>
-                        <p className="mt-1 text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                           Clique em um lote para adicionar à devolução
                         </p>
                       </div>
                       <button
                         onClick={handleCopyTable}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs
                                  text-gray-700 dark:text-gray-300 
                                  bg-white dark:bg-gray-700/50 
                                  border border-gray-200 dark:border-gray-600
                                  rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
-                                 transition-all duration-200 font-medium shadow-sm hover:shadow"
+                                 transition-all duration-200 font-medium"
                       >
                         {copySuccess ? (
                           <>
-                            <CheckIcon className="h-4 w-4 text-green-500" />
+                            <CheckIcon className="h-3.5 w-3.5 text-green-500" />
                             <span>Copiado!</span>
                           </>
                         ) : (
                           <>
-                            <ClipboardDocumentIcon className="h-4 w-4" />
+                            <ClipboardDocumentIcon className="h-3.5 w-3.5" />
                             <span>Copiar Tabela</span>
                           </>
                         )}
@@ -652,15 +641,15 @@ const Devolucao = () => {
                 </div>
               )}
 
-              {/* Tabela de Devolução */}
-              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between items-start">
+              {/* Tabela de Devolução - Mais compacta */}
+              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+                      <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400">
                         Itens para Devolução
                       </h3>
-                      <p className="mt-1 text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                         {devolucaoItems.length} {devolucaoItems.length === 1 ? 'item' : 'itens'} na lista
                       </p>
                     </div>
@@ -782,131 +771,131 @@ const Devolucao = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Menu Contextual */}
-          {contextMenu.visible && (
-            <div
-              className="fixed bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 
-                       rounded-lg py-2 z-50 border border-gray-200 dark:border-gray-700"
-              style={{ top: contextMenu.y, left: contextMenu.x }}
-            >
-              {(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima) > 0 ? (
-                <>
-                  <button
-                    className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
-                             hover:bg-gray-100 dark:hover:bg-gray-700/50
-                             transition-colors duration-200"
-                    onClick={() => handleAddDevolucaoItem(contextMenu.loteData)}
-                  >
-                    Devolver Lote Restante ({formatNumberBR(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima)})
-                  </button>
-                  <button
-                    className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
-                             hover:bg-gray-100 dark:hover:bg-gray-700/50
-                             transition-colors duration-200"
-                    onClick={() => {
-                      setSelectedLote(contextMenu.loteData);
-                      setShowQuantidadeModal(true);
-                      handleCloseContextMenu();
-                    }}
-                  >
-                    Devolver Parcial
-                  </button>
-                </>
-              ) : (
-                <div className="px-4 py-2 text-gray-500 dark:text-gray-400">
-                  Lote já devolvido completamente
+      {/* Menu Contextual */}
+      {contextMenu.visible && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 
+                   rounded-lg py-2 z-50 border border-gray-200 dark:border-gray-700"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          {(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima) > 0 ? (
+            <>
+              <button
+                className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
+                         hover:bg-gray-100 dark:hover:bg-gray-700/50
+                         transition-colors duration-200"
+                onClick={() => handleAddDevolucaoItem(contextMenu.loteData)}
+              >
+                Devolver Lote Restante ({formatNumberBR(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima)})
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
+                         hover:bg-gray-100 dark:hover:bg-gray-700/50
+                         transition-colors duration-200"
+                onClick={() => {
+                  setSelectedLote(contextMenu.loteData);
+                  setShowQuantidadeModal(true);
+                  handleCloseContextMenu();
+                }}
+              >
+                Devolver Parcial
+              </button>
+            </>
+          ) : (
+            <div className="px-4 py-2 text-gray-500 dark:text-gray-400">
+              Lote já devolvido completamente
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal de Quantidade */}
+      {showQuantidadeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-xl dark:shadow-gray-900/30">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Quantidade para Devolução
+            </h3>
+            <div className="mb-4">
+              <input
+                type="text"
+                value={quantidadeDevolver}
+                onChange={(e) => {
+                  // Permite apenas números, vírgula e ponto
+                  const value = e.target.value.replace(/[^\d.,]/g, '');
+                  // Garante apenas uma vírgula ou ponto
+                  if ((value.match(/[.,]/g) || []).length <= 1) {
+                    setQuantidadeDevolver(value);
+                  }
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const value = parseBRNumber(quantidadeDevolver);
+                    if (!isNaN(value) && value > 0 && value <= (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)) {
+                      handleAddDevolucaoItem(selectedLote, value);
+                    }
+                  }
+                }}
+                placeholder="Digite a quantidade..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+                         rounded-lg bg-white dark:bg-gray-800 
+                         text-gray-900 dark:text-gray-100
+                         focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                         mb-2"
+                max={selectedLote?.qtd_materia_prima}
+              />
+              {selectedLote && (
+                <div className="text-sm text-green-600 dark:text-green-400">
+                  Quantidade disponível: {
+                    formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)
+                  } {selectedLote.unidade_medida}
                 </div>
               )}
             </div>
-          )}
-
-          {/* Modal de Quantidade */}
-          {showQuantidadeModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-xl dark:shadow-gray-900/30">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                  Quantidade para Devolução
-                </h3>
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    value={quantidadeDevolver}
-                    onChange={(e) => {
-                      // Permite apenas números, vírgula e ponto
-                      const value = e.target.value.replace(/[^\d.,]/g, '');
-                      // Garante apenas uma vírgula ou ponto
-                      if ((value.match(/[.,]/g) || []).length <= 1) {
-                        setQuantidadeDevolver(value);
-                      }
-                    }}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        const value = parseBRNumber(quantidadeDevolver);
-                        if (!isNaN(value) && value > 0 && value <= (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)) {
-                          handleAddDevolucaoItem(selectedLote, value);
-                        }
-                      }
-                    }}
-                    placeholder="Digite a quantidade..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
-                             rounded-lg bg-white dark:bg-gray-800 
-                             text-gray-900 dark:text-gray-100
-                             focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                             mb-2"
-                    max={selectedLote?.qtd_materia_prima}
-                  />
-                  {selectedLote && (
-                    <div className="text-sm text-green-600 dark:text-green-400">
-                      Quantidade disponível: {
-                        formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)
-                      } {selectedLote.unidade_medida}
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setShowQuantidadeModal(false);
-                      setQuantidadeDevolver("");
-                    }}
-                    className="px-4 py-2 text-gray-600 dark:text-gray-400 
-                             hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
-                             transition-colors duration-200"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => {
-                      const value = parseBRNumber(quantidadeDevolver);
-                      handleAddDevolucaoItem(selectedLote, value);
-                    }}
-                    className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
-                             hover:bg-blue-700 dark:hover:bg-blue-600
-                             disabled:opacity-50 transition-colors duration-200"
-                    disabled={
-                      !quantidadeDevolver || 
-                      isNaN(parseBRNumber(quantidadeDevolver)) || 
-                      parseBRNumber(quantidadeDevolver) <= 0 || 
-                      parseBRNumber(quantidadeDevolver) > (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)
-                    }
-                  >
-                    Confirmar
-                  </button>
-                </div>
-              </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowQuantidadeModal(false);
+                  setQuantidadeDevolver("");
+                }}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 
+                         hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
+                         transition-colors duration-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const value = parseBRNumber(quantidadeDevolver);
+                  handleAddDevolucaoItem(selectedLote, value);
+                }}
+                className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
+                         hover:bg-blue-700 dark:hover:bg-blue-600
+                         disabled:opacity-50 transition-colors duration-200"
+                disabled={
+                  !quantidadeDevolver || 
+                  isNaN(parseBRNumber(quantidadeDevolver)) || 
+                  parseBRNumber(quantidadeDevolver) <= 0 || 
+                  parseBRNumber(quantidadeDevolver) > (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)
+                }
+              >
+                Confirmar
+              </button>
             </div>
-          )}
-
-          {/* Overlay para fechar menu contextual */}
-          {contextMenu.visible && (
-            <div
-              className="fixed inset-0 z-40"
-              onClick={handleCloseContextMenu}
-            />
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Overlay para fechar menu contextual */}
+      {contextMenu.visible && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 };
