@@ -411,23 +411,23 @@ const Devolucao = () => {
         />
 
         {/* Conteúdo Principal */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 md:p-6">
           {/* Cabeçalho da Página */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-2">
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-2">
               Devolução de Materiais
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
               Busque materiais por código e gerencie devoluções
             </p>
           </div>
 
-          {/* Layout em duas colunas */}
-          <div className="flex gap-8">
+          {/* Layout em duas colunas com responsividade */}
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 lg:gap-8">
             {/* Coluna Esquerda - Busca e Informações */}
-            <div className="w-1/3 space-y-6">
+            <div className="w-full lg:w-1/3 space-y-4 md:space-y-6">
               {/* Card de Pesquisa */}
-              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
+              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
                 <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
                   Buscar Material
                 </h3>
@@ -477,7 +477,7 @@ const Devolucao = () => {
 
               {/* Informações do Material */}
               {materialInfo && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
                   <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
                     Informações do Material
                   </h3>
@@ -503,7 +503,7 @@ const Devolucao = () => {
             <div className="flex-1">
               {/* Resultados da Busca */}
               {materialData && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-6">
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-4 md:mb-6">
                   <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex justify-between items-start">
                       <div>
