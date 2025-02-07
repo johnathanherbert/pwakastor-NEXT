@@ -9,7 +9,7 @@ import {
   ArrowUturnLeftIcon
 } from "@heroicons/react/24/outline";
 
-const Sidebar = ({ open, toggleDrawer }) => {
+const Sidebar = ({ open, onClose }) => {
   const menuItems = [
     { text: "Início", icon: <HomeIcon className="h-5 w-5" />, path: "/" },
     { text: "Devolução", icon: <ArrowUturnLeftIcon className="h-5 w-5" />, path: "/devolucao" },
@@ -18,7 +18,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
   if (!open) return null;
 
   const handleClose = () => {
-    toggleDrawer(false);
+    onClose();
   };
 
   return (

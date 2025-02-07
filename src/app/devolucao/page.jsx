@@ -1,19 +1,19 @@
 'use client'
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   ArrowPathIcon,
+  XMarkIcon,
+  ArrowUturnLeftIcon,
+  CheckIcon,
   TrashIcon,
   PlusIcon,
   ClipboardDocumentIcon,
-  CheckIcon,
-  Bars3Icon,
-  ArrowDownTrayIcon,
-  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
-import Sidebar from "@/components/Sidebar";
+import Topbar from "../../components/Topbar";
+import SearchBar from "../../components/SearchBar";
 import { useRouter } from 'next/navigation';
 import Calculator from '@/components/Calculator';
 
@@ -579,58 +579,17 @@ const Devolucao = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header fixo no topo */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-[2000px] mx-auto px-3 sm:px-4 lg:px-6">
-          <div className="flex justify-between items-center h-12">
-            <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-                Devolução de Materiais
-              </h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Busque materiais por código e gerencie devoluções
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Campo de busca no header */}
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Digite o código do material..."
-                    className="w-56 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 
-                             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
-                             focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                             placeholder-gray-500 dark:placeholder-gray-400
-                             text-xs font-medium"
-                  />
-                  <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                </div>
-                <button
-                  onClick={handleSearch}
-                  disabled={loading}
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg 
-                           hover:from-blue-700 hover:to-blue-600
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-all duration-200 font-medium
-                           shadow-md hover:shadow-lg text-xs min-w-[60px] h-[30px]
-                           flex items-center justify-center gap-1.5"
-                >
-                  {loading ? (
-                    <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <MagnifyingGlassIcon className="h-3.5 w-3.5" />
-                  )}
-                  <span>Buscar</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Topbar */}
+      <Topbar user={user} darkMode={false} setDarkMode={() => {}} />
+
+      {/* SearchBar */}
+      <SearchBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        loading={loading}
+        onSearch={handleSearch}
+        onKeyPress={handleKeyPress}
+      />
 
       {/* Conteúdo Principal com largura máxima e padding consistente */}
       <div className="max-w-[2000px] mx-auto px-3 sm:px-4 lg:px-6 py-4">
