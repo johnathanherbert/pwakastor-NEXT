@@ -9,6 +9,8 @@ import {
   ClipboardDocumentIcon,
   CheckIcon,
   Bars3Icon,
+  ArrowDownTrayIcon,
+  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
 import Sidebar from "@/components/Sidebar";
@@ -20,19 +22,14 @@ const Devolucao = () => {
   
   // Estados de UI
   const [searchTerm, setSearchTerm] = useState("");
+  const [tableFilter, setTableFilter] = useState("");
   const [materialData, setMaterialData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [devolucaoItems, setDevolucaoItems] = useState([]);
-  const [contextMenu, setContextMenu] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-    loteData: null
-  });
-  const [quantidadeDevolver, setQuantidadeDevolver] = useState("");
   const [showQuantidadeModal, setShowQuantidadeModal] = useState(false);
   const [selectedLote, setSelectedLote] = useState(null);
+  const [quantidadeDevolver, setQuantidadeDevolver] = useState("");
   const [materialInfo, setMaterialInfo] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyDevolucaoSuccess, setCopyDevolucaoSuccess] = useState(false);
@@ -50,6 +47,14 @@ const Devolucao = () => {
 
   // Adicione este estado para controlar os valores restantes
   const [lotesRestantes, setLotesRestantes] = useState({});
+
+  // Estado para o menu contextual
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    lote: null
+  });
 
   // Ref para debounce
   const debounceTimeout = useRef(null);
@@ -76,115 +81,199 @@ const Devolucao = () => {
     return Number(string.replace(/\./g, '').replace(',', '.'));
   };
 
-  // Função para carregar o estado inicial
-  const loadInitialState = useCallback(async (userId) => {
-    try {
-      // Primeiro tenta carregar do localStorage
-      const localState = localStorage.getItem(`appState_devolucao_${userId}`);
-      if (localState) {
-        const parsedState = JSON.parse(localState);
-        setDevolucoes(parsedState.devolucoes || []);
-        setMateriaisDevolvidos(parsedState.materiaisDevolvidos || {});
-        setSelectedDevolucao(parsedState.selectedDevolucao || null);
-        setMateriaisNaArea(parsedState.materiaisNaArea || {});
-        setInputValues(parsedState.inputValues || {});
-        setFiltroAtivo(parsedState.filtroAtivo || "");
-      }
+  // Efeito para carregar os dados do material quando houver searchTerm
+  useEffect(() => {
+    if (searchTerm) {
+      handleSearch();
+    }
+  }, [searchTerm]);
 
-      // Então busca do Supabase
+  // Efeito para atualizar lotes restantes quando materialData ou devolucaoItems mudar
+  useEffect(() => {
+    if (materialData) {
+      updateLotesRestantes(devolucaoItems);
+    }
+  }, [materialData, devolucaoItems]);
+
+  // Função para carregar o estado do Supabase
+  const loadState = useCallback(async (userId) => {
+    try {
       const { data, error } = await supabase
         .from("app_state")
         .select("state")
         .eq("user_id", userId)
-        .eq("page", "devolucao")
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
 
       if (error) throw error;
 
-      if (data?.state) {
-        setDevolucoes(data.state.devolucoes || []);
-        setMateriaisDevolvidos(data.state.materiaisDevolvidos || {});
-        setSelectedDevolucao(data.state.selectedDevolucao || null);
-        setMateriaisNaArea(data.state.materiaisNaArea || {});
-        setInputValues(data.state.inputValues || {});
-        setFiltroAtivo(data.state.filtroAtivo || "");
+      if (data?.state?.devolucao) {
+        const {
+          devolucaoItems,
+          materialInfo,
+          materialData,
+          searchTerm: savedSearchTerm,
+          tableFilter: savedTableFilter
+        } = data.state.devolucao;
+
+        // Primeiro setamos os itens de devolução
+        setDevolucaoItems(devolucaoItems || []);
         
-        localStorage.setItem(`appState_devolucao_${userId}`, JSON.stringify(data.state));
+        // Se temos um material salvo, vamos recarregar seus dados
+        if (materialInfo) {
+          setMaterialInfo(materialInfo);
+          setSearchTerm(savedSearchTerm || "");
+          // Recarrega os dados do material
+          const response = await supabase
+            .from("materiais_disponiveis")
+            .select("*")
+            .eq("codigo_materia_prima", materialInfo.codigo_materia_prima);
+
+          if (response.data) {
+            setMaterialData(response.data);
+            // Recalcula os lotes restantes com os dados atualizados
+            const newLotesRestantes = {};
+            response.data.forEach((lote) => {
+              newLotesRestantes[lote.lote] = {
+                total: parseFloat(lote.qtd_materia_prima),
+                restante: parseFloat(lote.qtd_materia_prima)
+              };
+            });
+
+            // Atualiza as quantidades restantes baseado nos itens de devolução
+            devolucaoItems.forEach((item) => {
+              if (newLotesRestantes[item.lote]) {
+                newLotesRestantes[item.lote].restante -= parseFloat(item.quantidade);
+              }
+            });
+
+            setLotesRestantes(newLotesRestantes);
+          }
+        }
+
+        setTableFilter(savedTableFilter || "");
+        
+        // Salva no localStorage como backup
+        localStorage.setItem(`devolucaoState_${userId}`, JSON.stringify(data.state.devolucao));
+      } else {
+        // Se não houver dados no Supabase, tenta carregar do localStorage
+        const storedState = localStorage.getItem(`devolucaoState_${userId}`);
+        if (storedState) {
+          const parsedState = JSON.parse(storedState);
+          setDevolucaoItems(parsedState.devolucaoItems || []);
+          if (parsedState.materialInfo) {
+            setMaterialInfo(parsedState.materialInfo);
+            setSearchTerm(parsedState.searchTerm || "");
+            // Recarrega os dados do material
+            const response = await supabase
+              .from("materiais_disponiveis")
+              .select("*")
+              .eq("codigo_materia_prima", parsedState.materialInfo.codigo_materia_prima);
+
+            if (response.data) {
+              setMaterialData(response.data);
+              // Recalcula os lotes restantes
+              const newLotesRestantes = {};
+              response.data.forEach((lote) => {
+                newLotesRestantes[lote.lote] = {
+                  total: parseFloat(lote.qtd_materia_prima),
+                  restante: parseFloat(lote.qtd_materia_prima)
+                };
+              });
+
+              // Atualiza as quantidades restantes
+              parsedState.devolucaoItems.forEach((item) => {
+                if (newLotesRestantes[item.lote]) {
+                  newLotesRestantes[item.lote].restante -= parseFloat(item.quantidade);
+                }
+              });
+
+              setLotesRestantes(newLotesRestantes);
+            }
+          }
+          setTableFilter(parsedState.tableFilter || "");
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar o estado:", error);
+      // Reseta os estados em caso de erro
+      setDevolucaoItems([]);
+      setMaterialInfo(null);
+      setMaterialData(null);
+      setLotesRestantes({});
+      setSearchTerm("");
+      setTableFilter("");
     }
   }, []);
 
-  // Função para salvar o estado
+  // Função para salvar o estado no Supabase
   const saveState = useCallback(async (userId) => {
-    if (!userId) return;
-
-    const stateToSave = {
-      devolucoes,
-      materiaisDevolvidos,
-      selectedDevolucao,
-      materiaisNaArea,
-      inputValues,
-      filtroAtivo,
-      timestamp: new Date().toISOString()
-    };
-
-    // Salva no localStorage primeiro (mais rápido)
-    localStorage.setItem(`appState_devolucao_${userId}`, JSON.stringify(stateToSave));
-
     try {
-      // Então salva no Supabase
+      // Primeiro busca o estado atual
+      const { data: currentData } = await supabase
+        .from("app_state")
+        .select("state")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      // Prepara o novo estado da página de devolução
+      const devolucaoState = {
+        devolucaoItems,
+        materialInfo,
+        materialData,
+        searchTerm,
+        tableFilter
+      };
+
+      // Combina com o estado existente ou cria um novo
+      const newState = {
+        ...(currentData?.state || {}),
+        devolucao: devolucaoState
+      };
+
+      // Salva no localStorage como backup
+      localStorage.setItem(`devolucaoState_${userId}`, JSON.stringify(devolucaoState));
+
+      // Salva no Supabase
       await supabase
         .from("app_state")
         .upsert({
           user_id: userId,
-          page: "devolucao",
-          state: stateToSave,
+          state: newState,
           created_at: new Date().toISOString()
         });
     } catch (error) {
-      console.error("Erro ao salvar o estado:", error);
+      console.error("Erro ao salvar o estado no Supabase:", error);
     }
-  }, [devolucoes, materiaisDevolvidos, selectedDevolucao, materiaisNaArea, inputValues, filtroAtivo]);
+  }, [devolucaoItems, materialInfo, materialData, searchTerm, tableFilter]);
 
-  // Efeito para carregar o estado inicial
+  // Efeito para verificar o usuário e carregar o estado inicial
   useEffect(() => {
     const checkUser = async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) throw authError;
-
-        if (user) {
-          setUser(user);
-          await loadInitialState(user.id);
-        } else {
-          router.push("/login");
-        }
-      } catch (error) {
-        console.error('Erro ao verificar usuário:', error);
-        setError(error.message);
-      } finally {
-        setIsLoading(false);
+      setIsLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        await loadState(user.id);
+      } else {
+        router.push("/login");
       }
+      setIsLoading(false);
     };
-
     checkUser();
-  }, [router, loadInitialState]);
+  }, [router, loadState]);
 
-  // Efeito para salvar alterações
+  // Efeito para salvar o estado quando houver mudanças
   useEffect(() => {
-    if (!user || isLoading) return;
-
-    const saveTimeout = setTimeout(() => {
+    if (user && !isLoading) {
       saveState(user.id);
-    }, 1000);
-
-    return () => clearTimeout(saveTimeout);
-  }, [user, isLoading, saveState]);
+    }
+  }, [devolucaoItems, materialInfo, materialData, searchTerm, tableFilter, isLoading, saveState, user]);
 
   // Função para atualizar materiais na área com debounce
   const handleMateriaisNaAreaChange = useCallback((material, value) => {
@@ -231,7 +320,7 @@ const Devolucao = () => {
 
     try {
       // Primeiro, buscar informações do material
-      const { data: materialInfo, error: materialInfoError } = await supabase
+      const { data: materialInfoData, error: materialInfoError } = await supabase
         .from('materials_database')
         .select('codigo_materia_prima, descricao')
         .eq('codigo_materia_prima', searchTerm)
@@ -243,10 +332,10 @@ const Devolucao = () => {
         return;
       }
 
-      if (materialInfo) {
+      if (materialInfoData) {
         setMaterialInfo({
-          codigo_materia_prima: materialInfo.codigo_materia_prima,
-          nome_materia_prima: materialInfo.descricao
+          codigo_materia_prima: materialInfoData.codigo_materia_prima,
+          nome_materia_prima: materialInfoData.descricao
         });
         
         // Depois, buscar todos os lotes do material
@@ -287,20 +376,6 @@ const Devolucao = () => {
   };
 
   // Funções de manipulação da tabela de devolução
-  const handleLoteClick = (e, loteData) => {
-    e.preventDefault();
-    setContextMenu({
-      visible: true,
-      x: e.pageX,
-      y: e.pageY,
-      loteData
-    });
-  };
-
-  const handleCloseContextMenu = () => {
-    setContextMenu({ visible: false, x: 0, y: 0, loteData: null });
-  };
-
   const handleAddDevolucaoItem = (loteData, quantidade = null) => {
     // Se quantidade não for especificada, usar o valor restante disponível
     const valorDisponivel = lotesRestantes[loteData.lote]?.restante ?? loteData.qtd_materia_prima;
@@ -331,7 +406,6 @@ const Devolucao = () => {
     };
     
     setDevolucaoItems([...devolucaoItems, newItem]);
-    handleCloseContextMenu();
     setShowQuantidadeModal(false);
     setQuantidadeDevolver("");
     setError(null);
@@ -344,7 +418,7 @@ const Devolucao = () => {
     // Inicializa com os valores originais do materialData
     materialData?.forEach(lote => {
       newLotesRestantes[lote.lote] = {
-        original: lote.qtd_materia_prima,
+        total: parseFloat(lote.qtd_materia_prima),
         restante: lote.qtd_materia_prima
       };
     });
@@ -359,20 +433,20 @@ const Devolucao = () => {
     setLotesRestantes(newLotesRestantes);
   }, [materialData]);
 
-  // Função atualizada para remover item
+  // Função para remover item
   const handleRemoveItem = (id) => {
     const newItems = devolucaoItems.filter(item => item.id !== id);
     setDevolucaoItems(newItems);
     updateLotesRestantes(newItems);
   };
 
-  // Função atualizada para limpar tabela
+  // Função para limpar tabela
   const handleClearTable = () => {
     setDevolucaoItems([]);
     updateLotesRestantes([]);
   };
 
-  // Função atualizada para atualizar item
+  // Função para atualizar item
   const handleUpdateItem = (id, field, value) => {
     const newItems = devolucaoItems.map(item => 
       item.id === id ? { ...item, [field]: value } : item
@@ -430,471 +504,576 @@ const Devolucao = () => {
     });
   };
 
+  // Função para lidar com a confirmação da quantidade
+  const handleConfirmQuantidade = () => {
+    if (quantidadeDevolver) {
+      handleAddDevolucaoItem(selectedLote, parseFloat(quantidadeDevolver));
+      setShowQuantidadeModal(false);
+      setSelectedLote(null);
+      setQuantidadeDevolver("");
+    }
+  };
+
+  // Função para lidar com o pressionamento de tecla no modal
+  const handleQuantidadeKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmQuantidade();
+    }
+  };
+
+  // Função para fechar o menu contextual
+  const closeContextMenu = useCallback((e) => {
+    // Não fechar se o clique foi dentro do menu
+    if (e?.target?.closest('.context-menu')) return;
+    setContextMenu(prev => ({ ...prev, visible: false }));
+  }, []);
+
+  // Efeito para fechar o menu ao clicar fora
+  useEffect(() => {
+    document.addEventListener('mousedown', closeContextMenu);
+    return () => document.removeEventListener('mousedown', closeContextMenu);
+  }, [closeContextMenu]);
+
+  // Handler para o menu contextual
+  const handleContextMenu = useCallback((e, lote) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Calcula a posição do menu
+    let x = e.clientX;
+    let y = e.clientY;
+    
+    // Ajusta a posição para não ultrapassar os limites da tela
+    const menuWidth = 144; // w-36 = 9rem = 144px
+    const menuHeight = 80; // altura aproximada do menu
+    
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth;
+    }
+    
+    if (y - menuHeight < 0) {
+      y = menuHeight;
+    }
+    
+    // Atualiza o estado do menu contextual
+    setContextMenu({
+      visible: true,
+      x,
+      y,
+      lote
+    });
+  }, []);
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
+        <div className="flex flex-col items-center gap-4">
+          <ArrowPathIcon className="w-8 h-8 text-blue-500 animate-spin" />
+          <span className="text-gray-600 dark:text-gray-400">Carregando...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Navbar mais compacta */}
-      <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 z-40">
-        <div className="flex items-center h-14"> {/* Reduzido de h-16 para h-14 */}
-          <div className="flex items-center gap-2 px-3"> {/* Reduzido padding */}
-            <button
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-            >
-              <Bars3Icon className="h-5 w-5" /> {/* Reduzido tamanho do ícone */}
-            </button>
-            <span className="text-base font-medium text-blue-600"> {/* Reduzido tamanho da fonte */}
-              Devolução
-            </span>
-          </div>
-
-          <div className="flex-1 flex items-center justify-end gap-3 px-3">
-            <Calculator />
-            <UserMenu user={user} onUserUpdate={setUser} />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header fixo no topo */}
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-[2000px] mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="flex justify-between items-center h-12">
+            <div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                Devolução de Materiais
+              </h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Busque materiais por código e gerencie devoluções
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Campo de busca no header */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Digite o código do material..."
+                    className="w-56 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
+                             focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                             placeholder-gray-500 dark:placeholder-gray-400
+                             text-xs font-medium"
+                  />
+                  <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
+                <button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg 
+                           hover:from-blue-700 hover:to-blue-600
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-all duration-200 font-medium
+                           shadow-md hover:shadow-lg text-xs min-w-[60px] h-[30px]
+                           flex items-center justify-center gap-1.5"
+                >
+                  {loading ? (
+                    <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MagnifyingGlassIcon className="h-3.5 w-3.5" />
+                  )}
+                  <span>Buscar</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* Layout Principal - Ajustado padding top para navbar menor */}
-      <div className="flex pt-14">
-        <Sidebar
-          open={drawerOpen}
-          toggleDrawer={(state) => setDrawerOpen(state)}
-        />
-
-        {/* Conteúdo Principal - Espaçamentos reduzidos */}
-        <div className="flex-1 p-3 md:p-4">
-          {/* Cabeçalho da Página - Mais compacto */}
-          <div className="mb-4">
-            <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-1">
-              Devolução de Materiais
-            </h2>
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Busque materiais por código e gerencie devoluções
-            </p>
-          </div>
-
-          {/* Layout em duas colunas - Gaps reduzidos */}
-          <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
-            {/* Coluna Esquerda - Mais compacta */}
-            <div className="w-full lg:w-1/3 space-y-3">
-              {/* Card de Pesquisa */}
+      {/* Conteúdo Principal com largura máxima e padding consistente */}
+      <div className="max-w-[2000px] mx-auto px-3 sm:px-4 lg:px-6 py-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Coluna Esquerda - Informações e Itens para Devolução */}
+          <div className="lg:w-[400px] shrink-0 space-y-4">
+            {/* Card de Informações do Material */}
+            {materialInfo && (
               <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
-                <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400 mb-3">
-                  Buscar Material
+                <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                  Informações do Material
                 </h3>
-                <div className="flex flex-col gap-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Digite o código do material..."
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
-                               bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
-                               focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                               placeholder-gray-500 dark:placeholder-gray-400
-                               text-sm font-medium"
-                    />
-                    <MagnifyingGlassIcon className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Código</label>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                      {materialInfo.codigo_materia_prima}
+                    </p>
                   </div>
-                  <button
-                    onClick={handleSearch}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg 
-                             hover:from-blue-700 hover:to-blue-600
-                             disabled:opacity-50 flex items-center gap-2
-                             transition-all duration-200 justify-center font-medium
-                             shadow-md hover:shadow-lg text-sm"
-                  >
-                    {loading ? (
-                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MagnifyingGlassIcon className="h-4 w-4" />
-                    )}
-                    <span>Buscar</span>
-                  </button>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Descrição</label>
+                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                      {materialInfo.nome_materia_prima}
+                    </p>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Informações do Material - Mais compacto */}
-              {materialInfo && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
-                  <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400 mb-3">
-                    Informações do Material
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Código</label>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {materialInfo.codigo_materia_prima}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Descrição</label>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {materialInfo.nome_materia_prima}
-                      </p>
-                    </div>
+            {/* Tabela de Itens para Devolução */}
+            <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+              <div className="p-2.5 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      Itens para Devolução
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {devolucaoItems.length} {devolucaoItems.length === 1 ? 'item' : 'itens'} na lista
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleCopyDevolucaoTable}
+                      className="flex items-center gap-1 px-2 py-1 text-xs
+                               text-gray-700 dark:text-gray-300 
+                               bg-white dark:bg-gray-700/50 
+                               border border-gray-200 dark:border-gray-600
+                               rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 
+                               transition-all duration-200 font-medium"
+                      disabled={!devolucaoItems.length}
+                    >
+                      {copyDevolucaoSuccess ? (
+                        <>
+                          <CheckIcon className="h-3 w-3 text-green-500" />
+                          <span>Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardDocumentIcon className="h-3 w-3" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleClearTable}
+                      className="flex items-center gap-1 px-2 py-1 text-xs
+                               text-red-600 dark:text-red-400 
+                               hover:bg-red-50 dark:hover:bg-red-900/30 
+                               rounded transition-all duration-200
+                               border border-red-200 dark:border-red-800
+                               font-medium"
+                    >
+                      <TrashIcon className="h-3 w-3" />
+                      <span>Limpar</span>
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Coluna Direita - Tabelas mais compactas */}
-            <div className="flex-1">
-              {/* Resultados da Busca */}
-              {materialData && (
-                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-3">
-                  <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400">
-                          Lotes Disponíveis
-                        </h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                          Clique em um lote para adicionar à devolução
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleCopyTable}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs
-                                 text-gray-700 dark:text-gray-300 
-                                 bg-white dark:bg-gray-700/50 
-                                 border border-gray-200 dark:border-gray-600
-                                 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
-                                 transition-all duration-200 font-medium"
-                      >
-                        {copySuccess ? (
-                          <>
-                            <CheckIcon className="h-3.5 w-3.5 text-green-500" />
-                            <span>Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <ClipboardDocumentIcon className="h-3.5 w-3.5" />
-                            <span>Copiar Tabela</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-800/50">
-                        <tr>
-                          <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Lote
-                          </th>
-                          <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Quantidade
-                          </th>
-                          <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Tipo
-                          </th>
-                          <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Data Validade
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-gray-900/20 divide-y divide-gray-200 dark:divide-gray-700">
-                        {materialData.map((lote) => (
-                          <tr
-                            key={lote.lote}
-                            className="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors duration-200"
-                            onClick={(e) => handleLoteClick(e, lote)}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800/50">
+                    <tr>
+                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Material</th>
+                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lote</th>
+                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qtd</th>
+                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vol</th>
+                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pal</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900/20 divide-y divide-gray-200 dark:divide-gray-700">
+                    {devolucaoItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200">
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                          {item.material}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
+                          {item.lote}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
+                          <input
+                            type="text"
+                            value={formatNumberBR(item.quantidade)}
+                            onChange={(e) => {
+                              const value = parseBRNumber(e.target.value);
+                              if (!isNaN(value)) {
+                                handleUpdateItem(item.id, 'quantidade', value);
+                              }
+                            }}
+                            className="w-16 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                     rounded bg-white dark:bg-gray-800 
+                                     text-gray-900 dark:text-gray-100
+                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                                     text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
+                          <input
+                            type="text"
+                            value={item.volume}
+                            onChange={(e) => handleUpdateItem(item.id, 'volume', e.target.value)}
+                            className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                     rounded bg-white dark:bg-gray-800 
+                                     text-gray-900 dark:text-gray-100
+                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                                     text-xs"
+                            placeholder="1"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
+                          <input
+                            type="text"
+                            value={item.pallet}
+                            onChange={(e) => handleUpdateItem(item.id, 'pallet', e.target.value)}
+                            className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                     rounded bg-white dark:bg-gray-800 
+                                     text-gray-900 dark:text-gray-100
+                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                                     text-xs"
+                            placeholder="1"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-center w-8">
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300
+                                     transition-colors duration-200 p-0.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30"
                           >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                              {lote.lote}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-900 dark:text-gray-100">
-                                  {formatNumberBR(lote.qtd_materia_prima)} {lote.unidade_medida}
-                                </span>
-                                {lotesRestantes[lote.lote] && lotesRestantes[lote.lote].restante !== lote.qtd_materia_prima && (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
-                                    (Restante: {formatNumberBR(lotesRestantes[lote.lote].restante)} {lote.unidade_medida})
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                              {lote.tipo_estoque || '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                              {new Date(lote.data_validade).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                            <TrashIcon className="h-3 w-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-              {/* Tabela de Devolução - Mais compacta */}
+          {/* Coluna Direita - Tabela de Lotes Disponíveis */}
+          <div className="flex-1">
+            {materialData && (
               <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
                 <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-base font-semibold text-blue-600 dark:text-blue-400">
-                        Itens para Devolução
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                        {devolucaoItems.length} {devolucaoItems.length === 1 ? 'item' : 'itens'} na lista
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          Lotes Disponíveis
+                        </h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {materialData.length} {materialData.length === 1 ? 'lote encontrado' : 'lotes encontrados'}
+                        </p>
+                      </div>
+                      {/* Barra de busca para a tabela */}
+                      <div className="relative w-56">
+                        <input
+                          type="text"
+                          value={tableFilter}
+                          onChange={(e) => setTableFilter(e.target.value)}
+                          placeholder="Buscar lotes..."
+                          className="w-full px-2.5 py-1.5 pl-8 rounded-lg border border-gray-300 dark:border-gray-600 
+                                   bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
+                                   focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                                   placeholder-gray-500 dark:placeholder-gray-400
+                                   text-xs font-medium"
+                        />
+                        <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleCopyDevolucaoTable}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm 
-                                 text-gray-700 dark:text-gray-300 
-                                 bg-white dark:bg-gray-700/50 
-                                 border border-gray-200 dark:border-gray-600
-                                 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
-                                 transition-all duration-200 font-medium shadow-sm hover:shadow"
-                        disabled={!devolucaoItems.length}
-                      >
-                        {copyDevolucaoSuccess ? (
-                          <>
-                            <CheckIcon className="h-4 w-4 text-green-500" />
-                            <span>Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <ClipboardDocumentIcon className="h-4 w-4" />
-                            <span>Copiar Tabela</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={handleClearTable}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm 
-                                 text-red-600 dark:text-red-400 
-                                 hover:bg-red-50 dark:hover:bg-red-900/30 
-                                 rounded-lg transition-all duration-200
-                                 border border-red-200 dark:border-red-800
-                                 font-medium shadow-sm hover:shadow"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        <span>Limpar Lista</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleCopyTable}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs
+                               text-gray-700 dark:text-gray-300 
+                               bg-white dark:bg-gray-700/50 
+                               border border-gray-200 dark:border-gray-600
+                               rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
+                               transition-all duration-200 font-medium"
+                    >
+                      {copySuccess ? (
+                        <>
+                          <CheckIcon className="h-3 w-3 text-green-500" />
+                          <span>Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardDocumentIcon className="h-3 w-3" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-800/50">
                       <tr>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Material</th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lote</th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantidade</th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">UM</th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Volume</th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pallet</th>
-                        <th className="px-6 py-3.5 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
+                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Lote
+                        </th>
+                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Quantidade
+                        </th>
+                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Data Validade
+                        </th>
+                        <th className="px-6 py-3.5 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Ações
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-900/20 divide-y divide-gray-200 dark:divide-gray-700">
-                      {devolucaoItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {item.material}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            {item.lote}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <input
-                              type="text"
-                              value={formatNumberBR(item.quantidade)}
-                              onChange={(e) => {
-                                const value = parseBRNumber(e.target.value);
-                                if (!isNaN(value)) {
-                                  handleUpdateItem(item.id, 'quantidade', value);
-                                }
-                              }}
-                              className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 
-                                       rounded bg-white dark:bg-gray-800 
-                                       text-gray-900 dark:text-gray-100
-                                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm"></td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <input
-                              type="text"
-                              value={item.volume}
-                              onChange={(e) => handleUpdateItem(item.id, 'volume', e.target.value)}
-                              className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 
-                                       rounded bg-white dark:bg-gray-800 
-                                       text-gray-900 dark:text-gray-100
-                                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                              placeholder="1"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <input
-                              type="text"
-                              value={item.pallet}
-                              onChange={(e) => handleUpdateItem(item.id, 'pallet', e.target.value)}
-                              className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 
-                                       rounded bg-white dark:bg-gray-800 
-                                       text-gray-900 dark:text-gray-100
-                                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                              placeholder="1"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300
-                                       transition-colors duration-200"
+                      {materialData
+                        .filter(lote => 
+                          tableFilter === "" || 
+                          lote.lote.toLowerCase().includes(tableFilter.toLowerCase()) ||
+                          (lote.tipo_estoque && lote.tipo_estoque.toLowerCase().includes(tableFilter.toLowerCase())) ||
+                          new Date(lote.data_validade).toLocaleDateString().includes(tableFilter)
+                        )
+                        .map((lote) => {
+                          const restante = lotesRestantes[lote.lote]?.restante ?? lote.qtd_materia_prima;
+                          const podeDevolver = restante > 0;
+                          
+                          return (
+                            <tr
+                              key={lote.lote}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 cursor-pointer"
+                              onClick={(e) => podeDevolver && handleContextMenu(e, lote)}
                             >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
+                                {lote.lote}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-900 dark:text-gray-100">
+                                    {formatNumberBR(lote.qtd_materia_prima)} {lote.unidade_medida}
+                                  </span>
+                                  {lotesRestantes[lote.lote] && lotesRestantes[lote.lote].restante !== lote.qtd_materia_prima && (
+                                    <span className="text-green-600 dark:text-green-400 font-medium">
+                                      (Restante: {formatNumberBR(lotesRestantes[lote.lote].restante)} {lote.unidade_medida})
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {lote.tipo_estoque || '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {new Date(lote.data_validade).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                {!podeDevolver && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    Sem quantidade disponível
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Menu Contextual */}
-      {contextMenu.visible && (
+      {contextMenu.visible && contextMenu.lote && (
         <div
-          className="fixed bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 
-                   rounded-lg py-2 z-50 border border-gray-200 dark:border-gray-700"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 w-52 context-menu"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+            transform: 'translate(0, -100%)',
+          }}
+          onClick={e => e.stopPropagation()}
         >
-          {(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima) > 0 ? (
-            <>
-              <button
-                className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
-                         hover:bg-gray-100 dark:hover:bg-gray-700/50
-                         transition-colors duration-200"
-                onClick={() => handleAddDevolucaoItem(contextMenu.loteData)}
-              >
-                Devolver Lote Restante ({formatNumberBR(lotesRestantes[contextMenu.loteData?.lote]?.restante ?? contextMenu.loteData?.qtd_materia_prima)})
-              </button>
-              <button
-                className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 
-                         hover:bg-gray-100 dark:hover:bg-gray-700/50
-                         transition-colors duration-200"
-                onClick={() => {
-                  setSelectedLote(contextMenu.loteData);
-                  setShowQuantidadeModal(true);
-                  handleCloseContextMenu();
-                }}
-              >
-                Devolver Parcial
-              </button>
-            </>
-          ) : (
-            <div className="px-4 py-2 text-gray-500 dark:text-gray-400">
-              Lote já devolvido completamente
+          {/* Cabeçalho com informações do lote */}
+          <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
+            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+              Lote: {contextMenu.lote.lote}
             </div>
-          )}
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-[11px] text-gray-600 dark:text-gray-400">
+                Total: {formatNumberBR(contextMenu.lote.qtd_materia_prima)} {contextMenu.lote.unidade_medida}
+              </span>
+              {lotesRestantes[contextMenu.lote.lote] && (
+                <span className="text-[11px] font-medium text-green-600 dark:text-green-400">
+                  Restante: {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Botões de ação */}
+          <div className="py-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Usa a quantidade restante se houver devolução parcial, senão usa a quantidade total
+                const quantidadeTotal = lotesRestantes[contextMenu.lote.lote]
+                  ? lotesRestantes[contextMenu.lote.lote].restante
+                  : contextMenu.lote.qtd_materia_prima;
+                handleAddDevolucaoItem(contextMenu.lote, parseFloat(quantidadeTotal));
+                closeContextMenu();
+              }}
+              className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
+                       text-gray-700 dark:text-gray-200 font-medium
+                       transition-colors duration-200 flex items-center gap-2"
+            >
+              <ArrowDownTrayIcon className="h-3.5 w-3.5" />
+              <div>
+                <div>Devolver Total</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {lotesRestantes[contextMenu.lote.lote] 
+                    ? `${formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} ${contextMenu.lote.unidade_medida}`
+                    : `${formatNumberBR(contextMenu.lote.qtd_materia_prima)} ${contextMenu.lote.unidade_medida}`
+                  }
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedLote(contextMenu.lote);
+                setShowQuantidadeModal(true);
+                closeContextMenu();
+              }}
+              className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
+                       text-gray-700 dark:text-gray-200 font-medium
+                       transition-colors duration-200 flex items-center gap-2"
+            >
+              <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" />
+              <div>
+                <div>Devolver Parcial</div>
+                {lotesRestantes[contextMenu.lote.lote] && (
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Até {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
         </div>
       )}
 
       {/* Modal de Quantidade */}
-      {showQuantidadeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-xl dark:shadow-gray-900/30">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              Quantidade para Devolução
-            </h3>
-            <div className="mb-4">
-              <input
-                type="text"
-                value={quantidadeDevolver}
-                onChange={(e) => {
-                  // Permite apenas números, vírgula e ponto
-                  const value = e.target.value.replace(/[^\d.,]/g, '');
-                  // Garante apenas uma vírgula ou ponto
-                  if ((value.match(/[.,]/g) || []).length <= 1) {
-                    setQuantidadeDevolver(value);
-                  }
-                }}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const value = parseBRNumber(quantidadeDevolver);
-                    if (!isNaN(value) && value > 0 && value <= (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)) {
-                      handleAddDevolucaoItem(selectedLote, value);
-                    }
-                  }
-                }}
-                placeholder="Digite a quantidade..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
-                         rounded-lg bg-white dark:bg-gray-800 
-                         text-gray-900 dark:text-gray-100
-                         focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                         mb-2"
-                max={selectedLote?.qtd_materia_prima}
-              />
-              {selectedLote && (
-                <div className="text-sm text-green-600 dark:text-green-400">
-                  Quantidade disponível: {
-                    formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)
-                  } {selectedLote.unidade_medida}
-                </div>
-              )}
+      {showQuantidadeModal && selectedLote && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Quantidade para Devolução
+              </h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Lote: {selectedLote.lote}
+              </p>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Quantidade Disponível
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-gray-100">
+                    {formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)} {selectedLote.unidade_medida}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="quantidade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Quantidade para Devolver
+                  </label>
+                  <input
+                    type="number"
+                    id="quantidade"
+                    value={quantidadeDevolver}
+                    onChange={(e) => setQuantidadeDevolver(e.target.value)}
+                    onKeyPress={handleQuantidadeKeyPress}
+                    placeholder="Digite a quantidade..."
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
+                             focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                             placeholder-gray-500 dark:placeholder-gray-400
+                             text-sm"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowQuantidadeModal(false);
+                  setSelectedLote(null);
                   setQuantidadeDevolver("");
                 }}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 
-                         hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+                         bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
+                         rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700
                          transition-colors duration-200"
               >
                 Cancelar
               </button>
               <button
-                onClick={() => {
-                  const value = parseBRNumber(quantidadeDevolver);
-                  handleAddDevolucaoItem(selectedLote, value);
-                }}
-                className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
-                         hover:bg-blue-700 dark:hover:bg-blue-600
-                         disabled:opacity-50 transition-colors duration-200"
-                disabled={
-                  !quantidadeDevolver || 
-                  isNaN(parseBRNumber(quantidadeDevolver)) || 
-                  parseBRNumber(quantidadeDevolver) <= 0 || 
-                  parseBRNumber(quantidadeDevolver) > (lotesRestantes[selectedLote?.lote]?.restante ?? selectedLote?.qtd_materia_prima)
-                }
+                onClick={handleConfirmQuantidade}
+                disabled={!quantidadeDevolver}
+                className="px-4 py-2 text-sm font-medium text-white
+                         bg-blue-600 rounded-lg hover:bg-blue-700
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-colors duration-200"
               >
                 Confirmar
               </button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Overlay para fechar menu contextual */}
-      {contextMenu.visible && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={handleCloseContextMenu}
-        />
       )}
     </div>
   );
