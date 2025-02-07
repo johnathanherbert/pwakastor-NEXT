@@ -10,6 +10,8 @@ import {
   TrashIcon,
   PlusIcon,
   ClipboardDocumentIcon,
+  ArrowDownTrayIcon,
+  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
 import Topbar from "../../components/Topbar";
@@ -44,6 +46,8 @@ const Devolucao = () => {
   const [materiaisNaArea, setMateriaisNaArea] = useState({});
   const [inputValues, setInputValues] = useState({});
   const [filtroAtivo, setFiltroAtivo] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [lotesSort, setLotesSort] = useState({ key: 'data_validade', direction: 'asc' });
 
   // Adicione este estado para controlar os valores restantes
   const [lotesRestantes, setLotesRestantes] = useState({});
@@ -79,6 +83,76 @@ const Devolucao = () => {
   const parseBRNumber = (string) => {
     if (!string) return 0;
     return Number(string.replace(/\./g, '').replace(',', '.'));
+  };
+
+  // Função para ordenar itens
+  const sortItems = useCallback((items) => {
+    if (!sortConfig.key) return items;
+
+    return [...items].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      // Handle numeric sorting for quantidade
+      if (sortConfig.key === 'quantidade') {
+        return sortConfig.direction === 'asc' 
+          ? parseFloat(aValue) - parseFloat(bValue)
+          : parseFloat(bValue) - parseFloat(aValue);
+      }
+      
+      // String comparison for other fields
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [sortConfig]);
+
+  // Função para alterar a ordenação
+  const requestSort = useCallback((key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  }, [sortConfig]);
+
+  // Função para ordenar lotes
+  const sortLotes = useCallback((lotes) => {
+    if (!lotes) return [];
+    
+    return [...lotes].sort((a, b) => {
+      const aValue = lotesSort.key === 'qtd_materia_prima' ? 
+        parseFloat(a[lotesSort.key]) : 
+        lotesSort.key === 'data_validade' ? 
+          new Date(a[lotesSort.key]) : 
+          a[lotesSort.key];
+          
+      const bValue = lotesSort.key === 'qtd_materia_prima' ? 
+        parseFloat(b[lotesSort.key]) : 
+        lotesSort.key === 'data_validade' ? 
+          new Date(b[lotesSort.key]) : 
+          b[lotesSort.key];
+
+      if (aValue < bValue) {
+        return lotesSort.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return lotesSort.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [lotesSort]);
+
+  // Função para alterar ordenação dos lotes
+  const handleLotesSort = (key) => {
+    setLotesSort(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
   };
 
   // Efeito para carregar os dados do material quando houver searchTerm
@@ -565,6 +639,36 @@ const Devolucao = () => {
     });
   }, []);
 
+  // Função para calcular a cor baseada no valor usando escala logarítmica
+  const getColorForValue = useCallback((value, data) => {
+    if (!data || data.length === 0) return '';
+    
+    // Encontra o menor e maior valor
+    const values = data.map(item => parseFloat(item.qtd_materia_prima));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    
+    // Se min e max forem iguais, retorna amarelo
+    if (min === max) return 'bg-yellow-50 dark:bg-yellow-900/20';
+    
+    // Usa escala logarítmica para lidar melhor com grandes variações
+    const logValue = Math.log(value + 1); // +1 para evitar log(0)
+    const logMin = Math.log(min + 1);
+    const logMax = Math.log(max + 1);
+    
+    // Calcula a posição do valor atual na escala logarítmica (0 a 1)
+    const position = (logValue - logMin) / (logMax - logMin);
+    
+    // Define as cores para diferentes faixas com limites ajustados
+    if (position < 0.25) {
+      return 'bg-red-50 dark:bg-red-900/20';
+    } else if (position < 0.75) {
+      return 'bg-yellow-50 dark:bg-yellow-900/20';
+    } else {
+      return 'bg-green-50 dark:bg-green-900/20';
+    }
+  }, []);
+
   // Loading state
   if (isLoading) {
     return (
@@ -591,294 +695,354 @@ const Devolucao = () => {
         onKeyPress={handleKeyPress}
       />
 
-      {/* Conteúdo Principal com largura máxima e padding consistente */}
-      <div className="max-w-[2000px] mx-auto px-3 sm:px-4 lg:px-6 py-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Coluna Esquerda - Informações e Itens para Devolução */}
-          <div className="lg:w-[400px] shrink-0 space-y-4">
-            {/* Card de Informações do Material */}
-            {materialInfo && (
-              <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
-                <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">
-                  Informações do Material
-                </h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Código</label>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      {materialInfo.codigo_materia_prima}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Descrição</label>
-                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                      {materialInfo.nome_materia_prima}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tabela de Itens para Devolução */}
-            <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
-              <div className="p-2.5 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                      Itens para Devolução
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {devolucaoItems.length} {devolucaoItems.length === 1 ? 'item' : 'itens'} na lista
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={handleCopyDevolucaoTable}
-                      className="flex items-center gap-1 px-2 py-1 text-xs
-                               text-gray-700 dark:text-gray-300 
-                               bg-white dark:bg-gray-700/50 
-                               border border-gray-200 dark:border-gray-600
-                               rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 
-                               transition-all duration-200 font-medium"
-                      disabled={!devolucaoItems.length}
-                    >
-                      {copyDevolucaoSuccess ? (
-                        <>
-                          <CheckIcon className="h-3 w-3 text-green-500" />
-                          <span>Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <ClipboardDocumentIcon className="h-3 w-3" />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleClearTable}
-                      className="flex items-center gap-1 px-2 py-1 text-xs
-                               text-red-600 dark:text-red-400 
-                               hover:bg-red-50 dark:hover:bg-red-900/30 
-                               rounded transition-all duration-200
-                               border border-red-200 dark:border-red-800
-                               font-medium"
-                    >
-                      <TrashIcon className="h-3 w-3" />
-                      <span>Limpar</span>
-                    </button>
+      {/* Conteúdo Principal */}
+      <div className="pt-32 px-6">
+        <div className="max-w-[2000px] mx-auto">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Coluna Esquerda - Informações e Itens para Devolução */}
+            <div className="lg:w-[400px] shrink-0 space-y-4">
+              {/* Card de Informações do Material */}
+              {materialInfo && (
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
+                  <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                    Informações do Material
+                  </h3>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Código</label>
+                      <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                        {materialInfo.codigo_materia_prima}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Descrição</label>
+                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                        {materialInfo.nome_materia_prima}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800/50">
-                    <tr>
-                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Material</th>
-                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lote</th>
-                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qtd</th>
-                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vol</th>
-                      <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pal</th>
-                      <th className="w-8"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900/20 divide-y divide-gray-200 dark:divide-gray-700">
-                    {devolucaoItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200">
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
-                          {item.material}
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
-                          {item.lote}
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
-                          <input
-                            type="text"
-                            value={formatNumberBR(item.quantidade)}
-                            onChange={(e) => {
-                              const value = parseBRNumber(e.target.value);
-                              if (!isNaN(value)) {
-                                handleUpdateItem(item.id, 'quantidade', value);
-                              }
-                            }}
-                            className="w-16 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
-                                     rounded bg-white dark:bg-gray-800 
-                                     text-gray-900 dark:text-gray-100
-                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                                     text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
-                          <input
-                            type="text"
-                            value={item.volume}
-                            onChange={(e) => handleUpdateItem(item.id, 'volume', e.target.value)}
-                            className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
-                                     rounded bg-white dark:bg-gray-800 
-                                     text-gray-900 dark:text-gray-100
-                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                                     text-xs"
-                            placeholder="1"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs">
-                          <input
-                            type="text"
-                            value={item.pallet}
-                            onChange={(e) => handleUpdateItem(item.id, 'pallet', e.target.value)}
-                            className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
-                                     rounded bg-white dark:bg-gray-800 
-                                     text-gray-900 dark:text-gray-100
-                                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                                     text-xs"
-                            placeholder="1"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-center w-8">
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300
-                                     transition-colors duration-200 p-0.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30"
-                          >
-                            <TrashIcon className="h-3 w-3" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+              )}
 
-          {/* Coluna Direita - Tabela de Lotes Disponíveis */}
-          <div className="flex-1">
-            {materialData && (
+              {/* Tabela de Itens para Devolução */}
               <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
-                <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                <div className="p-2.5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          Lotes Disponíveis
+                          Itens para Devolução
                         </h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {materialData.length} {materialData.length === 1 ? 'lote encontrado' : 'lotes encontrados'}
+                          {devolucaoItems.length} {devolucaoItems.length === 1 ? 'item' : 'itens'} na lista
                         </p>
                       </div>
-                      {/* Barra de busca para a tabela */}
-                      <div className="relative w-56">
-                        <input
-                          type="text"
-                          value={tableFilter}
-                          onChange={(e) => setTableFilter(e.target.value)}
-                          placeholder="Buscar lotes..."
-                          className="w-full px-2.5 py-1.5 pl-8 rounded-lg border border-gray-300 dark:border-gray-600 
-                                   bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
-                                   focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                                   placeholder-gray-500 dark:placeholder-gray-400
-                                   text-xs font-medium"
-                        />
-                        <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={handleCopyDevolucaoTable}
+                          className="flex items-center gap-1 px-2 py-1 text-xs
+                                   text-gray-700 dark:text-gray-300 
+                                   bg-white dark:bg-gray-700/50 
+                                   border border-gray-200 dark:border-gray-600
+                                   rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 
+                                   transition-all duration-200 font-medium"
+                          disabled={!devolucaoItems.length}
+                        >
+                          {copyDevolucaoSuccess ? (
+                            <>
+                              <CheckIcon className="h-3 w-3 text-green-500" />
+                              <span>Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardDocumentIcon className="h-3 w-3" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleClearTable}
+                          className="flex items-center gap-1 px-2 py-1 text-xs
+                                   text-red-600 dark:text-red-400 
+                                   hover:bg-red-50 dark:hover:bg-red-900/30 
+                                   rounded transition-all duration-200
+                                   border border-red-200 dark:border-red-800
+                                   font-medium"
+                        >
+                          <TrashIcon className="h-3 w-3" />
+                          <span>Limpar</span>
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={handleCopyTable}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs
-                               text-gray-700 dark:text-gray-300 
-                               bg-white dark:bg-gray-700/50 
-                               border border-gray-200 dark:border-gray-600
-                               rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
-                               transition-all duration-200 font-medium"
-                    >
-                      {copySuccess ? (
-                        <>
-                          <CheckIcon className="h-3 w-3 text-green-500" />
-                          <span>Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <ClipboardDocumentIcon className="h-3 w-3" />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
+                    
+                    {/* Quick Filters */}
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">Filtros rápidos:</span>
+                      <button
+                        onClick={() => requestSort('lote')}
+                        className={`px-2 py-0.5 rounded-full transition-colors duration-200
+                                  ${sortConfig.key === 'lote' ? 
+                                    'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 
+                                    'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600/50'}`}
+                      >
+                        Lote {sortConfig.key === 'lote' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </button>
+                      <button
+                        onClick={() => requestSort('quantidade')}
+                        className={`px-2 py-0.5 rounded-full transition-colors duration-200
+                                  ${sortConfig.key === 'quantidade' ? 
+                                    'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 
+                                    'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600/50'}`}
+                      >
+                        Quantidade {sortConfig.key === 'quantidade' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800/50">
-                      <tr>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Lote
-                        </th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Quantidade
-                        </th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Tipo
-                        </th>
-                        <th className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Data Validade
-                        </th>
-                        <th className="px-6 py-3.5 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-900/20 divide-y divide-gray-200 dark:divide-gray-700">
-                      {materialData
-                        .filter(lote => 
-                          tableFilter === "" || 
-                          lote.lote.toLowerCase().includes(tableFilter.toLowerCase()) ||
-                          (lote.tipo_estoque && lote.tipo_estoque.toLowerCase().includes(tableFilter.toLowerCase())) ||
-                          new Date(lote.data_validade).toLocaleDateString().includes(tableFilter)
-                        )
-                        .map((lote) => {
-                          const restante = lotesRestantes[lote.lote]?.restante ?? lote.qtd_materia_prima;
-                          const podeDevolver = restante > 0;
-                          
-                          return (
-                            <tr
-                              key={lote.lote}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 cursor-pointer"
-                              onClick={(e) => podeDevolver && handleContextMenu(e, lote)}
-                            >
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                                {lote.lote}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-gray-900 dark:text-gray-100">
-                                    {formatNumberBR(lote.qtd_materia_prima)} {lote.unidade_medida}
-                                  </span>
-                                  {lotesRestantes[lote.lote] && lotesRestantes[lote.lote].restante !== lote.qtd_materia_prima && (
-                                    <span className="text-green-600 dark:text-green-400 font-medium">
-                                      (Restante: {formatNumberBR(lotesRestantes[lote.lote].restante)} {lote.unidade_medida})
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {lote.tipo_estoque || '-'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {new Date(lote.data_validade).toLocaleDateString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                {!podeDevolver && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    Sem quantidade disponível
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                
+                <div className="overflow-hidden">
+                  <div className="max-h-[calc(100vh-24rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Material</th>
+                          <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Lote</th>
+                          <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Qtd</th>
+                          <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Vol</th>
+                          <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Pal</th>
+                          <th className="w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-gray-700">
+                        {sortItems(devolucaoItems).map((item) => (
+                          <tr
+                            key={item.id}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-75"
+                          >
+                            <td className="px-2 py-1 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                              {item.material}
+                            </td>
+                            <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
+                              {item.lote}
+                            </td>
+                            <td className="px-2 py-1 whitespace-nowrap text-xs">
+                              <input
+                                type="text"
+                                value={formatNumberBR(item.quantidade)}
+                                onChange={(e) => {
+                                  const value = parseBRNumber(e.target.value);
+                                  if (!isNaN(value)) {
+                                    handleUpdateItem(item.id, 'quantidade', value);
+                                  }
+                                }}
+                                className="w-16 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                         rounded bg-white dark:bg-gray-800 
+                                         text-gray-900 dark:text-gray-100
+                                         focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400
+                                         text-xs"
+                              />
+                            </td>
+                            <td className="px-2 py-1 whitespace-nowrap text-xs">
+                              <input
+                                type="text"
+                                value={item.volume}
+                                onChange={(e) => handleUpdateItem(item.id, 'volume', e.target.value)}
+                                className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                         rounded bg-white dark:bg-gray-800 
+                                         text-gray-900 dark:text-gray-100
+                                         focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400
+                                         text-xs"
+                                placeholder="1"
+                              />
+                            </td>
+                            <td className="px-2 py-1 whitespace-nowrap text-xs">
+                              <input
+                                type="text"
+                                value={item.pallet}
+                                onChange={(e) => handleUpdateItem(item.id, 'pallet', e.target.value)}
+                                className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 
+                                         rounded bg-white dark:bg-gray-800 
+                                         text-gray-900 dark:text-gray-100
+                                         focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400
+                                         text-xs"
+                                placeholder="1"
+                              />
+                            </td>
+                            <td className="px-2 py-1 whitespace-nowrap text-xs text-center w-8">
+                              <button
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300
+                                         transition-colors duration-200 p-0.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30"
+                              >
+                                <TrashIcon className="h-3 w-3" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Coluna Direita - Tabela de Lotes Disponíveis */}
+            <div className="flex-1">
+              {materialData && (
+                <div className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="p-2.5 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                            Lotes Disponíveis
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {materialData.length} {materialData.length === 1 ? 'lote encontrado' : 'lotes encontrados'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleCopyTable}
+                          className="flex items-center gap-1 px-2 py-1 text-xs
+                                   text-gray-700 dark:text-gray-300 
+                                   bg-white dark:bg-gray-700/50 
+                                   border border-gray-200 dark:border-gray-600
+                                   rounded hover:bg-gray-50 dark:hover:bg-gray-600/50 
+                                   transition-all duration-200 font-medium"
+                        >
+                          {copySuccess ? (
+                            <>
+                              <CheckIcon className="h-3 w-3 text-green-500" />
+                              <span>Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardDocumentIcon className="h-3 w-3" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Quick Filters */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-gray-500 dark:text-gray-400">Ordenar por:</span>
+                          <button
+                            onClick={() => handleLotesSort('lote')}
+                            className={`px-2 py-0.5 rounded-full transition-colors duration-200
+                                      ${lotesSort.key === 'lote' ? 
+                                        'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 
+                                        'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600/50'}`}
+                          >
+                            Lote {lotesSort.key === 'lote' && (lotesSort.direction === 'asc' ? '↑' : '↓')}
+                          </button>
+                          <button
+                            onClick={() => handleLotesSort('qtd_materia_prima')}
+                            className={`px-2 py-0.5 rounded-full transition-colors duration-200
+                                      ${lotesSort.key === 'qtd_materia_prima' ? 
+                                        'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 
+                                        'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600/50'}`}
+                          >
+                            Quantidade {lotesSort.key === 'qtd_materia_prima' && (lotesSort.direction === 'asc' ? '↑' : '↓')}
+                          </button>
+                          <button
+                            onClick={() => handleLotesSort('data_validade')}
+                            className={`px-2 py-0.5 rounded-full transition-colors duration-200
+                                      ${lotesSort.key === 'data_validade' ? 
+                                        'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 
+                                        'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600/50'}`}
+                          >
+                            Validade {lotesSort.key === 'data_validade' && (lotesSort.direction === 'asc' ? '↑' : '↓')}
+                          </button>
+                        </div>
+                        
+                        {/* Barra de busca para a tabela */}
+                        <div className="relative w-56">
+                          <input
+                            type="text"
+                            value={tableFilter}
+                            onChange={(e) => setTableFilter(e.target.value)}
+                            placeholder="Buscar lotes..."
+                            className="w-full px-2 py-1 pl-7 rounded-full border border-gray-300 dark:border-gray-600 
+                                     bg-white dark:bg-gray-700/50 text-gray-900 dark:text-gray-100
+                                     focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400
+                                     placeholder-gray-500 dark:placeholder-gray-400
+                                     text-xs"
+                          />
+                          <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-hidden">
+                    <div className="max-h-[calc(100vh-24rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Lote</th>
+                            <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Quantidade</th>
+                            <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Tipo</th>
+                            <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Validade</th>
+                            <th className="w-8"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-gray-700">
+                          {sortLotes(materialData)
+                            .filter(lote => 
+                              tableFilter === "" || 
+                              lote.lote.toLowerCase().includes(tableFilter.toLowerCase()) ||
+                              (lote.tipo_estoque && lote.tipo_estoque.toLowerCase().includes(tableFilter.toLowerCase())) ||
+                              new Date(lote.data_validade).toLocaleDateString().includes(tableFilter)
+                            )
+                            .map((lote) => (
+                              <tr
+                                key={lote.lote}
+                                onContextMenu={(e) => handleContextMenu(e, lote)}
+                                onClick={(e) => {
+                                  if (e.target.tagName !== 'BUTTON') {
+                                    handleContextMenu(e, lote);
+                                  }
+                                }}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-75 cursor-pointer"
+                              >
+                                <td className="px-2 py-1 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                                  {lote.lote}
+                                </td>
+                                <td className={`px-2 py-1 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100 ${getColorForValue(parseFloat(lote.qtd_materia_prima), materialData)}`}>
+                                  {formatNumberBR(lote.qtd_materia_prima)}
+                                </td>
+                                <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                                  {lote.tipo_estoque || '-'}
+                                </td>
+                                <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
+                                  {new Date(lote.data_validade).toLocaleDateString()}
+                                </td>
+                                <td className="px-2 py-1 whitespace-nowrap text-xs text-center">
+                                  <div className="flex justify-end">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedLote(lote);
+                                        setShowQuantidadeModal(true);
+                                      }}
+                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300
+                                               transition-colors duration-200 p-0.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                    >
+                                      <PlusIcon className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
