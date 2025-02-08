@@ -12,6 +12,7 @@ import {
   ClipboardDocumentIcon,
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
+  ScaleIcon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
 import Topbar from "../../components/Topbar";
@@ -454,9 +455,11 @@ const Devolucao = () => {
     // Se quantidade não for especificada, usar o valor restante disponível
     const valorDisponivel = lotesRestantes[loteData.lote]?.restante ?? loteData.qtd_materia_prima;
     const quantidadeDevolver = quantidade || valorDisponivel;
+    const volumeInicial = "1";
     
-    // Validar se ainda há quantidade disponível
-    if (quantidadeDevolver <= 0 || quantidadeDevolver > valorDisponivel) {
+    // Validar se ainda há quantidade disponível (considerando volume)
+    const quantidadeTotal = quantidadeDevolver * parseFloat(volumeInicial);
+    if (quantidadeTotal <= 0 || quantidadeTotal > valorDisponivel) {
       setError("Quantidade indisponível para devolução");
       return;
     }
@@ -466,7 +469,7 @@ const Devolucao = () => {
       ...prev,
       [loteData.lote]: {
         original: loteData.qtd_materia_prima,
-        restante: (prev[loteData.lote]?.restante ?? loteData.qtd_materia_prima) - quantidadeDevolver
+        restante: (prev[loteData.lote]?.restante ?? loteData.qtd_materia_prima) - quantidadeTotal
       }
     }));
 
@@ -475,7 +478,7 @@ const Devolucao = () => {
       material: loteData.codigo_materia_prima,
       lote: loteData.lote,
       quantidade: quantidadeDevolver,
-      volume: "1",
+      volume: volumeInicial,
       pallet: "1"
     };
     
@@ -497,10 +500,11 @@ const Devolucao = () => {
       };
     });
 
-    // Subtrai as quantidades dos itens de devolução
+    // Subtrai as quantidades dos itens de devolução considerando o volume
     items.forEach(item => {
       if (newLotesRestantes[item.lote]) {
-        newLotesRestantes[item.lote].restante -= item.quantidade;
+        const quantidadeTotal = parseFloat(item.quantidade) * parseFloat(item.volume || 1);
+        newLotesRestantes[item.lote].restante -= quantidadeTotal;
       }
     });
 
@@ -522,15 +526,21 @@ const Devolucao = () => {
 
   // Função para atualizar item
   const handleUpdateItem = (id, field, value) => {
-    const newItems = devolucaoItems.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    );
+    const newItems = devolucaoItems.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        // Se o campo for volume ou quantidade, recalcula a quantidade total
+        if (field === 'volume' || field === 'quantidade') {
+          const baseQuantidade = field === 'quantidade' ? value : item.quantidade;
+          const volume = field === 'volume' ? value : item.volume;
+          updatedItem.quantidade = baseQuantidade;
+        }
+        return updatedItem;
+      }
+      return item;
+    });
     setDevolucaoItems(newItems);
-    
-    // Só atualiza os lotes restantes se o campo for quantidade
-    if (field === 'quantidade') {
-      updateLotesRestantes(newItems);
-    }
+    updateLotesRestantes(newItems);
   };
 
   // Adicione o useEffect para atualizar os lotes restantes quando materialData mudar
@@ -1017,7 +1027,15 @@ const Devolucao = () => {
                                   {lote.tipo_estoque || '-'}
                                 </td>
                                 <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
-                                  {new Date(lote.data_validade).toLocaleDateString()}
+                                  <div className="flex items-center gap-2">
+                                  <span>{new Date(lote.data_validade).toLocaleDateString()}</span>
+                                  {lotesRestantes[lote.lote] && lotesRestantes[lote.lote].restante !== lotesRestantes[lote.lote].total && (
+                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                    <ScaleIcon className="h-3 w-3" />
+                                    <span>Restante: {formatNumberBR(lotesRestantes[lote.lote].restante)} KG</span>
+                                    </div>
+                                  )}
+                                  </div>
                                 </td>
                                 <td className="px-2 py-1 whitespace-nowrap text-xs text-center">
                                   <div className="flex justify-end">
@@ -1047,85 +1065,85 @@ const Devolucao = () => {
         </div>
       </div>
 
-      {/* Menu Contextual */}
-      {contextMenu.visible && contextMenu.lote && (
+        {/* Menu Contextual */}
+        {contextMenu.visible && contextMenu.lote && (
         <div
-          className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 w-52 context-menu"
+          className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 w-64 context-menu"
           style={{
-            left: `${contextMenu.x}px`,
-            top: `${contextMenu.y}px`,
-            transform: 'translate(0, -100%)',
+          left: `${contextMenu.x}px`,
+          top: `${contextMenu.y}px`,
+          transform: 'translate(0, -100%)',
           }}
           onClick={e => e.stopPropagation()}
         >
           {/* Cabeçalho com informações do lote */}
-          <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
-            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
-              Lote: {contextMenu.lote.lote}
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-[11px] text-gray-600 dark:text-gray-400">
-                Total: {formatNumberBR(contextMenu.lote.qtd_materia_prima)} {contextMenu.lote.unidade_medida}
-              </span>
-              {lotesRestantes[contextMenu.lote.lote] && (
-                <span className="text-[11px] font-medium text-green-600 dark:text-green-400">
-                  Restante: {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
-                </span>
-              )}
-            </div>
+          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            Lote: {contextMenu.lote.lote}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+            Total: {formatNumberBR(contextMenu.lote.qtd_materia_prima)} {contextMenu.lote.unidade_medida}
+            </span>
+            {lotesRestantes[contextMenu.lote.lote] && (
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">
+              Restante: {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
+            </span>
+            )}
+          </div>
           </div>
           
           {/* Botões de ação */}
-          <div className="py-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Usa a quantidade restante se houver devolução parcial, senão usa a quantidade total
-                const quantidadeTotal = lotesRestantes[contextMenu.lote.lote]
-                  ? lotesRestantes[contextMenu.lote.lote].restante
-                  : contextMenu.lote.qtd_materia_prima;
-                handleAddDevolucaoItem(contextMenu.lote, parseFloat(quantidadeTotal));
-                closeContextMenu();
-              }}
-              className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
-                       text-gray-700 dark:text-gray-200 font-medium
-                       transition-colors duration-200 flex items-center gap-2"
-            >
-              <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-              <div>
-                <div>Devolver Total</div>
-                <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                  {lotesRestantes[contextMenu.lote.lote] 
-                    ? `${formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} ${contextMenu.lote.unidade_medida}`
-                    : `${formatNumberBR(contextMenu.lote.qtd_materia_prima)} ${contextMenu.lote.unidade_medida}`
-                  }
-                </div>
+          <div className="py-2">
+          <button
+            onClick={(e) => {
+            e.stopPropagation();
+            const quantidadeTotal = lotesRestantes[contextMenu.lote.lote]
+              ? lotesRestantes[contextMenu.lote.lote].restante
+              : contextMenu.lote.qtd_materia_prima;
+            handleAddDevolucaoItem(contextMenu.lote, parseFloat(quantidadeTotal));
+            closeContextMenu();
+            }}
+            className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
+                 text-gray-700 dark:text-gray-200 font-medium
+                 transition-colors duration-200 flex items-center gap-2"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            <div>
+            <div>Devolver Total</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {lotesRestantes[contextMenu.lote.lote] 
+              ? `${formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} ${contextMenu.lote.unidade_medida}`
+              : `${formatNumberBR(contextMenu.lote.qtd_materia_prima)} ${contextMenu.lote.unidade_medida}`
+              }
+            </div>
+            </div>
+          </button>
+          <button
+            onClick={(e) => {
+            e.stopPropagation();
+            setSelectedLote(contextMenu.lote);
+            setShowQuantidadeModal(true);
+            closeContextMenu();
+            }}
+            className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
+                 text-gray-700 dark:text-gray-200 font-medium
+                 transition-colors duration-200 flex items-center gap-2"
+          >
+            <AdjustmentsHorizontalIcon className="h-4 w-4" />
+            <div>
+            <div>Devolver Parcial</div>
+            {lotesRestantes[contextMenu.lote.lote] && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+              Até {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
               </div>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedLote(contextMenu.lote);
-                setShowQuantidadeModal(true);
-                closeContextMenu();
-              }}
-              className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700/50
-                       text-gray-700 dark:text-gray-200 font-medium
-                       transition-colors duration-200 flex items-center gap-2"
-            >
-              <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" />
-              <div>
-                <div>Devolver Parcial</div>
-                {lotesRestantes[contextMenu.lote.lote] && (
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Até {formatNumberBR(lotesRestantes[contextMenu.lote.lote].restante)} {contextMenu.lote.unidade_medida}
-                  </div>
-                )}
-              </div>
-            </button>
+            )}
+            </div>
+          </button>
           </div>
         </div>
-      )}
+        )}
+
 
       {/* Modal de Quantidade */}
       {showQuantidadeModal && selectedLote && (
