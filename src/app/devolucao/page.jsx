@@ -13,12 +13,16 @@ import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
   ScaleIcon,
+  CloudArrowUpIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
 import Topbar from "../../components/Topbar";
 import SearchBar from "../../components/SearchBar";
 import { useRouter } from 'next/navigation';
 import Calculator from '@/components/Calculator';
+import ExcelUploader from '@/components/ExcelUploader';
+import Sap from "../../components/Sap";
 
 const Devolucao = () => {
   const router = useRouter();
@@ -37,6 +41,17 @@ const Devolucao = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyDevolucaoSuccess, setCopyDevolucaoSuccess] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [sapDialogOpen, setSapDialogOpen] = useState(false);
+
+  const handleOpenSapDialog = () => {
+    setSapDialogOpen(true);
+  };
+
+  const handleCloseSapDialog = () => {
+    setSapDialogOpen(false);
+    setDrawerOpen(false); // Close sidebar when SAP dialog closes
+  };
 
   // Estados principais
   const [user, setUser] = useState(null);
@@ -450,6 +465,19 @@ const Devolucao = () => {
     }
   };
 
+  const handleOpenUploadDialog = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseUploadDialog = () => {
+    setOpenDialog(false);
+    setDrawerOpen(false); // Close sidebar when upload dialog closes
+  };
+
+  const handleDataUpdated = () => {
+    handleSearch();
+  };
+
   // Funções de manipulação da tabela de devolução
   const handleAddDevolucaoItem = (loteData, quantidade = null) => {
     // Se quantidade não for especificada, usar o valor restante disponível
@@ -606,6 +634,48 @@ const Devolucao = () => {
     }
   };
 
+  // Função para atualizar todos os valores do SAP
+  const handleUpdateAllSAPValues = async () => {
+    if (!user || !materialData || !materialInfo) return;
+
+    setLoading(true);
+    try {
+      const { data: sapData, error } = await supabase
+        .from("materials_database")
+        .select("*")
+        .eq("codigo_materia_prima", materialInfo.codigo_materia_prima);
+
+      if (error) throw error;
+
+      if (sapData && sapData.length > 0) {
+        setMaterialData(sapData);
+        // Recalcular os lotes restantes com os dados atualizados
+        const newLotesRestantes = {};
+        sapData.forEach((lote) => {
+          newLotesRestantes[lote.lote] = {
+            total: parseFloat(lote.qtd_materia_prima),
+            restante: parseFloat(lote.qtd_materia_prima)
+          };
+        });
+
+        // Atualizar as quantidades restantes baseado nos itens de devolução
+        devolucaoItems.forEach((item) => {
+          if (newLotesRestantes[item.lote]) {
+            const quantidadeTotal = parseFloat(item.quantidade) * parseFloat(item.volume || 1);
+            newLotesRestantes[item.lote].restante -= quantidadeTotal;
+          }
+        });
+
+        setLotesRestantes(newLotesRestantes);
+      }
+      console.log("Dados do SAP atualizados com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar dados do SAP:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Função para fechar o menu contextual
   const closeContextMenu = useCallback((e) => {
     // Não fechar se o clique foi dentro do menu
@@ -693,8 +763,17 @@ const Devolucao = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Topbar */}
-      <Topbar user={user} darkMode={false} setDarkMode={() => {}} />
+        <Topbar 
+          user={user}
+          drawerOpen={drawerOpen} 
+          setDrawerOpen={setDrawerOpen}
+          openDialog={openDialog}
+          setOpenDialog={setOpenDialog}
+          handleDataUpdated={handleDataUpdated}
+        />
+
+
+
 
       {/* SearchBar */}
       <SearchBar
@@ -1213,11 +1292,21 @@ const Devolucao = () => {
                 Confirmar
               </button>
             </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+          )}
 
-export default Devolucao;
+
+
+
+            {/* Sap Modal */}
+            <Sap
+              open={sapDialogOpen}
+              onClose={() => setSapDialogOpen(false)}
+              user={user}
+            />
+            </div>
+            );
+          };
+
+          export default Devolucao;
