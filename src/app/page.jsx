@@ -1384,14 +1384,14 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Layout Principal */}
-      <div className="flex pt-16">
-        <Sidebar
-          open={drawerOpen}
-          toggleDrawer={(state) => setDrawerOpen(state)}
-        />
+      /* Layout Principal */
+        <div className="flex pt-16">
+          <Sidebar
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+          />
 
-        {/* Conteúdo Principal */}
+          {/* Conteúdo Principal */}
         <div className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
           <div className="grid grid-cols-12 gap-6">
             {/* Coluna Lateral Esquerda - 3 colunas */}

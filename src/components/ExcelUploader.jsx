@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import { supabase } from "../supabaseClient";
+import FileUploader from "./FileUploader";
+import * as XLSX from 'xlsx';
 
 export const fetchUpdateHistory = async () => {
   try {
@@ -25,7 +27,7 @@ const ExcelUploader = ({
 }) => {
   const [uploading, setUploading] = useState(false);
   const [user, setUser] = useState(null);
-  const [pastedData, setPastedData] = useState("");
+  const [excelData, setExcelData] = useState([]);
   const [updateHistory, setUpdateHistory] = useState([]);
 
   useEffect(() => {
@@ -40,10 +42,6 @@ const ExcelUploader = ({
     fetchUpdateHistory().then(setUpdateHistory);
   }, []);
 
-  const handlePaste = (e) => {
-    setPastedData(e.target.value);
-  };
-
   const processData = async () => {
     if (!user) {
       alert("Por favor, faça login para atualizar os dados.");
@@ -52,15 +50,11 @@ const ExcelUploader = ({
 
     setUploading(true);
     try {
-      // Divide as linhas e remove linhas vazias ou cabeçalhos desnecessários
-      const rows = pastedData
-        .split("\n")
-        .map(row => row.split("\t"))
-        .filter(row => 
-          row.some(cell => cell?.trim()) && 
-          !row[0]?.includes("Estoques WM") && 
-          !row[0]?.includes("Nº depósito")
-        );
+      const rows = excelData.filter(row => 
+        row.some(cell => typeof cell === 'string' ? cell.trim() : cell) && 
+        !row[0]?.includes("Estoques WM") && 
+        !row[0]?.includes("Nº depósito")
+      );
 
       const headers = rows[0];
       const data = rows.slice(1);
@@ -112,7 +106,7 @@ const ExcelUploader = ({
       };
 
       const formattedData = rows
-        .filter(row => row.some(cell => cell?.trim())) // Remove linhas vazias
+        .filter(row => row.some(cell => typeof cell === 'string' ? cell.trim() : cell)) // Remove linhas vazias
         .map(row => {
           const formattedRow = {
             user_id: user.id
@@ -121,12 +115,17 @@ const ExcelUploader = ({
           headers.forEach((header, index) => {
             const mappedColumn = columnMapping[header];
             if (mappedColumn) {
-              let value = row[index]?.trim();
+              let value = row[index];
+              if (typeof value === 'string') {
+                value = value.trim();
+              }
               
               // Tratamento para quantidade
               if (mappedColumn === "qtd_materia_prima") {
-                // Primeiro, substitui pontos de milhar por nada e vírgulas por pontos
-                value = value?.replace(/\./g, "").replace(",", ".");
+                if (typeof value === 'string') {
+                  // Primeiro, substitui pontos de milhar por nada e vírgulas por pontos
+                  value = value.replace(/\./g, "").replace(",", ".");
+                }
                 const quantidade = parseFloat(value) || 0;
                 const unidade = row[headers.indexOf("UMB")]?.trim();
                 
@@ -141,7 +140,7 @@ const ExcelUploader = ({
               }
               // Tratamento para datas (formato brasileiro dd/mm/yyyy)
               else if (mappedColumn === "data_entrada" || mappedColumn === "data_validade") {
-                if (value) {
+                if (typeof value === 'string') {
                   try {
                     const [dia, mes, ano] = value.split("/");
                     value = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
@@ -149,6 +148,9 @@ const ExcelUploader = ({
                     console.warn(`Erro ao converter data: ${value}`, e);
                     value = null;
                   }
+                } else if (typeof value === 'number') {
+                  // Converte número de série do Excel para data
+                  value = XLSX.SSF.format("yyyy-mm-dd", value);
                 }
               }
               
@@ -221,21 +223,10 @@ const ExcelUploader = ({
             {/* Content */}
             <div className="p-6">
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Cole o conteúdo da sua planilha Excel aqui:
+                Selecione o arquivo Excel para upload:
               </p>
 
-              <textarea
-                rows={10}
-                className="w-full px-3 py-2 
-                  bg-white dark:bg-slate-700
-                  border border-gray-200 dark:border-slate-600 
-                  rounded-lg text-gray-900 dark:text-slate-100
-                  placeholder-gray-400 dark:placeholder-slate-400
-                  focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                value={pastedData}
-                onChange={handlePaste}
-                placeholder="Cole os dados da planilha aqui..."
-              />
+              <FileUploader onFileUpload={setExcelData} />
 
               {/* Update History */}
               <div className="mt-4">
@@ -268,7 +259,7 @@ const ExcelUploader = ({
               </button>
               <button
                 onClick={processData}
-                disabled={uploading || !pastedData.trim()}
+                disabled={uploading || excelData.length === 0}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {uploading ? (

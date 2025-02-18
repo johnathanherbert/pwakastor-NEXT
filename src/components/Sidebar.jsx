@@ -3,9 +3,6 @@ import Link from "next/link";
 import { 
   Bars3Icon,
   HomeIcon,
-  ScaleIcon,
-  Cog6ToothIcon,
-  ChartBarIcon,
   ArrowUturnLeftIcon
 } from "@heroicons/react/24/outline";
 
@@ -18,7 +15,9 @@ const Sidebar = ({ open, onClose }) => {
   if (!open) return null;
 
   const handleClose = () => {
-    onClose();
+    if (typeof onClose === 'function') {
+      onClose();
+    }
   };
 
   return (

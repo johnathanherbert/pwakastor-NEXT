@@ -22,7 +22,7 @@ export default function Topbar({ user, darkMode, setDarkMode, drawerOpen, setDra
   return (
     <>
       {/* Navbar Superior Fixo */}
-        <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/95 border-b dark:border-gray-700/50 z-50 backdrop-blur-sm transition-all duration-200">
+      <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/95 border-b dark:border-gray-700/50 z-50 backdrop-blur-sm transition-all duration-200">
         <div className="h-16 px-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -36,7 +36,7 @@ export default function Topbar({ user, darkMode, setDarkMode, drawerOpen, setDra
             </h1>
           </div>
 
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setOpenDialog(true)}
               className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
@@ -57,18 +57,18 @@ export default function Topbar({ user, darkMode, setDarkMode, drawerOpen, setDra
               setDarkMode={setDarkMode}
               onSignOut={handleSignOut}
             />
-            </div>
+          </div>
         </div>
       </nav>
 
-          {openDialog && (
-          <ExcelUploader
-            onDataUpdated={handleDataUpdated}
-            openUploadDialog={openDialog}
-            handleCloseUploadDialog={() => setOpenDialog(false)}
-          />
-          )}
-        <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      {openDialog && (
+        <ExcelUploader
+          onDataUpdated={handleDataUpdated}
+          openUploadDialog={openDialog}
+          handleCloseUploadDialog={() => setOpenDialog(false)}
+        />
+      )}
+      <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </>
   );
 }
