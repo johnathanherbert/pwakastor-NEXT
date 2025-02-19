@@ -126,17 +126,6 @@ const ExcelUploader = ({
                   // Primeiro, substitui pontos de milhar por nada e vírgulas por pontos
                   value = value.replace(/\./g, "").replace(",", ".");
                 }
-                const quantidade = parseFloat(value) || 0;
-                const unidade = row[headers.indexOf("UMB")]?.trim();
-                
-                // Converte unidades para padrão
-                if (unidade === "G") {
-                  value = quantidade / 1000; // Converte gramas para quilos
-                } else if (unidade === "UN") {
-                  value = quantidade; // Mantém unidades como estão
-                } else {
-                  value = quantidade; // Para KG e outras unidades
-                }
               }
               // Tratamento para datas (formato brasileiro dd/mm/yyyy)
               else if (mappedColumn === "data_entrada" || mappedColumn === "data_validade") {
@@ -160,17 +149,8 @@ const ExcelUploader = ({
           return formattedRow;
         });
 
-      // Agrupa os dados por material e lote
-      const groupedData = formattedData.reduce((acc, item) => {
-        const key = `${item.codigo_materia_prima}-${item.lote}`;
-        if (!acc[key]) {
-          acc[key] = { ...item, qtd_materia_prima: 0 };
-        }
-        acc[key].qtd_materia_prima += parseFloat(item.qtd_materia_prima) || 0;
-        return acc;
-      }, {});
-
-      const validData = Object.values(groupedData).filter(row => 
+      // Não agrupa os dados, mantém cada linha como está
+      const validData = formattedData.filter(row => 
         row.codigo_materia_prima && 
         row.qtd_materia_prima > 0
       );
