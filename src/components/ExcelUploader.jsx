@@ -125,7 +125,13 @@ const ExcelUploader = ({
                 if (typeof value === 'string') {
                   // Primeiro, substitui pontos de milhar por nada e vírgulas por pontos
                   value = value.replace(/\./g, "").replace(",", ".");
+                  // Converte para número
+                  value = parseFloat(value);
                 }
+              }
+              // Tratamento para unidade de medida
+              else if (mappedColumn === "unidade_medida") {
+                value = value?.toString().trim() || null;
               }
               // Tratamento para datas (formato brasileiro dd/mm/yyyy)
               else if (mappedColumn === "data_entrada" || mappedColumn === "data_validade") {
@@ -149,17 +155,21 @@ const ExcelUploader = ({
           return formattedRow;
         });
 
-      // Não agrupa os dados, mantém cada linha como está
-      const validData = formattedData.filter(row => 
-        row.codigo_materia_prima && 
-        row.qtd_materia_prima > 0
-      );
+      // Modifica o filtro para aceitar UN
+      const validData = formattedData.filter(row => {
+        const hasValidCode = row.codigo_materia_prima;
+        const hasValidQuantity = !isNaN(row.qtd_materia_prima) && row.qtd_materia_prima > 0;
+        const isValidUnit = row.unidade_medida === 'UN' || row.unidade_medida === 'KG' || 
+                           row.unidade_medida === 'G' || row.unidade_medida === 'L';
+        
+        return hasValidCode && hasValidQuantity && isValidUnit;
+      });
 
       if (validData.length === 0) {
         throw new Error("Nenhum dado válido para inserção");
       }
 
-      console.log("Dados formatados para inserção:", validData);
+      console.log("Dados válidos após filtro:", validData);
 
       // Insere os novos dados
       const { data, error: insertError } = await supabase

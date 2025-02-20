@@ -552,14 +552,6 @@ const TabelaPrincipal = ({
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
-          <ScaleIcon className="h-4 w-4" />
-          Movimentação total: {calcularTotalConsiderandoFiltros().toFixed(3)} kg
-        </p>
-      </div>
-
       {/* Modal de Detalhes */}
       {ordensDialogOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">

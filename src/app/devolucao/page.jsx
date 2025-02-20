@@ -1072,6 +1072,7 @@ const Devolucao = () => {
                           <tr>
                             <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Lote</th>
                             <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Quantidade</th>
+                            <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Un</th>
                             <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Tipo</th>
                             <th className="px-2 py-1.5 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Validade</th>
                             <th className="w-8"></th>
@@ -1101,6 +1102,9 @@ const Devolucao = () => {
                                 </td>
                                 <td className={`px-2 py-1 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100 ${getColorForValue(parseFloat(lote.qtd_materia_prima), materialData)}`}>
                                   {formatNumberBR(lote.qtd_materia_prima)}
+                                </td>
+                                <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                                  {lote.unidade_medida || 'KG'}
                                 </td>
                                 <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
                                   {lote.tipo_estoque || '-'}
