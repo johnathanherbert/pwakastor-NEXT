@@ -15,6 +15,7 @@ import {
   ScaleIcon,
   CloudArrowUpIcon,
   Bars3Icon,
+  ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import UserMenu from "@/components/UserMenu";
 import Topbar from "../../components/Topbar";
@@ -480,7 +481,13 @@ const Devolucao = () => {
 
   // Funções de manipulação da tabela de devolução
   const handleAddDevolucaoItem = (loteData, quantidade = null) => {
-    // Se quantidade não for especificada, usar o valor restante disponível
+    // Add check for 11 items limit
+    if (devolucaoItems.length >= 11) {
+      setError("Limite de 11 itens atingido. Não é possível adicionar mais itens.");
+      return;
+    }
+
+    // Rest of your existing code...
     const valorDisponivel = lotesRestantes[loteData.lote]?.restante ?? loteData.qtd_materia_prima;
     const quantidadeDevolver = quantidade || valorDisponivel;
     const volumeInicial = "1";
@@ -973,6 +980,17 @@ const Devolucao = () => {
                   </div>
                 </div>
               </div>
+              {devolucaoItems.length === 11 && (
+                <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="flex gap-2 items-start">
+                    <ExclamationCircleIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-yellow-700 dark:text-yellow-400">
+                      <p className="font-medium">Limite de itens atingido</p>
+                      <p>O SAP tem uma limitação de 11 itens por operação. Se você colar mais que isso, alguns dados podem ser perdidos.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Coluna Direita - Tabela de Lotes Disponíveis */}
