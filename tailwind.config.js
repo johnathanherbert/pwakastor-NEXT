@@ -1,13 +1,12 @@
+const { nextui } = require("@nextui-org/react");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ["media"],
   content: [
-    "./pages/**/*.{js,jsx}",
-    "./components/**/*.{js,jsx}",
-    "./app/**/*.{js,jsx}",
-    "./src/**/*.{js,jsx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
-  prefix: "",
+  darkMode: ["class"],
   theme: {
     container: {
       center: true,
@@ -73,5 +72,27 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [nextui()],
+  safelist: [
+    'bg-red-100',
+    'bg-yellow-100',
+    'bg-orange-100',
+    'bg-green-100',
+    'bg-indigo-100',
+    'bg-purple-100',
+    'dark:bg-red-900/30',
+    'dark:bg-yellow-900/30',
+    'dark:bg-orange-900/30',
+    'dark:bg-green-900/30',
+    'dark:bg-indigo-900/30',
+    'dark:bg-purple-900/30',
+    {
+      pattern: /bg-(red|yellow|orange|green|indigo|purple)-(100|200|800|900)/,
+      variants: ['hover', 'dark', 'dark:hover']
+    },
+    {
+      pattern: /text-(red|yellow|orange|green|indigo|purple)-(200|300|600|800)/,
+      variants: ['dark']
+    }
+  ]
 };

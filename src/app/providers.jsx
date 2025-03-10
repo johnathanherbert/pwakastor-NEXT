@@ -1,8 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import { theme } from "../theme/theme";
+import { NextUIProvider } from '@nextui-org/react';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 export function Providers({ children }) {
-  return <React.Fragment>{children}</React.Fragment>;
+  return (
+    <NextUIProvider>
+      <NextThemesProvider attribute="class" defaultTheme="light" enableSystem>
+        <div className="min-h-screen dark:bg-gray-900 transition-colors">
+          {children}
+        </div>
+      </NextThemesProvider>
+    </NextUIProvider>
+  );
 }
