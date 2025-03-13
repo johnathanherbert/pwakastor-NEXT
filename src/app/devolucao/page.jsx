@@ -777,6 +777,7 @@ const Devolucao = () => {
           openDialog={openDialog}
           setOpenDialog={setOpenDialog}
           handleDataUpdated={handleDataUpdated}
+          title='Devolução de Materiais'
         />
 
 

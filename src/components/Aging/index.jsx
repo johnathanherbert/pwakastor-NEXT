@@ -239,7 +239,7 @@ export default function AgingDashboard() {
         setDarkMode={setDarkMode}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        title="Dashboard de Aging e Gestão de Materiais"
+        title="Dashboard de Aging de Materiais"
       />
 
       

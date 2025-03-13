@@ -16,7 +16,7 @@ export default function Topbar({
   openDialog, 
   setOpenDialog, 
   handleDataUpdated,
-  title = "Pesagem - Devolução de Materiais" // Default title if none provided
+  title = "Devolução de Materiais" // Default title if none provided
 }) {
   const router = useRouter();
 
