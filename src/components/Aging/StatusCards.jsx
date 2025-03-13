@@ -14,8 +14,6 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
       subtitle: 'Materiais com prioridade alta',
       value: stats.critical, 
       percentage: ((stats.critical / totalItems) * 100).toFixed(1),
-      trend: '+2.5%',
-      trendUp: true,
       type: 'critical', 
       icon: HiExclamationCircle,
       info: 'Materiais com mais de 20 dias em aging',
@@ -27,8 +25,6 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
       subtitle: 'Materiais em observação',
       value: stats.warning, 
       percentage: ((stats.warning / totalItems) * 100).toFixed(1),
-      trend: '-1.5%',
-      trendUp: false,
       type: 'warning', 
       icon: HiExclamationTriangle,
       info: 'Materiais entre 15-20 dias em aging',
@@ -40,8 +36,6 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
       subtitle: 'Monitoramento necessário',
       value: stats.attention, 
       percentage: ((stats.attention / totalItems) * 100).toFixed(1),
-      trend: '+0.8%',
-      trendUp: true,
       type: 'attention', 
       icon: HiEye,
       info: 'Materiais entre 10-15 dias em aging',
@@ -53,8 +47,6 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
       subtitle: 'Dentro do prazo',
       value: stats.normal, 
       percentage: ((stats.normal / totalItems) * 100).toFixed(1),
-      trend: '+5.2%',
-      trendUp: true,
       type: 'normal', 
       icon: HiCheckCircle,
       info: 'Materiais com menos de 10 dias em aging',
@@ -66,8 +58,6 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
       subtitle: 'Necessitam revisão',
       value: adjustmentStats.total,
       percentage: adjustmentStats.percentage,
-      trend: '+1.2%',
-      trendUp: true,
       type: 'adjustment', 
       icon: HiWrenchScrewdriver,
       info: 'Materiais em processo de ajuste',
@@ -106,7 +96,7 @@ export default function StatusCards({ stats, totalItems, adjustmentStats, handle
               <span className={`text-sm ${
                 card.trendUp ? 'text-green-600' : 'text-red-600'
               }`}>
-                {card.trendUp ? '↑' : '↓'} {card.trend}
+                
               </span>
             </div>
           </div>

@@ -10,6 +10,8 @@ import AnalyticsSection from './AnalyticsSection';
 import FilterSection from './FilterSection';
 import TabSection from './TabSection';
 import { differenceInDays, format } from 'date-fns';
+import { user } from '../../app/aging/layout'
+import { User } from 'lucide-react';
 
 export default function AgingDashboard() {
   const [materials, setMaterials] = useState([]);
@@ -38,7 +40,9 @@ export default function AgingDashboard() {
   const [densityData, setDensityData] = useState([]);
   const [oldestLots, setOldestLots] = useState({
     adjustment: [],
-    regular: []
+    regular: [],
+    totalAdjustment: 0,
+    totalRegular: 0
   });
   const [adjustmentStats, setAdjustmentStats] = useState({
     total: 0,
@@ -144,16 +148,24 @@ export default function AgingDashboard() {
         }
       });
 
-      // Calcular lotes mais antigos
-      const adjustmentLots = processedData
-        .filter(item => item.tipo_estoque === 'S') // Apenas lotes tipo 'S'
+      // Calculate lots data
+      const allAdjustmentLots = processedData.filter(item => item.tipo_estoque === 'S');
+      const allRegularLots = processedData.filter(item => item.tipo_estoque !== 'S');
+      
+      const adjustmentLots = allAdjustmentLots
         .sort((a, b) => b.daysInArea - a.daysInArea)
         .slice(0, 5);
 
-      const regularLots = processedData
-        .filter(item => item.tipo_estoque !== 'S') // Todos os lotes exceto 'S'
+      const regularLots = allRegularLots
         .sort((a, b) => b.daysInArea - a.daysInArea)
         .slice(0, 5);
+
+      setOldestLots({ 
+        adjustment: adjustmentLots, 
+        regular: regularLots,
+        totalAdjustment: allAdjustmentLots.length,
+        totalRegular: allRegularLots.length // Adicionando o totalRegular aqui
+      });
 
       // Gerar dados para os gráficos
       const chartDataUpdate = {
@@ -196,7 +208,12 @@ export default function AgingDashboard() {
       setChartData(chartDataUpdate);
       setTrendData(trendDataUpdate);
       setDensityData(densityDataUpdate);
-      setOldestLots({ adjustment: adjustmentLots, regular: regularLots });
+      setOldestLots({ 
+        adjustment: adjustmentLots, 
+        regular: regularLots,
+        totalAdjustment: allAdjustmentLots.length,
+        totalRegular: allRegularLots.length // Adicionando o totalRegular aqui
+      });
       setAdjustmentStats({
         total: stockTypes.adjustmentLots,
         percentage: ((stockTypes.adjustmentLots / newStats.totalItems) * 100).toFixed(1)
@@ -215,14 +232,17 @@ export default function AgingDashboard() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      
       <Topbar
-        user={null}
+        user={user}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        title="Dashboard de Aging de Materiais"
+        title="Dashboard de Aging e Gestão de Materiais"
       />
+
+      
 
       <main className="pt-20 px-6 max-w-8xl mx-auto">
         <FilterSection 

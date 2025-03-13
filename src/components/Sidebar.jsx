@@ -3,13 +3,15 @@ import Link from "next/link";
 import { 
   Bars3Icon,
   HomeIcon,
-  ArrowUturnLeftIcon
+  ArrowUturnLeftIcon,
+  PresentationChartLineIcon
 } from "@heroicons/react/24/outline";
 
 const Sidebar = ({ open, onClose }) => {
   const menuItems = [
     { text: "Início", icon: <HomeIcon className="h-5 w-5" />, path: "/" },
     { text: "Devolução", icon: <ArrowUturnLeftIcon className="h-5 w-5" />, path: "/devolucao" },
+    { text: "Aging", icon: <PresentationChartLineIcon className="h-5 w-5" />, path: "/aging" },
   ];
 
   if (!open) return null;
