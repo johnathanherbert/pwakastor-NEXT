@@ -1,72 +1,93 @@
+import React from "react";
+
 export default function Cartao({ data }) {
-    return (
-        <div className="border border-black p-4 w-80 font-sans text-xs mx-auto mt-5 text-black h-fit rounded-md shadow-md bg-gray-50">
-            <div className="flex justify-between border-b border-black pb-1 mb-2">
-                <div className="font-bold">{data.familia || 'N/A'}</div>
-                <div className="font-bold">{data.key || 'N/A'}</div>
-            </div>
-            <div className="flex flex-col space-y-1">
-                <div className="flex justify-between">
-                    <div className="font-bold">OP:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.ordem || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Data:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.created_on || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Cód:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.material || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Lote:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.lote || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Tamanho do lote (CPR/CAPS):</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.qtd_teorica || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Desc:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.texto_breve_material || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">Punção/formato:</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.revestimento || 'N/A'}</div>
-                </div>
-                <div className="font-bold">Etapas:</div>
-                <div className="flex justify-between">
-                    <div className="font-bold">PES</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">PA</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.pesagem || 'N/A'}</div>
-                    <div className="font-bold ml-4">PD</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.lead_time || 'N/A'}</div>
-                    <div className="font-bold ml-4">PM</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.previsao_chegada || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">CLF</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.peneira_status_classificacao || 'N/A'}</div>
-                    <div className="font-bold ml-4">TC</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.familia || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">MIS</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.status_sistema || 'N/A'}</div>
-                    <div className="font-bold ml-4">TC</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.status_vencimento || 'N/A'}</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.dias_em_processo || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                    <div className="font-bold">COP</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.familia || 'N/A'}</div>
-                    <div className="font-bold ml-4">TC</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.classificacao_criticos || 'N/A'}</div>
-                    <div className="border-b border-black flex-grow ml-1 text-right">{data.posicao_atual || 'N/A'}</div>
-                </div>
-            </div>
+  return (
+    <div className="border border-black w-[350px] font-sans text-xs mx-auto mt-5 text-black bg-white rounded-md shadow-md p-2">
+      {/* Cabeçalho */}
+      <div className="flex justify-between border-b border-black pb-1 font-bold text-sm">
+        <span>COP LEG.1</span>
+        <span>3/3</span>
+      </div>
+      
+      {/* Informações principais */}
+      <div className="grid grid-cols-2 gap-1 mt-2">
+        <div className="flex justify-between">
+          <span className="font-bold">OP:</span>
+          <span>{data.ordem || 'N/A'}</span>
         </div>
-    );
+        <div className="flex justify-between">
+          <span className="font-bold">Data:</span>
+          <span>{data.created_on || 'N/A'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">Cód:</span>
+          <span>{data.material || 'N/A'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">Lote:</span>
+          <span>{data.lote || 'N/A'}</span>
+        </div>
+        <div className="col-span-2 flex justify-between">
+          <span className="font-bold">Tamanho do lote (CPR/CAPS):</span>
+          <span>{data.qtd_teorica || 'N/A'}</span>
+        </div>
+        <div className="col-span-2 flex justify-between font-bold">
+          <span>Desc.:</span>
+          <span>{data.texto_breve_material || 'N/A'}</span>
+        </div>
+      </div>
+      
+      {/* Tabela de Etapas */}
+      <div className="mt-2 border-t border-black pt-1">
+        <div className="grid grid-cols-5 text-center font-bold text-xs border-b border-black">
+          <span>Etapas</span>
+          <span>PA</span>
+          <span>PD</span>
+          <span>PM</span>
+          <span>TC</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>PES</span>
+          <span className="border border-black">█</span>
+          <span className="border border-black">█</span>
+          <span>2,2</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>GRA</span>
+          <span className="col-span-2">VG 400</span>
+          <span className="col-span-2">06:51</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>SEC</span>
+          <span className="col-span-2">LTO 400</span>
+          <span className="col-span-2">06:51</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>CLF</span>
+          <span className="col-span-2">CLAS M.1</span>
+          <span className="col-span-2">02:25</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>MIS</span>
+          <span className="col-span-2">MIST 2</span>
+          <span className="col-span-2 bg-gray-300">HT 07 D</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>COP</span>
+          <span className="col-span-2">COP LEG.1</span>
+          <span className="col-span-2 bg-gray-300">HT 08 D</span>
+        </div>
+        <div className="grid grid-cols-5 text-center border-b border-black">
+          <span>REV</span>
+          <span className="col-span-2">REV. 150 3</span>
+          <span className="col-span-2">06:51</span>
+        </div>
+      </div>
+      
+      {/* Observações */}
+      <div className="mt-2 bg-red-600 text-white font-bold text-center py-1">
+        Crítico / VERMELHO
+      </div>
+    </div>
+  );
 }

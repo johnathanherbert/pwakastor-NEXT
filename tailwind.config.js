@@ -5,6 +5,7 @@ module.exports = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
+    'node_modules/flowbite-react/**/*.{js,jsx,ts,tsx}'
   ],
   darkMode: ["class"],
   theme: {
@@ -72,7 +73,10 @@ module.exports = {
       },
     },
   },
-  plugins: [nextui()],
+  plugins: [
+    nextui(),
+    require('flowbite/plugin')
+  ],
   safelist: [
     'bg-red-100',
     'bg-yellow-100',
