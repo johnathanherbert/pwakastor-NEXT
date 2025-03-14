@@ -18,6 +18,7 @@ export default function AgingDashboard() {
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Add missing states
   const [searchTerm, setSearchTerm] = useState('');
@@ -264,13 +265,23 @@ export default function AgingDashboard() {
 
   useEffect(() => {
     fetchData();
+    
+    // Fetch current user data
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        setCurrentUser(data.user);
+      }
+    };
+    
+    getCurrentUser();
   }, []);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       
       <Topbar
-        user={user}
+        user={currentUser || user} // Use currentUser if available, otherwise fallback to layout user
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         drawerOpen={drawerOpen}

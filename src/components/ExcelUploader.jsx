@@ -29,6 +29,7 @@ const ExcelUploader = ({
   const [user, setUser] = useState(null);
   const [excelData, setExcelData] = useState([]);
   const [updateHistory, setUpdateHistory] = useState([]);
+  const [fileName, setFileName] = useState(""); // Add state for file name
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -41,6 +42,13 @@ const ExcelUploader = ({
 
     fetchUpdateHistory().then(setUpdateHistory);
   }, []);
+
+  const handleFileUpload = (data, file) => {
+    setExcelData(data);
+    if (file) {
+      setFileName(file.name); // Store the file name
+    }
+  };
 
   const processData = async () => {
     if (!user) {
@@ -216,7 +224,19 @@ const ExcelUploader = ({
                 Selecione o arquivo Excel para upload:
               </p>
 
-              <FileUploader onFileUpload={setExcelData} />
+              <FileUploader onFileUpload={(data, file) => handleFileUpload(data, file)} />
+
+              {/* File selected feedback */}
+              {excelData.length > 0 && (
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
+                  <p className="text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Arquivo selecionado: {fileName || "Planilha Excel"} ({excelData.length} linhas)
+                  </p>
+                </div>
+              )}
 
               {/* Update History */}
               <div className="mt-4">

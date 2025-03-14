@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../supabaseClient";
 
-export default function UserMenu({ user, onUserUpdate }) {
+export default function UserMenu({ user, onUserUpdate, darkMode, setDarkMode, onSignOut }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const router = useRouter();
@@ -12,9 +12,19 @@ export default function UserMenu({ user, onUserUpdate }) {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    onUserUpdate(null);
-    router.push("/login");
+    if (onSignOut) {
+      onSignOut();
+    } else {
+      await supabase.auth.signOut();
+      if (onUserUpdate) onUserUpdate(null);
+      router.push("/login");
+    }
+  };
+
+  const handleDarkModeToggle = () => {
+    if (setDarkMode) {
+      setDarkMode(!darkMode);
+    }
   };
 
   // Fecha o menu quando clica fora
@@ -29,11 +39,24 @@ export default function UserMenu({ user, onUserUpdate }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // If no user is provided, try to get one from supabase
+  useEffect(() => {
+    if (!user) {
+      const getUser = async () => {
+        const { data } = await supabase.auth.getUser();
+        if (data?.user && onUserUpdate) {
+          onUserUpdate(data.user);
+        }
+      };
+      getUser();
+    }
+  }, [user, onUserUpdate]);
+
   return (
     <div className="relative" ref={menuRef}>
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-700 dark:text-gray-200">
-          {user?.email}
+          {user?.email || "Usuário"}
         </span>
         <button
           onClick={handleMenu}
@@ -42,12 +65,12 @@ export default function UserMenu({ user, onUserUpdate }) {
           {user?.avatar_url ? (
             <img
               src={user.avatar_url}
-              alt={user.email}
+              alt={user?.email || "Usuário"}
               className="w-8 h-8 rounded-full"
             />
           ) : (
             <span className="text-gray-600 text-sm font-medium">
-              {user?.email?.[0]?.toUpperCase()}
+              {user?.email?.[0]?.toUpperCase() || "U"}
             </span>
           )}
         </button>
@@ -56,6 +79,14 @@ export default function UserMenu({ user, onUserUpdate }) {
       {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-50">
+          {setDarkMode && (
+            <button
+              onClick={handleDarkModeToggle}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              {darkMode ? "Modo Claro" : "Modo Escuro"}
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

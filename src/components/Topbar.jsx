@@ -68,6 +68,7 @@ export default function Topbar({
               darkMode={darkMode} 
               setDarkMode={setDarkMode}
               onSignOut={handleSignOut}
+              onUserUpdate={() => {}} // Add an empty function to avoid errors
             />
           </div>
         </div>
