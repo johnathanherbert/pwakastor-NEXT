@@ -1,73 +1,122 @@
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { 
-  Bars3Icon,
-  HomeIcon,
-  ArrowUturnLeftIcon,
-  PresentationChartLineIcon
+  XMarkIcon, 
+  HomeIcon, 
+  ClockIcon, 
+  DocumentChartBarIcon,
+  CubeIcon,
+  ArchiveBoxIcon,
+  UserGroupIcon,
+  Cog6ToothIcon
 } from "@heroicons/react/24/outline";
+import { supabase } from "../supabaseClient";
 
-const Sidebar = ({ open, onClose }) => {
-  const menuItems = [
-    { text: "Início", icon: <HomeIcon className="h-5 w-5" />, path: "/" },
-    { text: "Devolução", icon: <ArrowUturnLeftIcon className="h-5 w-5" />, path: "/devolucao" },
-    { text: "Aging", icon: <PresentationChartLineIcon className="h-5 w-5" />, path: "/aging" },
+export default function Sidebar({ open, onClose }) {
+  const pathname = usePathname();
+  
+  const navigation = [
+    { name: "Início", href: "/", icon: HomeIcon },
+    { name: "Aging de Materiais", href: "/aging", icon: ClockIcon },
+    { name: "Devolução de Materiais", href: "/devolution", icon: DocumentChartBarIcon },
+    { name: "Produtos", href: "", icon: CubeIcon },
+    { name: "Inventário", href: "", icon: ArchiveBoxIcon },
+    { name: "Usuários", href: "", icon: UserGroupIcon },
+    { name: "Configurações", href: "", icon: Cog6ToothIcon },
   ];
 
-  if (!open) return null;
-
-  const handleClose = () => {
-    if (typeof onClose === 'function') {
-      onClose();
-    }
+  const isActive = (path) => {
+    return pathname === path;
   };
 
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
-        onClick={handleClose}
-      />
+    <div>
+      {/* Backdrop overlay */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 transition-all duration-300"
+          onClick={onClose}
+        ></div>
+      )}
 
-      {/* Drawer */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-slate-800 shadow-xl z-50">
+      {/* Sidebar drawer */}
+      <div 
+        className={`fixed top-0 left-0 z-50 h-screen w-72 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 h-14 flex items-center">
+        <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center">
+            <img 
+              src="/pwakastor-logo.svg" 
+              alt="PWA Kastor" 
+              className="h-8 w-auto"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://placehold.co/100x40?text=PWA+Kastor";
+              }}
+            />
+          </div>
           <button
-            onClick={handleClose}
-            className="p-2 hover:bg-blue-700 rounded-lg"
+            onClick={onClose}
+            className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <Bars3Icon className="h-5 w-5" />
+            <XMarkIcon className="h-5 w-5" />
           </button>
-          <span className="ml-2 font-bold">Menu</span>
         </div>
 
-        {/* Divider */}
-        <div className="border-b border-gray-200 dark:border-gray-700" />
-
-        {/* Menu Items */}
-        <nav className="p-2">
-          {menuItems.map((item) => (
-            <Link 
-              href={item.path} 
-              key={item.text}
-              onClick={handleClose}
-              className="flex items-center gap-3 px-3 py-2 
-                text-gray-700 dark:text-slate-200 
-                rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 
-                transition-colors"
-            >
-              <span className="text-blue-600 dark:text-blue-400">
-                {item.icon}
-              </span>
-              <span className="font-medium">{item.text}</span>
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav className="px-3 py-6">
+          <ul className="space-y-1">
+            {navigation.map((item) => (
+              <li key={item.name}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg font-medium transition-colors group ${
+                    isActive(item.href)
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  }`}
+                  onClick={onClose}
+                >
+                  <item.icon
+                    className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                      isActive(item.href)
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300"
+                    }`}
+                  />
+                  <span>{item.name}</span>
+                  {isActive(item.href) && (
+                    <span className="ml-auto h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400"></span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
-      </div>
-    </>
-  );
-};
 
-export default Sidebar;
+        {/* Footer */}
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="px-3 py-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 mb-4">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="font-medium mb-1">PWA Kastor</p>
+              <p>v1.0.0 • Sistema de Gerenciamento</p>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.href = "/login";
+            }}
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+          >
+            Sair do Sistema
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
