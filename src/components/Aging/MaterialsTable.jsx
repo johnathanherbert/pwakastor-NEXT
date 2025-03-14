@@ -60,9 +60,9 @@ export default function MaterialsTable({ materials, filterStatus }) {
           </thead>
           <tbody>
             {materials.length > 0 ? (
-              materials.map((material) => (
+              materials.map((material, index) => (
                 <tr 
-                  key={`${material.codigo_materia_prima}-${material.lote}`}
+                  key={`${material.codigo_materia_prima}-${material.lote}-${index}`}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">

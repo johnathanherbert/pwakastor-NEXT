@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
 import Topbar from '../Topbar';
 import StatusCards from './StatusCards';
@@ -57,12 +57,10 @@ export default function AgingDashboard() {
   };
 
   const handleStatusClick = (status) => {
-    // Resetar o filtro se clicar no mesmo status novamente
-    if (filterStatus === status) {
-      setFilterStatus('all');
-    } else {
-      setFilterStatus(status);
-    }
+    // Se clicar no mesmo status, não mude nada
+    if (filterStatus === status) return;
+    
+    setFilterStatus(status);
     setActiveTab('materials');
   };
 
@@ -70,34 +68,72 @@ export default function AgingDashboard() {
     setActiveTab(tab);
   };
 
-  // Atualizar a lógica de filteredMaterials
-  const filteredMaterials = materials.filter(material => {
-    const matchesSearch = material.codigo_materia_prima?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filterStatus === 'adjustment') {
-      // Mostrar APENAS lotes em ajuste (tipo_estoque === 'S')
-      return material.tipo_estoque === 'S' && matchesSearch;
-    }
-    
-    // Para todos os outros filtros, excluir os lotes em ajuste
-    if (material.tipo_estoque === 'S') {
-      return false;
-    }
+  // Atualizar a lógica de filteredMaterials para ser mais precisa
+  const getFilteredMaterials = () => {
+    return materials.filter(material => {
+      const matchesSearch = material.codigo_materia_prima?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          material.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
 
-    // Aplicar filtros normais apenas para lotes não-ajuste
-    switch (filterStatus) {
-      case 'critical':
-      case 'warning':
-      case 'attention':
-        return material.status === filterStatus && matchesSearch;
-      case 'normal':
-        return material.tipo_estoque !== 'S' && matchesSearch;
-      case 'all':
-      default:
-        return matchesSearch;
-    }
-  });
+      if (filterStatus === 'adjustment') {
+        return material.tipo_estoque === 'S';
+      }
+
+      // Para todos os outros filtros, primeiro excluir os lotes em ajuste
+      if (material.tipo_estoque === 'S') {
+        return false;
+      }
+
+      // Aplicar filtros normais
+      switch (filterStatus) {
+        case 'critical':
+        case 'warning':
+        case 'attention':
+        case 'normal':
+          return material.status === filterStatus;
+        case 'all':
+          return true;
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Substituir a variável filteredMaterials por uma chamada à função
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(material => {
+      const matchesSearch = material.codigo_materia_prima?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           material.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Verificar tipo de estoque primeiro
+      const isAdjustment = material.tipo_estoque === 'S';
+      
+      if (filterStatus === 'adjustment') {
+        return isAdjustment && matchesSearch;
+      }
+      
+      // Para todos os outros filtros, excluir os lotes em ajuste
+      if (isAdjustment) {
+        return false;
+      }
+      
+      // Aplicar filtros normais apenas para lotes não-ajuste
+      switch (filterStatus) {
+        case 'critical':
+          return material.status === 'critical' && matchesSearch;
+        case 'warning':
+          return material.status === 'warning' && matchesSearch;
+        case 'attention':
+          return material.status === 'attention' && matchesSearch;
+        case 'normal':
+          return material.status === 'normal' && matchesSearch;
+        case 'all':
+        default:
+          return matchesSearch;
+      }
+    });
+  }, [materials, filterStatus, searchTerm]);
 
   // Função auxiliar para calcular o status baseado nos dias
   const calculateStatus = (daysInArea) => {
