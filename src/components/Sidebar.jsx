@@ -18,8 +18,8 @@ export default function Sidebar({ open, onClose }) {
   
   const navigation = [
     { name: "Início", href: "/", icon: HomeIcon },
+    { name: "Devolução de Materiais", href: "/devolucao", icon: DocumentChartBarIcon },
     { name: "Aging de Materiais", href: "/aging", icon: ClockIcon },
-    { name: "Devolução de Materiais", href: "/devolution", icon: DocumentChartBarIcon },
     { name: "Produtos", href: "", icon: CubeIcon },
     { name: "Inventário", href: "", icon: ArchiveBoxIcon },
     { name: "Usuários", href: "", icon: UserGroupIcon },
@@ -103,7 +103,8 @@ export default function Sidebar({ open, onClose }) {
           <div className="px-3 py-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 mb-4">
             <div className="text-xs text-gray-500 dark:text-gray-400">
               <p className="font-medium mb-1">PWA Kastor</p>
-              <p>v1.0.0 • Sistema de Gerenciamento</p>
+              <p>v0.1.0 • Sistema de Gerenciamento</p>
+              <p>Desenvolvido por Johnathan Herbert</p>
             </div>
           </div>
           <button

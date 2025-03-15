@@ -1,15 +1,11 @@
 import PropTypes from 'prop-types';
 
 export const AlmoxarifadoManagerPropTypes = {
-  excipientes: PropTypes.arrayOf(PropTypes.string),
-  materiaisNaArea: PropTypes.object,
-  faltaSolicitar: PropTypes.object,
-  onUpdateSolicitacao: PropTypes.func
+  excipientes: PropTypes.object,
+  materiaisNaArea: PropTypes.object
 };
 
 export const AlmoxarifadoManagerDefaultProps = {
-  excipientes: [],
-  materiaisNaArea: {},
-  faltaSolicitar: {},
-  onUpdateSolicitacao: () => {}
+  excipientes: {},
+  materiaisNaArea: {}
 };

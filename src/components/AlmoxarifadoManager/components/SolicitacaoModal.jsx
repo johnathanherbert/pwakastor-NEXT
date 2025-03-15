@@ -1,20 +1,45 @@
+import React from 'react';
+import { SolicitacaoStatus } from './SolicitacaoStatus';
+import Modal from '../../Modal';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+
 export const SolicitacaoModal = ({ 
   show, 
-  modalData, 
-  onClose, 
-  onSave, 
-  onModalDataChange 
+  selectedExcipient,
+  materialRequests,
+  onClose,
+  onUpdateStatus,
+  onDeleteRequest
 }) => {
-  if (!show) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
-        <div className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-xl w-full max-w-md">
-          {/* Modal content implementation here */}
+    <Modal
+      isOpen={show}
+      onClose={onClose}
+      title={`Gerenciar Status - ${selectedExcipient || ''}`}
+      size="md"
+      variant="purple"
+      customIcon={<ArrowPathIcon className="h-5 w-5 text-white" />}
+      footer={
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 
+                     transition-colors duration-200 font-medium"
+          >
+            Fechar
+          </button>
         </div>
-      </div>
-    </div>
+      }
+      bodyClass="p-4"
+    >
+      <SolicitacaoStatus
+        materialRequests={materialRequests}
+        selectedExcipient={selectedExcipient}
+        onUpdateStatus={onUpdateStatus}
+        onDeleteRequest={onDeleteRequest}
+      />
+    </Modal>
   );
 };
+
+export default SolicitacaoModal;

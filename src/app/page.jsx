@@ -13,6 +13,7 @@ import DetalhamentoMateriais from "../components/DetalhamentoMateriais";
 import ExcelUploader, { fetchUpdateHistory } from "../components/ExcelUploader";
 import Sap from "../components/Sap";
 import AlmoxarifadoManager from "../components/AlmoxarifadoManager";
+import DebugPanel from "../components/DebugPanel";
 
 // Supabase client
 import { supabase } from "../supabaseClient";
@@ -32,6 +33,8 @@ import {
   CheckIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+
+import { RequestsProvider } from "../contexts/RequestsContext";
 
 const EXCIPIENTES_ESPECIAIS = [
   "LACTOSE (200)",
@@ -1312,137 +1315,172 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Navbar Superior Fixo */}
-      <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/95 border-b dark:border-gray-700/50 z-50 h-16 backdrop-blur-sm transition-all duration-200">
-        <div className="h-full px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg transition-colors duration-200"
-            >
-              <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-            </button>
-            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              Pesagem
-            </h1>
-          </div>
-
-          {/* Ações Rápidas */}
-          <div className="flex items-center gap-4">
-            {/* Botões de Ação */}
-            <div className="flex items-center gap-2">
+    <RequestsProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        {/* Navbar Superior Fixo */}
+        <nav className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800/95 border-b dark:border-gray-700/50 z-50 h-16 backdrop-blur-sm transition-all duration-200">
+          <div className="h-full px-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <button
-                onClick={handleOpenSapDialog}
-                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                onClick={() => setDrawerOpen(!drawerOpen)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg transition-colors duration-200"
+              >
+                <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              </button>
+              <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                Pesagem
+              </h1>
+            </div>
+
+            {/* Ações Rápidas */}
+            <div className="flex items-center gap-4">
+              {/* Botões de Ação */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenSapDialog}
+                  className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
                          text-blue-600 dark:text-blue-400 
                          bg-blue-50 dark:bg-blue-900/30 
                          hover:bg-blue-100 dark:hover:bg-blue-900/50 
                          border border-blue-200 dark:border-blue-700/50
                          rounded-lg transition-all duration-200
                          hover:shadow-md dark:hover:shadow-blue-900/20"
-                title="Consulta SAP"
-              >
-                <MagnifyingGlassIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Consulta SAP</span>
-              </button>
+                  title="Consulta SAP"
+                >
+                  <MagnifyingGlassIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Consulta SAP</span>
+                </button>
 
-              <button
-                onClick={handleUpdateAllSAPValues}
-                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                <button
+                  onClick={handleUpdateAllSAPValues}
+                  className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
                          text-green-600 dark:text-green-400 
                          bg-green-50 dark:bg-green-900/30 
                          hover:bg-green-100 dark:hover:bg-green-900/50 
                          border border-green-200 dark:border-green-700/50
                          rounded-lg transition-all duration-200
                          hover:shadow-md dark:hover:shadow-green-900/20"
-                title="Atualizar Dados"
-              >
-                <ArrowPathIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Atualizar Dados</span>
-              </button>
+                  title="Atualizar Dados"
+                >
+                  <ArrowPathIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Atualizar Dados</span>
+                </button>
 
-              <button
-                onClick={handleOpenUploadDialog}
-                className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
+                <button
+                  onClick={handleOpenUploadDialog}
+                  className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
                          text-purple-600 dark:text-purple-400 
                          bg-purple-50 dark:bg-purple-900/30 
                          hover:bg-purple-100 dark:hover:bg-purple-900/50 
                          border border-purple-200 dark:border-purple-700/50
                          rounded-lg transition-all duration-200
                          hover:shadow-md dark:hover:shadow-purple-900/20"
-                title="Upload Excel"
-              >
-                <CloudArrowUpIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Upload Excel</span>
-              </button>
+                  title="Upload Excel"
+                >
+                  <CloudArrowUpIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Upload Excel</span>
+                </button>
+              </div>
+              <UserMenu
+                user={user}
+                onUserUpdate={setUser} // Passando a função setUser como onUserUpdate
+              />
             </div>
-            <UserMenu
-              user={user}
-              onUserUpdate={setUser} // Passando a função setUser como onUserUpdate
-            />
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      /* Layout Principal */
+        /* Layout Principal */
         <div className="flex pt-16">
-          <Sidebar
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-          />
+          <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
           {/* Conteúdo Principal */}
-        <div className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Coluna Lateral Esquerda - 3 colunas */}
-            <div className="col-span-12 lg:col-span-3 space-y-4">
-              {/* Card de Estatísticas */}
-              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Total de Ordens
-                    </p>
-                    <p className="text-xl font-semibold text-blue-700 dark:text-blue-300">
-                      {ordens.length}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
-                    <p className="text-sm text-green-600 dark:text-green-400">
-                      Ordens Pesadas
-                    </p>
-                    <p className="text-xl font-semibold text-green-700 dark:text-green-300">
-                      {
-                        ordens.filter((ordem) => isOrdemPesada(ordem, pesados))
-                          .length
-                      }
-                    </p>
+          <div className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
+            <div className="grid grid-cols-12 gap-6">
+              {/* Coluna Lateral Esquerda - 3 colunas */}
+              <div className="col-span-12 lg:col-span-3 space-y-4">
+                {/* Card de Estatísticas */}
+                <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        Total de Ordens
+                      </p>
+                      <p className="text-xl font-semibold text-blue-700 dark:text-blue-300">
+                        {ordens.length}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        Ordens Pesadas
+                      </p>
+                      <p className="text-xl font-semibold text-green-700 dark:text-green-300">
+                        {
+                          ordens.filter((ordem) =>
+                            isOrdemPesada(ordem, pesados)
+                          ).length
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Card de Adição de Ordens */}
-              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 transition-colors">
-                <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-t-xl">
-                  <h3 className="text-base font-semibold text-white dark:text-white/90 flex items-center gap-2">
-                    <PlusCircleIcon className="w-4 h-4" />
-                    Nova Ordem
-                  </h3>
-                </div>
+                {/* Card de Adição de Ordens */}
+                <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border dark:border-gray-700/50 transition-colors">
+                  <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-t-xl">
+                    <h3 className="text-base font-semibold text-white dark:text-white/90 flex items-center gap-2">
+                      <PlusCircleIcon className="w-4 h-4" />
+                      Nova Ordem
+                    </h3>
+                  </div>
 
-                <div className="p-4 space-y-4">
-                  {/* Input Principal - Alternando entre tipos */}
-                  {addMode === "codigo" ? (
-                    <div className="relative">
-                      <input
-                        type="number"
+                  <div className="p-4 space-y-4">
+                    {/* Input Principal - Alternando entre tipos */}
+                    {addMode === "codigo" ? (
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={ativo}
+                          onChange={(e) => handleInputChange(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          ref={inputRef}
+                          placeholder="Digite o código (Ex: 701171)"
+                          className="w-full px-3 py-2 
+                          bg-white dark:bg-gray-700
+                          border border-gray-200 dark:border-gray-600 
+                          text-gray-900 dark:text-gray-100
+                          placeholder-gray-400 dark:placeholder-gray-400
+                          rounded-lg text-sm 
+                          focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                          focus:border-transparent transition-colors"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">
+                          Apenas números
+                        </span>
+                      </div>
+                    ) : (
+                      <Autocomplete
                         value={ativo}
-                        onChange={(e) => handleInputChange(e.target.value)}
+                        onChange={(valor) => {
+                          setAtivo(valor);
+                          buscarSugestoes(valor);
+                        }}
                         onKeyPress={handleKeyPress}
                         ref={inputRef}
-                        placeholder="Digite o código (Ex: 701171)"
-                        className="w-full px-3 py-2 
+                        placeholder="Digite o nome do ativo (Ex: AMOXICILINA)"
+                        className="w-full dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                        sugestoes={sugestoes}
+                      />
+                    )}
+
+                    {/* Input de OP - Aparece quando autoIncrementOP está ativo */}
+                    {autoIncrementOP && (
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={initialOP}
+                          onChange={(e) => setInitialOP(e.target.value)}
+                          placeholder={`Próxima OP: ${lastOP + 1}`}
+                          className="w-full px-3 py-2 
                           bg-white dark:bg-gray-700
                           border border-gray-200 dark:border-gray-600 
                           text-gray-900 dark:text-gray-100
@@ -1450,488 +1488,467 @@ export default function Home() {
                           rounded-lg text-sm 
                           focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
                           focus:border-transparent transition-colors"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">
-                        Apenas números
-                      </span>
-                    </div>
-                  ) : (
-                    <Autocomplete
-                      value={ativo}
-                      onChange={(valor) => {
-                        setAtivo(valor);
-                        buscarSugestoes(valor);
-                      }}
-                      onKeyPress={handleKeyPress}
-                      ref={inputRef}
-                      placeholder="Digite o nome do ativo (Ex: AMOXICILINA)"
-                      className="w-full dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
-                      sugestoes={sugestoes}
-                    />
-                  )}
+                        />
+                      </div>
+                    )}
 
-                  {/* Input de OP - Aparece quando autoIncrementOP está ativo */}
-                  {autoIncrementOP && (
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={initialOP}
-                        onChange={(e) => setInitialOP(e.target.value)}
-                        placeholder={`Próxima OP: ${lastOP + 1}`}
-                        className="w-full px-3 py-2 
-                          bg-white dark:bg-gray-700
-                          border border-gray-200 dark:border-gray-600 
-                          text-gray-900 dark:text-gray-100
-                          placeholder-gray-400 dark:placeholder-gray-400
-                          rounded-lg text-sm 
-                          focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
-                          focus:border-transparent transition-colors"
-                      />
-                    </div>
-                  )}
-
-                  {/* Botões */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={toggleAddMode}
-                      className={`px-3 py-2 text-sm rounded-lg flex-1 flex items-center justify-center gap-1
+                    {/* Botões */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={toggleAddMode}
+                        className={`px-3 py-2 text-sm rounded-lg flex-1 flex items-center justify-center gap-1
                                 ${
                                   addMode === "codigo"
                                     ? "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-700"
                                     : "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700"
                                 }`}
-                    >
-                      {addMode === "codigo" ? (
-                        <>
-                          <BeakerIcon className="w-4 h-4" />
-                          Usar Ativo
-                        </>
-                      ) : (
-                        <>
-                          <HashtagIcon className="w-4 h-4" />
-                          Usar Código
-                        </>
-                      )}
-                    </button>
+                      >
+                        {addMode === "codigo" ? (
+                          <>
+                            <BeakerIcon className="w-4 h-4" />
+                            Usar Ativo
+                          </>
+                        ) : (
+                          <>
+                            <HashtagIcon className="w-4 h-4" />
+                            Usar Código
+                          </>
+                        )}
+                      </button>
 
-                    {/* Botão Auto OP */}
-                    <button
-                      onClick={toggleAutoIncrementOP}
-                      className={`px-3 py-2 text-sm rounded-lg flex items-center justify-center gap-1
+                      {/* Botão Auto OP */}
+                      <button
+                        onClick={toggleAutoIncrementOP}
+                        className={`px-3 py-2 text-sm rounded-lg flex items-center justify-center gap-1
                         ${
                           autoIncrementOP
                             ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                             : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 hover:bg-gray-100 dark:hover:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
                         }`}
-                      title={
-                        autoIncrementOP ? "Desativar Auto OP" : "Ativar Auto OP"
-                      }
-                    >
-                      {autoIncrementOP ? (
-                        <>
-                          <CheckCircleIcon className="w-4 h-4" />
-                          Auto OP
-                        </>
-                      ) : (
-                        <>
-                          <PlusCircleIcon className="w-4 h-4" />
-                          Add OP
-                        </>
-                      )}
-                    </button>
+                        title={
+                          autoIncrementOP
+                            ? "Desativar Auto OP"
+                            : "Ativar Auto OP"
+                        }
+                      >
+                        {autoIncrementOP ? (
+                          <>
+                            <CheckCircleIcon className="w-4 h-4" />
+                            Auto OP
+                          </>
+                        ) : (
+                          <>
+                            <PlusCircleIcon className="w-4 h-4" />
+                            Add OP
+                          </>
+                        )}
+                      </button>
 
-                    <button
-                      onClick={handleAddOrdem}
-                      className="px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
+                      <button
+                        onClick={handleAddOrdem}
+                        className="px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg 
                                hover:bg-blue-700 dark:hover:bg-blue-600 
                                flex items-center justify-center gap-1 flex-1 transition-colors"
-                    >
-                      <PlusCircleIcon className="w-4 h-4" />
-                      <span className="text-sm">Adicionar</span>
-                    </button>
-                  </div>
+                      >
+                        <PlusCircleIcon className="w-4 h-4" />
+                        <span className="text-sm">Adicionar</span>
+                      </button>
+                    </div>
 
-                  {/* Mostrar botão de reset quando Auto OP estiver ativo */}
-                  {autoIncrementOP && (
-                    <button
-                      onClick={resetOP}
-                      className="w-full px-3 py-2 mt-2 text-sm text-gray-600 dark:text-gray-400 
+                    {/* Mostrar botão de reset quando Auto OP estiver ativo */}
+                    {autoIncrementOP && (
+                      <button
+                        onClick={resetOP}
+                        className="w-full px-3 py-2 mt-2 text-sm text-gray-600 dark:text-gray-400 
                                 bg-gray-50 dark:bg-gray-900/30 
                                 hover:bg-gray-100 dark:hover:bg-gray-900/50 
                                 border border-gray-200 dark:border-gray-700 
                                 rounded-lg transition-colors"
-                    >
-                      Resetar OP para 2213345
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Lista de Ordens */}
-              <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-md border dark:border-gray-700/50">
-                {/* Header mais compacto */}
-                <div className="px-2.5 py-2 border-b border-gray-200 dark:border-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        Ordens em Andamento
-                      </h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {ordens.length} {ordens.length === 1 ? 'ordem' : 'ordens'} no total
-                      </p>
-                    </div>
-                    {selectedOrdem && (
-                      <button
-                        onClick={() => handleSelectOrdem(null)}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500"
                       >
-                        Limpar Filtro
+                        Resetar OP para 2213345
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Lista de Ordens - Layout mais compacto */}
-                <div className="divide-y dark:divide-gray-700/50">
-                  {/* Ordens em Andamento */}
-                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50">
-                    <div className="space-y-1 max-h-[calc(50vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                      {ordens
-                        .filter(ordem => !isOrdemPesada(ordem, pesados) && (!selectedOrdem || ordem.nome === selectedOrdem.nome))
-                        .map(ordem => (
-                          <div
-                            key={ordem.id}
-                            onClick={() => handleOrdemClick(ordem)}
-                            className={`group relative px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200
-                              ${selectedOrdem?.id === ordem.id
-                                ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                {/* Lista de Ordens */}
+                <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-md border dark:border-gray-700/50">
+                  {/* Header mais compacto */}
+                  <div className="px-2.5 py-2 border-b border-gray-200 dark:border-gray-700/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          Ordens em Andamento
+                        </h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {ordens.length}{" "}
+                          {ordens.length === 1 ? "ordem" : "ordens"} no total
+                        </p>
+                      </div>
+                      {selectedOrdem && (
+                        <button
+                          onClick={() => handleSelectOrdem(null)}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500"
+                        >
+                          Limpar Filtro
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Lista de Ordens - Layout mais compacto */}
+                  <div className="divide-y dark:divide-gray-700/50">
+                    {/* Ordens em Andamento */}
+                    <div className="p-2 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="space-y-1 max-h-[calc(50vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                        {ordens
+                          .filter(
+                            (ordem) =>
+                              !isOrdemPesada(ordem, pesados) &&
+                              (!selectedOrdem ||
+                                ordem.nome === selectedOrdem.nome)
+                          )
+                          .map((ordem) => (
+                            <div
+                              key={ordem.id}
+                              onClick={() => handleOrdemClick(ordem)}
+                              className={`group relative px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200
+                              ${
+                                selectedOrdem?.id === ordem.id
+                                  ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
                               }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {/* Informações principais em linha */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                                    {ordem.nome}
-                                  </span>
-                                </div>
-
-                                {/* Informações secundárias */}
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="inline-flex items-center text-[10px] text-gray-500 dark:text-gray-400">
-                                    <span className="font-medium">OP:</span>
-                                    <span className="ml-1 font-mono">
-                                      {ordem.op ? String(ordem.op).padStart(7, '0') : 'N/A'}
+                            >
+                              <div className="flex items-center gap-2">
+                                {/* Informações principais em linha */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {ordem.nome}
                                     </span>
-                                  </span>
-                                  
-                                  {/* Contador de excipientes */}
-                                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                                    {Object.keys(ordem.excipientes).length} excipientes
-                                  </span>
-                                </div>
-                              </div>
+                                  </div>
 
-                              {/* Ações - Visíveis apenas no hover */}
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {!ordem.op && (
+                                  {/* Informações secundárias */}
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="inline-flex items-center text-[10px] text-gray-500 dark:text-gray-400">
+                                      <span className="font-medium">OP:</span>
+                                      <span className="ml-1 font-mono">
+                                        {ordem.op
+                                          ? String(ordem.op).padStart(7, "0")
+                                          : "N/A"}
+                                      </span>
+                                    </span>
+
+                                    {/* Contador de excipientes */}
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                      {Object.keys(ordem.excipientes).length}{" "}
+                                      excipientes
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Ações - Visíveis apenas no hover */}
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {!ordem.op && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenOPModal(ordem.id);
+                                      }}
+                                      className="p-1 text-blue-600 dark:text-blue-400 
+                                      hover:bg-blue-50 dark:hover:bg-blue-900/30 
+                                      rounded transition-colors"
+                                      title="Adicionar OP"
+                                    >
+                                      <PlusCircleIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleOpenOPModal(ordem.id);
+                                      handleEditOrdem(ordem);
                                     }}
                                     className="p-1 text-blue-600 dark:text-blue-400 
-                                      hover:bg-blue-50 dark:hover:bg-blue-900/30 
-                                      rounded transition-colors"
-                                    title="Adicionar OP"
-                                  >
-                                    <PlusCircleIcon className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditOrdem(ordem);
-                                  }}
-                                  className="p-1 text-blue-600 dark:text-blue-400 
                                     hover:bg-blue-50 dark:hover:bg-blue-900/30 
                                     rounded transition-colors"
-                                  title="Editar Ordem"
-                                >
-                                  <PencilIcon className="w-3.5 h-3.5" />
-                                </button>
-                                
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteOrdem(ordem.id);
-                                  }}
-                                  className="p-1 text-red-600 dark:text-red-400 
+                                    title="Editar Ordem"
+                                  >
+                                    <PencilIcon className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteOrdem(ordem.id);
+                                    }}
+                                    className="p-1 text-red-600 dark:text-red-400 
                                     hover:bg-red-50 dark:hover:bg-red-900/30 
                                     rounded transition-colors"
-                                  title="Remover Ordem"
-                                >
-                                  <TrashIcon className="w-3.5 h-3.5" />
-                                </button>
+                                    title="Remover Ordem"
+                                  >
+                                    <TrashIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Ordens Pesadas - Layout similar */}
-                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50">
-                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">
-                      Pesadas
-                    </h3>
-                    <div className="space-y-1 max-h-[calc(50vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                      {ordens
-                        .filter(ordem => isOrdemPesada(ordem, pesados))
-                        .map(ordem => (
-                          <div
-                            key={ordem.id}
-                            onClick={() => handleOrdemClick(ordem)}
-                            className={`group relative px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200
-                              ${selectedOrdem?.id === ordem.id
-                                ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    {/* Ordens Pesadas - Layout similar */}
+                    <div className="p-2 bg-gray-50 dark:bg-gray-800/50">
+                      <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">
+                        Pesadas
+                      </h3>
+                      <div className="space-y-1 max-h-[calc(50vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                        {ordens
+                          .filter((ordem) => isOrdemPesada(ordem, pesados))
+                          .map((ordem) => (
+                            <div
+                              key={ordem.id}
+                              onClick={() => handleOrdemClick(ordem)}
+                              className={`group relative px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200
+                              ${
+                                selectedOrdem?.id === ordem.id
+                                  ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700/50"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
                               }`}
-                          >
-                            {/* Similar ao layout acima, mas com status "Pesado" */}
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                                    {ordem.nome}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="inline-flex items-center text-[20px] text-gray-500 dark:text-gray-400">
-                                    <span className="font-medium">OP:</span>
-                                    <span className="ml-1 font-mono">
-                                      {ordem.op ? String(ordem.op).padStart(7, '0') : 'N/A'}
+                            >
+                              {/* Similar ao layout acima, mas com status "Pesado" */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {ordem.nome}
                                     </span>
-                                  </span>
-                                  <span className="text-[20px] text-gray-500 dark:text-gray-400">
-                                    {Object.keys(ordem.excipientes).length} excipientes
-                                  </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="inline-flex items-center text-[20px] text-gray-500 dark:text-gray-400">
+                                      <span className="font-medium">OP:</span>
+                                      <span className="ml-1 font-mono">
+                                        {ordem.op
+                                          ? String(ordem.op).padStart(7, "0")
+                                          : "N/A"}
+                                      </span>
+                                    </span>
+                                    <span className="text-[20px] text-gray-500 dark:text-gray-400">
+                                      {Object.keys(ordem.excipientes).length}{" "}
+                                      excipientes
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                              
-                              {/* Ações permancem as mesmas */}
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {/* ... mesmos botões de ação ... */}
+
+                                {/* Ações permancem as mesmas */}
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {/* ... mesmos botões de ação ... */}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Coluna Principal - 6 colunas */}
-            <div className="col-span-12 lg:col-span-6">
-              <TabelaPrincipal
-                filteredExcipientes={filteredExcipientes}
-                materiaisNaArea={materiaisNaArea}
-                faltaSolicitar={faltaSolicitar}
-                inputValues={inputValues}
-                handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
-                handleDetailClick={handleDetailClick}
-                handleToggleExpandExcipient={handleToggleExpandExcipient}
-                expandedExcipient={expandedExcipient}
-                allExpanded={allExpanded}
-                togglePesado={togglePesado}
-                calcularMovimentacaoTotal={calcularMovimentacaoTotal}
-                getOrdensAtendidas={getOrdensAtendidas}
-                handleUpdateSAPValues={handleUpdateSAPValues}
-                handleUpdateAllSAPValues={handleUpdateAllSAPValues}
-                handleEditOrdem={handleEditOrdem}
-              />
-            </div>
+              {/* Coluna Principal - 6 colunas */}
+              <div className="col-span-12 lg:col-span-6">
+                <TabelaPrincipal
+                  filteredExcipientes={filteredExcipientes}
+                  materiaisNaArea={materiaisNaArea}
+                  faltaSolicitar={faltaSolicitar}
+                  inputValues={inputValues}
+                  handleMateriaisNaAreaChange={handleMateriaisNaAreaChange}
+                  handleDetailClick={handleDetailClick}
+                  handleToggleExpandExcipient={handleToggleExpandExcipient}
+                  expandedExcipient={expandedExcipient}
+                  allExpanded={allExpanded}
+                  togglePesado={togglePesado}
+                  calcularMovimentacaoTotal={calcularMovimentacaoTotal}
+                  getOrdensAtendidas={getOrdensAtendidas}
+                  handleUpdateSAPValues={handleUpdateSAPValues}
+                  handleUpdateAllSAPValues={handleUpdateAllSAPValues}
+                  handleEditOrdem={handleEditOrdem}
+                />
+              </div>
 
-            {/* Coluna de Detalhamento - 3 colunas */}
-            <div className="col-span-12 lg:col-span-3 space-y-6">
-              <DetalhamentoMateriais
-                getFilteredAtivos={getFilteredAtivos}
-                getAtivoStatus={getAtivoStatus}
-                ordens={ordens}
-                filteredExcipientes={filteredExcipientes}
-                materiaisNaArea={materiaisNaArea}
-              />
-              
-              {/* Adicionando o novo componente abaixo do DetalhamentoMateriais */}
-              <AlmoxarifadoManager
-                excipientes={filteredExcipientes}
-                materiaisNaArea={materiaisNaArea}
-                faltaSolicitar={faltaSolicitar}
-                onUpdateSolicitacao={() => calcularFaltaSolicitar()}
-              />
+              {/* Coluna de Detalhamento - 3 colunas */}
+              <div className="col-span-12 lg:col-span-3 space-y-6">
+                <DetalhamentoMateriais
+                  getFilteredAtivos={getFilteredAtivos}
+                  getAtivoStatus={getAtivoStatus}
+                  ordens={ordens}
+                  filteredExcipientes={filteredExcipientes}
+                  materiaisNaArea={materiaisNaArea}
+                />
+                
+                {/* Componente AlmoxarifadoManager sem passar props desnecessárias */}
+                <AlmoxarifadoManager key={`almoxarifado-manager-${Date.now()}`} /> {/* Chave dinâmica para forçar re-render */}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Modais */}
-      <ExcelUploader
-        onDataUpdated={handleDataUpdated}
-        openUploadDialog={openDialog}
-        handleCloseUploadDialog={handleCloseUploadDialog}
-      />
+        {/* Modais */}
+        <ExcelUploader
+          onDataUpdated={handleDataUpdated}
+          openUploadDialog={openDialog}
+          handleCloseUploadDialog={handleCloseUploadDialog}
+        />
 
-      <Sap
-        open={sapDialogOpen}
-        onClose={() => setSapDialogOpen(false)}
-        user={user}
-      />
+        <Sap
+          open={sapDialogOpen}
+          onClose={() => setSapDialogOpen(false)}
+          user={user}
+        />
 
-      {/* Modal de Edição de Ordem - Versão Compacta */}
-      {editingOrdemDialog && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
+        {/* Modal de Edição de Ordem - Versão Compacta */}
+        {editingOrdemDialog && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
 
-            <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl w-full max-w-lg">
-              {/* Header Compacto */}
-              <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-t-lg">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium text-white">
-                    {editingOrdemDialog.nome}
-                  </h3>
-                  <button
-                    onClick={handleCloseEditDialog}
-                    className="p-1 hover:bg-white/10 rounded-lg transition-colors"
-                  >
-                    <XCircleIcon className="w-5 h-5 text-white/80 hover:text-white" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 mt-1 text-white/70 text-sm">
-                  <span>OP: {editingOrdemDialog.op || "Não definida"}</span>
-                  <span>•</span>
-                  <span>
-                    {Object.values(editingExcipientes).filter((e) => e.pesado).length}/
-                    {Object.keys(editingExcipientes).length} pesados
-                  </span>
-                </div>
-              </div>
-
-              {/* Lista de Excipientes Compacta */}
-              <div className="p-4">
-                <div className="mb-3 flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                  <span className="text-sm text-blue-700 dark:text-blue-300">
-                    Selecionar todos
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={selectAllChecked}
-                    onChange={handleSelectAll}
-                    className="h-4 w-4 rounded text-blue-600 border-blue-300 focus:ring-blue-500"
-                  />
+              <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl w-full max-w-lg">
+                {/* Header Compacto */}
+                <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-medium text-white">
+                      {editingOrdemDialog.nome}
+                    </h3>
+                    <button
+                      onClick={handleCloseEditDialog}
+                      className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <XCircleIcon className="w-5 h-5 text-white/80 hover:text-white" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-white/70 text-sm">
+                    <span>OP: {editingOrdemDialog.op || "Não definida"}</span>
+                    <span>•</span>
+                    <span>
+                      {
+                        Object.values(editingExcipientes).filter(
+                          (e) => e.pesado
+                        ).length
+                      }
+                      /{Object.keys(editingExcipientes).length} pesados
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-2">
-                  {Object.entries(editingExcipientes).map(([key, data]) => (
-                    <div
-                      key={key}
-                      className={`flex items-center justify-between p-2 rounded-lg border transition-all duration-200
+                {/* Lista de Excipientes Compacta */}
+                <div className="p-4">
+                  <div className="mb-3 flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <span className="text-sm text-blue-700 dark:text-blue-300">
+                      Selecionar todos
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={selectAllChecked}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 rounded text-blue-600 border-blue-300 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-2">
+                    {Object.entries(editingExcipientes).map(([key, data]) => (
+                      <div
+                        key={key}
+                        className={`flex items-center justify-between p-2 rounded-lg border transition-all duration-200
                         ${
                           data.pesado
                             ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
                             : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
                         }`}
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={data.pesado}
-                          onChange={() => handleToggleExcipiente(key)}
-                          className="h-4 w-4 rounded text-blue-600 border-blue-300 focus:ring-blue-500"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {data.nome}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {data.quantidade.toFixed(3)} kg
-                          </p>
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={data.pesado}
+                            onChange={() => handleToggleExcipiente(key)}
+                            className="h-4 w-4 rounded text-blue-600 border-blue-300 focus:ring-blue-500"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {data.nome}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {data.quantidade.toFixed(3)} kg
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      
-                      {data.isEspecial && (
-                        <button
-                          disabled
-                          className="px-2 py-1 text-xs font-medium rounded
+
+                        {data.isEspecial && (
+                          <button
+                            disabled
+                            className="px-2 py-1 text-xs font-medium rounded
                             bg-gray-100 dark:bg-gray-700 
                             text-gray-600 dark:text-gray-400 
                             border border-gray-200 dark:border-gray-600
                             opacity-50 cursor-not-allowed ml-2"
-                        >
-                          PA
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          >
+                            PA
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Footer Compacto */}
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg border-t border-gray-200 dark:border-gray-700/50">
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={handleCloseEditDialog}
-                    className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 
+                {/* Footer Compacto */}
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg border-t border-gray-200 dark:border-gray-700/50">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleCloseEditDialog}
+                      className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 
                       bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
                       rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveEditDialog}
-                    className="px-3 py-1.5 text-sm text-white 
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSaveEditDialog}
+                      className="px-3 py-1.5 text-sm text-white 
                       bg-blue-600 dark:bg-blue-500 
                       hover:bg-blue-700 dark:hover:bg-blue-600 
                       rounded-md"
-                  >
-                    Salvar
-                  </button>
+                    >
+                      Salvar
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal de Adição de OP */}
-      {opModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div
-              className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
-              onClick={() => setOpModalOpen(false)}
-            />
+        {/* Modal de Adição de OP */}
+        {opModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div
+                className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+                onClick={() => setOpModalOpen(false)}
+              />
 
-            <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                  Adicionar Ordem de Produção
-                </h3>
-              </div>
+              <div className="relative bg-white dark:bg-gray-800/95 rounded-lg shadow-xl">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                    Adicionar Ordem de Produção
+                  </h3>
+                </div>
 
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Número da OP
-                </label>
-                <input
-                  type="text"
-                  value={newOP}
-                  onChange={(e) => setNewOP(e.target.value)}
-                  placeholder="Digite os 7 números da OP"
-                  className="w-full px-3 py-2 
+                <div className="p-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Número da OP
+                  </label>
+                  <input
+                    type="text"
+                    value={newOP}
+                    onChange={(e) => setNewOP(e.target.value)}
+                    placeholder="Digite os 7 números da OP"
+                    className="w-full px-3 py-2 
                     bg-white dark:bg-gray-700
                     border border-gray-200 dark:border-gray-600 
                     text-gray-900 dark:text-gray-100
@@ -1939,42 +1956,44 @@ export default function Home() {
                     rounded-lg text-sm
                     focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
                     focus:border-transparent transition-colors"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  A OP deve conter exatamente 7 números
-                </p>
-              </div>
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    A OP deve conter exatamente 7 números
+                  </p>
+                </div>
 
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex justify-end gap-3">
-                <button
-                  onClick={() => setOpModalOpen(false)}
-                  className="px-4 py-2 text-sm 
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex justify-end gap-3">
+                  <button
+                    onClick={() => setOpModalOpen(false)}
+                    className="px-4 py-2 text-sm 
                     text-gray-700 dark:text-gray-300 
                     bg-white dark:bg-gray-700 
                     border border-gray-200 dark:border-gray-600
                     hover:bg-gray-50 dark:hover:bg-gray-600 
                     rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSaveOP}
-                  disabled={
-                    !newOP || newOP.length !== 7 || !/^\d+$/.test(newOP)
-                  }
-                  className="px-4 py-2 text-sm text-white 
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveOP}
+                    disabled={
+                      !newOP || newOP.length !== 7 || !/^\d+$/.test(newOP)
+                    }
+                    className="px-4 py-2 text-sm text-white 
                     bg-blue-600 dark:bg-blue-500 
                     hover:bg-blue-700 dark:hover:bg-blue-600 
                     rounded-lg transition-colors 
                     disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Salvar
-                </button>
+                  >
+                    Salvar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+      <DebugPanel />
+    </RequestsProvider>
   );
 }
