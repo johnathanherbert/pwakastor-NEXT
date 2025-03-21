@@ -23,6 +23,7 @@ export default function MaterialsTable({ materials, filterStatus }) {
           <th scope="col" className="px-6 py-3">Código</th>
           <th scope="col" className="px-6 py-3">Descrição</th>
           <th scope="col" className="px-6 py-3">Lote</th>
+          <th scope="col" className="px-6 py-3">Tipo</th>
           <th scope="col" className="px-6 py-3">Data Validade</th>
           <th scope="col" className="px-6 py-3">Dias na Área</th>
           <th scope="col" className="px-6 py-3">Status</th>
@@ -35,6 +36,7 @@ export default function MaterialsTable({ materials, filterStatus }) {
         <th scope="col" className="px-6 py-3">Código</th>
         <th scope="col" className="px-6 py-3">Descrição</th>
         <th scope="col" className="px-6 py-3">Lote</th>
+        <th scope="col" className="px-6 py-3">Tipo</th>
         <th scope="col" className="px-6 py-3">Data Validade</th>
         <th scope="col" className="px-6 py-3">Dias em Aging</th>
         <th scope="col" className="px-6 py-3">Status</th>
