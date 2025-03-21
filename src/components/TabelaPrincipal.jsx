@@ -19,6 +19,8 @@ import {
   PlusCircleIcon,
   TrashIcon,
   ClipboardDocumentIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 import { EXCIPIENTES_ESPECIAIS } from "../app/constants";
 import Modal from "./Modal";
@@ -51,6 +53,7 @@ const TabelaPrincipal = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingOrdem, setEditingOrdem] = useState(null);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
+  const [showCompletedItems, setShowCompletedItems] = useState(false);
 
   // Usar o contexto de requests
   const { materialRequests } = useRequests();
@@ -271,10 +274,20 @@ const TabelaPrincipal = ({
 
   // Filtrar excipientes com base no termo de pesquisa
   const filteredExcipientsList = useMemo(() => {
-    return Object.entries(filteredExcipientes).filter(([excipient]) =>
+    let filtered = Object.entries(filteredExcipientes).filter(([excipient]) =>
       excipient.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [filteredExcipientes, searchTerm]);
+
+    // Se showCompletedItems é false, removemos excipientes totalmente pesados
+    if (!showCompletedItems) {
+      filtered = filtered.filter(([excipient, { ordens }]) => {
+        // Verifica se ainda existem ordens não pesadas
+        return ordens.some(ordem => !ordem.pesado);
+      });
+    }
+
+    return filtered;
+  }, [filteredExcipientes, searchTerm, showCompletedItems]);
 
   const toggleFaltaSolicitarSort = () => {
     setFaltaSolicitarSort((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -755,6 +768,28 @@ const TabelaPrincipal = ({
                     <MagnifyingGlassIcon className="h-3.5 w-3.5 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   </div>
                   <button
+                    onClick={() => setShowCompletedItems(prev => !prev)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs
+                     text-gray-700 dark:text-gray-300 
+                     bg-white dark:bg-gray-700/50 
+                     border border-gray-200 dark:border-gray-600
+                     rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600/50 
+                     transition-all duration-200 font-medium"
+                    title={showCompletedItems ? "Ocultar materiais pesados" : "Mostrar materiais pesados"}
+                  >
+                    {showCompletedItems ? (
+                      <>
+                        <EyeSlashIcon className="h-3.5 w-3.5" />
+                        <span>Ocultar Pesados</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeIcon className="h-3.5 w-3.5" />
+                        <span>Mostrar Pesados</span>
+                      </>
+                    )}
+                  </button>
+                  <button
                     onClick={handleUpdateAllSAPValues}
                     className="flex items-center gap-1 px-2 py-1 text-xs
                      text-gray-700 dark:text-gray-300 
@@ -830,6 +865,11 @@ const TabelaPrincipal = ({
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ScaleIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {showCompletedItems 
+                    ? "Exibindo todos materiais" 
+                    : "Ocultando materiais completamente pesados"}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-600 dark:text-gray-300">
