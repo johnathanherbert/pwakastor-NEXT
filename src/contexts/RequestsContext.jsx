@@ -88,6 +88,14 @@ export function RequestsProvider({ children, initialRequests = {} }) {
     });
   }, []);
 
+  // Função para obter dados do excipiente selecionado
+  const getExcipientData = (excipientName) => {
+    // Buscar os dados do excipiente, incluindo o código
+    // Esta função deve estar integrada com sua lógica de materiais
+    const excipientData = materialsData?.find(material => material.name === excipientName) || null;
+    return excipientData;
+  };
+
   // Salvar solicitações quando houver alterações
   useEffect(() => {
     console.log("Saving material requests to localStorage", materialRequests);
@@ -99,7 +107,8 @@ export function RequestsProvider({ children, initialRequests = {} }) {
     setMaterialRequests,
     handleAddRequest,
     handleDeleteRequest,
-    handleUpdateRequestStatus
+    handleUpdateRequestStatus,
+    getExcipientData
   };
 
   return (

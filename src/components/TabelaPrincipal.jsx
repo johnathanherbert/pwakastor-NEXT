@@ -18,6 +18,7 @@ import {
   PencilSquareIcon,
   PlusCircleIcon,
   TrashIcon,
+  ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
 import { EXCIPIENTES_ESPECIAIS } from "../app/constants";
 import Modal from "./Modal";
@@ -426,6 +427,7 @@ const TabelaPrincipal = ({
         selectedExcipient={selectedExcipient}
         pendingQuantity={pendingQuantity}
         currentAmount={naArea}
+        filteredExcipientes={filteredExcipientes} // Passando filteredExcipientes como prop
       />
     );
   };
@@ -447,6 +449,27 @@ const TabelaPrincipal = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Adicionar função para copiar o código para a área de transferência
+  const handleCopyCode = (codigo) => {
+    if (!codigo) return;
+    
+    navigator.clipboard.writeText(codigo)
+      .then(() => {
+        // Opcional: feedback visual temporário
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm';
+        toast.textContent = 'Código copiado!';
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Erro ao copiar: ', err);
+      });
+  };
 
   const renderTableRow = ([excipient, { total, ordens, codigo }]) => {
     const naArea = materiaisNaArea[excipient] || 0;
@@ -516,8 +539,8 @@ const TabelaPrincipal = ({
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium
               ${
                 falta > 0
-                  ? "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/40 ring-1 ring-red-600/20 dark:ring-red-400/30"
-                  : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/40 ring-1 ring-green-600/20 dark:ring-green-400/30"
+                  ? "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/40 ring-1 ring-red-600/20"
+                  : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/40 ring-1 ring-green-600/20"
               }`}
             >
               {Math.abs(falta).toFixed(2)} kg
@@ -601,7 +624,19 @@ const TabelaPrincipal = ({
                     className="hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors duration-200"
                     >
                     <td className="px-3 py-2 text-[11px] font-medium text-gray-900 dark:text-gray-100">
-                      {codigo || '-'}
+                      <div className="flex items-center space-x-1.5">
+                        <span>{codigo || '-'}</span>
+                        {codigo && (
+                          <button
+                            onClick={() => handleCopyCode(codigo)}
+                            className="opacity-30 hover:opacity-100 transition-opacity duration-150 
+                                     hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
+                            title="Copiar código"
+                          >
+                            <ClipboardDocumentIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center space-x-2">
