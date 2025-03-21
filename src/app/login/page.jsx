@@ -11,8 +11,11 @@ import {
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [showResetModal, setShowResetModal] = useState(false);
   const [alert, setAlert] = useState({
     open: false,
     message: "",
@@ -74,6 +77,32 @@ export default function Login() {
     }
 
     setLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    
+    try {
+      // Make sure the URL is absolute and correctly formatted
+      const resetUrl = new URL('/reset-password', window.location.origin).toString();
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: resetUrl,
+      });
+      
+      if (error) {
+        showAlert(`Erro ao enviar email de recuperação: ${error.message}`, "error");
+      } else {
+        showAlert("Email de recuperação enviado com sucesso! Verifique sua caixa de entrada.", "success");
+        setShowResetModal(false);
+        setResetEmail("");
+      }
+    } catch (error) {
+      showAlert(`Erro ao processar sua solicitação: ${error.message}`, "error");
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const showAlert = (message, type) => {
@@ -171,22 +200,103 @@ export default function Login() {
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  resetFields();
-                }}
-                className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                {isLogin
-                  ? "Não tem uma conta? Registre-se"
-                  : "Já tem uma conta? Faça login"}
-              </button>
+              <div className="flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    resetFields();
+                  }}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                >
+                  {isLogin
+                    ? "Não tem uma conta? Registre-se"
+                    : "Já tem uma conta? Faça login"}
+                </button>
+                
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowResetModal(true)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <button
+              onClick={() => setShowResetModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            >
+              <XCircleIcon className="h-5 w-5" />
+            </button>
+            
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Recuperar Senha
+            </h3>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Insira seu email e enviaremos um link para redefinir sua senha.
+            </p>
+            
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="reset-email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="reset-email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 
+                    bg-white dark:bg-gray-700
+                    border border-gray-200 dark:border-gray-600 
+                    rounded-lg text-gray-900 dark:text-gray-100
+                    placeholder-gray-400 dark:placeholder-gray-400
+                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                    focus:border-transparent transition-colors"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={resetLoading}
+                className="w-full py-2 px-4 bg-blue-600 dark:bg-blue-500 
+                  hover:bg-blue-700 dark:hover:bg-blue-600 
+                  text-white dark:text-white
+                  rounded-lg font-medium 
+                  transition-colors duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resetLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 
+                      border-t-2 border-b-2 border-white dark:border-white/90 mr-2">
+                    </div>
+                    Enviando...
+                  </div>
+                ) : (
+                  "Enviar link de recuperação"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Alert */}
       {alert.open && (
