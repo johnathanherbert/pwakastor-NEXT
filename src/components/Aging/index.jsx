@@ -9,9 +9,12 @@ import MaterialsTable from './MaterialsTable';
 import AnalyticsSection from './AnalyticsSection';
 import FilterSection from './FilterSection';
 import TabSection from './TabSection';
+import FileUploadModal from '../FileUploadModal';
 import { differenceInDays, format } from 'date-fns';
 import { user } from '../../app/aging/layout'
 import { User } from 'lucide-react';
+import { Toast } from 'flowbite-react';
+import { HiCheck } from 'react-icons/hi';
 
 export default function AgingDashboard() {
   const [materials, setMaterials] = useState([]);
@@ -19,8 +22,11 @@ export default function AgingDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  
+  // Add additional state for upload modal
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
 
-  // Add missing states
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,17 +56,18 @@ export default function AgingDashboard() {
     percentage: 0
   });
 
-  // Add missing handlers
+  // Add state for ajuste data
+  const [ajusteData, setAjusteData] = useState([]);
+  const [isLoadingAjuste, setIsLoadingAjuste] = useState(true);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchData();
+    await Promise.all([fetchData(), fetchAjusteData()]);
     setIsRefreshing(false);
   };
 
   const handleStatusClick = (status) => {
-    // Se clicar no mesmo status, não mude nada
     if (filterStatus === status) return;
-    
     setFilterStatus(status);
     setActiveTab('materials');
   };
@@ -69,39 +76,30 @@ export default function AgingDashboard() {
     setActiveTab(tab);
   };
 
-  // Atualizar a lógica de filteredMaterials para ser mais precisa
-  const getFilteredMaterials = () => {
-    return materials.filter(material => {
-      const matchesSearch = material.codigo_materia_prima?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          material.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (!matchesSearch) return false;
-
-      if (filterStatus === 'adjustment') {
-        return material.tipo_estoque === 'S';
-      }
-
-      // Para todos os outros filtros, primeiro excluir os lotes em ajuste
-      if (material.tipo_estoque === 'S') {
-        return false;
-      }
-
-      // Aplicar filtros normais
-      switch (filterStatus) {
-        case 'critical':
-        case 'warning':
-        case 'attention':
-        case 'normal':
-          return material.status === filterStatus;
-        case 'all':
-          return true;
-        default:
-          return true;
-      }
-    });
+  // Add new handlers for upload modal
+  const handleOpenUploadModal = () => {
+    setIsUploadModalOpen(true);
   };
 
-  // Substituir a variável filteredMaterials por uma chamada à função
+  const handleCloseUploadModal = () => {
+    setIsUploadModalOpen(false);
+  };
+
+  const handleUploadSuccess = (recordCount) => {
+    setUploadSuccess({
+      show: true,
+      message: `${recordCount} registros importados com sucesso!`
+    });
+    
+    // Hide success message after 5 seconds
+    setTimeout(() => {
+      setUploadSuccess(null);
+    }, 5000);
+    
+    // Refresh the data to show the new uploaded records, including ajuste data
+    handleRefresh();
+  };
+
   const filteredMaterials = useMemo(() => {
     return materials.filter(material => {
       const matchesSearch = material.codigo_materia_prima?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -136,7 +134,6 @@ export default function AgingDashboard() {
     });
   }, [materials, filterStatus, searchTerm]);
 
-  // Função auxiliar para calcular o status baseado nos dias
   const calculateStatus = (daysInArea) => {
     if (daysInArea >= 20) return 'critical';
     if (daysInArea >= 15) return 'warning';
@@ -263,8 +260,50 @@ export default function AgingDashboard() {
     }
   };
 
+  // Add function to fetch ajuste data
+  const fetchAjusteData = async () => {
+    try {
+      setIsLoadingAjuste(true);
+      const { data, error } = await supabase
+        .from('ajusteAging')
+        .select('*')
+        .order('data_ajuste', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching ajuste data:', error);
+        throw error;
+      }
+
+      // Validate the data
+      if (!data || !Array.isArray(data)) {
+        console.warn('Received invalid ajuste data:', data);
+        setAjusteData([]);
+        return;
+      }
+
+      // Transform the data to ensure numeric values are properly formatted
+      const transformedData = data.map(item => ({
+        ...item,
+        quantidade: Number(item.quantidade || 0),
+        custo_unitario: Number(item.custo_unitario || 0),
+        custo_total: Number(item.custo_total || 0),
+        dias_corridos: Number(item.dias_corridos || 0)
+      }));
+
+      setAjusteData(transformedData);
+      console.log("Fetched ajuste data:", transformedData.length, "records");
+    } catch (error) {
+      console.error('Error fetching ajuste data:', error);
+      setAjusteData([]);
+    } finally {
+      setIsLoadingAjuste(false);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
+    console.log("Initial fetch of data");
+    // Fetch both datasets on initial load
+    Promise.all([fetchData(), fetchAjusteData()]);
     
     // Fetch current user data
     const getCurrentUser = async () => {
@@ -281,15 +320,29 @@ export default function AgingDashboard() {
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       
       <Topbar
-        user={currentUser || user} // Use currentUser if available, otherwise fallback to layout user
+        user={currentUser || user}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         title="Dashboard de Aging de Materiais"
+        onUploadClick={handleOpenUploadModal}
       />
 
-      
+      {/* Success toast notification */}
+      {uploadSuccess && uploadSuccess.show && (
+        <div className="fixed top-20 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500 dark:bg-green-800 dark:text-green-200">
+              <HiCheck className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">
+              {uploadSuccess.message}
+            </div>
+            <Toast.Toggle onDismiss={() => setUploadSuccess(null)} />
+          </Toast>
+        </div>
+      )}
 
       <main className="pt-20 px-6 max-w-8xl mx-auto">
         <FilterSection 
@@ -313,13 +366,22 @@ export default function AgingDashboard() {
           setActiveTab={handleTabChange}
           chartData={chartData}
           filteredMaterials={filteredMaterials}
-          filterStatus={filterStatus} // Adicionar esta prop
+          filterStatus={filterStatus}
+          ajusteData={ajusteData}
+          isLoadingAjuste={isLoadingAjuste}
           trendData={trendData}
           densityData={densityData}
           oldestLots={oldestLots}
           darkMode={darkMode}
         />
       </main>
+
+      {/* File Upload Modal */}
+      <FileUploadModal 
+        isOpen={isUploadModalOpen}
+        onClose={handleCloseUploadModal}
+        onSuccess={handleUploadSuccess}
+      />
     </div>
   );
 }

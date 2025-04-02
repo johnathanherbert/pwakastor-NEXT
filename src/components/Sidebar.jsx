@@ -20,7 +20,7 @@ export default function Sidebar({ open, onClose }) {
     { name: "Início", href: "/", icon: HomeIcon },
     { name: "Devolução de Materiais", href: "/devolucao", icon: DocumentChartBarIcon },
     { name: "Aging de Materiais", href: "/aging", icon: ClockIcon },
-    { name: "Produtos", href: "", icon: CubeIcon },
+    { name: "Almoxarifado", href: "", icon: CubeIcon },
     { name: "Inventário", href: "", icon: ArchiveBoxIcon },
     { name: "Usuários", href: "", icon: UserGroupIcon },
     { name: "Configurações", href: "", icon: Cog6ToothIcon },

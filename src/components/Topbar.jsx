@@ -6,6 +6,7 @@ import UserMenu from "./UserMenu";
 import Sidebar from "./Sidebar";
 import { Bars3Icon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import ExcelUploader from "./ExcelUploader";
+import { HiOutlineUpload } from 'react-icons/hi';
 
 export default function Topbar({ 
   user, 
@@ -16,7 +17,8 @@ export default function Topbar({
   openDialog, 
   setOpenDialog, 
   handleDataUpdated,
-  title = "Devolução de Materiais" // Default title if none provided
+  title = "Devolução de Materiais", // Default title if none provided
+  onUploadClick // Add this prop
 }) {
   const router = useRouter();
 
@@ -63,6 +65,15 @@ export default function Topbar({
                 <span className="hidden sm:inline">Upload Excel</span>
               </button>
             )}
+            {/* Add Upload Button */}
+            <button
+              type="button"
+              onClick={onUploadClick}
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            >
+              <HiOutlineUpload className="w-4 h-4 mr-2" />
+              Importar
+            </button>
             <UserMenu 
               user={user} 
               darkMode={darkMode} 

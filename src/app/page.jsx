@@ -14,6 +14,7 @@ import ExcelUploader, { fetchUpdateHistory } from "../components/ExcelUploader";
 import Sap from "../components/Sap";
 import AlmoxarifadoManager from "../components/AlmoxarifadoManager";
 import DebugPanel from "../components/DebugPanel";
+import AdminControls from "../components/AdminControls"; // Import the AdminControls component
 
 // Supabase client
 import { supabase } from "../supabaseClient";
@@ -84,7 +85,6 @@ export default function Home() {
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedExcipientDetail, setSelectedExcipientDetail] = useState(null);
-  // ... outros estados ...
   const [excipientDetailDialogOpen, setExcipientDetailDialogOpen] =
     useState(false);
   const [selectedExcipientForDetail, setSelectedExcipientForDetail] =
@@ -1351,6 +1351,9 @@ export default function Home() {
                   <span className="hidden sm:inline">Consulta SAP</span>
                 </button>
 
+                {/* Admin Controls Component */}
+                <AdminControls user={user} />
+
                 <button
                   onClick={handleUpdateAllSAPValues}
                   className="inline-flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 text-xs
@@ -1389,7 +1392,7 @@ export default function Home() {
           </div>
         </nav>
 
-        /* Layout Principal */
+        {/* Layout Principal */}
         <div className="flex pt-16">
           <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
