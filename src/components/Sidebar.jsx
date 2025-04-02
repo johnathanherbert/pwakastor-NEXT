@@ -9,7 +9,11 @@ import {
   CubeIcon,
   ArchiveBoxIcon,
   UserGroupIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  TruckIcon,
+  ClipboardDocumentListIcon,
+  ChartBarIcon,
+  BuildingStorefrontIcon
 } from "@heroicons/react/24/outline";
 import { supabase } from "../supabaseClient";
 
@@ -17,10 +21,15 @@ export default function Sidebar({ open, onClose }) {
   const pathname = usePathname();
   
   const navigation = [
-    { name: "Início", href: "/", icon: HomeIcon },
-    { name: "Devolução de Materiais", href: "/devolucao", icon: DocumentChartBarIcon },
-    { name: "Aging de Materiais", href: "/aging", icon: ClockIcon },
-    { name: "Almoxarifado", href: "", icon: CubeIcon },
+    { name: "Pesagem", href: "/", icon: HomeIcon },
+    { name: "Devolução", href: "/devolucao", icon: TruckIcon },
+    { name: "Gestão", href: "/gestao", icon: ClipboardDocumentListIcon },
+    { name: "Aging", href: "/aging", icon: ChartBarIcon },
+    { 
+      name: "Almoxarifado", 
+      href: "/almoxarifado/nts", 
+      icon: BuildingStorefrontIcon 
+    },
     { name: "Inventário", href: "", icon: ArchiveBoxIcon },
     { name: "Usuários", href: "", icon: UserGroupIcon },
     { name: "Configurações", href: "", icon: Cog6ToothIcon },
