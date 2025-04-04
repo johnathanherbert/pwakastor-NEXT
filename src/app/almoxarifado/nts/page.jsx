@@ -195,8 +195,11 @@ export default function NTsPage() {
         
         // Find NT number for the toast - only show toast for items added to existing NTs
         if (!newNTWithItems) {
-          const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
-          showToast(`Item ${newRecord.code} adicionado à NT ${ntNumber}`, 'success');
+          const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number;
+          // Only show toast if we have a valid NT number
+          if (ntNumber) {
+            showToast(`Item ${newRecord.code} adicionado à NT ${ntNumber}`, 'success');
+          }
         }
         
         return {
@@ -249,9 +252,13 @@ export default function NTsPage() {
         const currentItems = prev[ntId] || [];
         const filteredItems = currentItems.filter(item => item.id !== oldRecord.id);
         
-        // Find NT number for the toast
-        const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
-        showToast(`Item ${oldRecord.code} removido da NT ${ntNumber}`, 'warning');
+        // Find NT number for the toast, only show toast if we can find both the NT and item code
+        const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number;
+        const itemCode = oldRecord?.code;
+        
+        if (ntNumber && itemCode) {
+          showToast(`Item ${itemCode} removido da NT ${ntNumber}`, 'warning');
+        }
         
         return {
           ...prev,

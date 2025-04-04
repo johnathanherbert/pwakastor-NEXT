@@ -64,7 +64,7 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
 
   return (
     <div 
-      className={`fixed top-4 right-4 max-w-sm shadow-lg rounded-lg border z-50 transition-all duration-300 ${
+      className={`w-full shadow-lg rounded-lg border transition-all duration-300 ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       } ${getBackgroundColor()}`}
     >
