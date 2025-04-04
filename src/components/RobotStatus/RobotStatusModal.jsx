@@ -6,14 +6,21 @@ import {
   ExclamationTriangleIcon,
   ClockIcon,
   PlusCircleIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
+import { setupRealtimeSubscription, removeSubscription } from '../../utils/supabaseRealtime';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function RobotStatusModal({ isOpen, onClose, alerts = [], selectedAlert = null, onResolve, onRefresh }) {
   const [tab, setTab] = useState('active');
   const [resolvedAlerts, setResolvedAlerts] = useState([]);
   const [isAddingAlert, setIsAddingAlert] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [robotStatus, setRobotStatus] = useState({});
+  const [currentTime, setCurrentTime] = useState(new Date());
   
   const [newAlert, setNewAlert] = useState({
     robot_number: '1',
@@ -290,6 +297,109 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
       </form>
     );
   }, [newAlert, handleInputChange, addAlert, loading]);
+
+  // Setup realtime subscription for robot_alerts and robot_status
+  useEffect(() => {
+    if (isOpen) {
+      const alertsSub = setupRealtimeSubscription('robot_alerts', handleRobotAlertChange);
+      const statusSub = setupRealtimeSubscription('robot_status', handleRobotStatusChange);
+      
+      // Store subscriptions to clean up later
+      setSubscription({ alerts: alertsSub, status: statusSub });
+      
+      // Fetch current robot status
+      fetchRobotStatus();
+      
+      // Update time every minute for "time ago" calculations
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 60000);
+      
+      return () => {
+        if (subscription) {
+          removeSubscription(subscription.alerts);
+          removeSubscription(subscription.status);
+        }
+        clearInterval(timer);
+      };
+    }
+  }, [isOpen]);
+
+  const fetchRobotStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('robot_status')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Convert array to object with robot_id as key
+      const statusMap = {};
+      data.forEach(status => {
+        statusMap[status.robot_id] = status;
+      });
+      
+      setRobotStatus(statusMap);
+    } catch (error) {
+      console.error('Error fetching robot status:', error);
+    }
+  };
+
+  const handleRobotAlertChange = (payload) => {
+    console.log('Robot alert change:', payload);
+    onRefresh(); // Refresh alerts list
+  };
+
+  const handleRobotStatusChange = (payload) => {
+    console.log('Robot status change:', payload);
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+      setRobotStatus(prev => ({
+        ...prev,
+        [newRecord.robot_id]: newRecord
+      }));
+    }
+  };
+
+  const calculateInactiveTime = (lastActiveTime) => {
+    if (!lastActiveTime) return 'Tempo desconhecido';
+    
+    try {
+      const lastActive = new Date(lastActiveTime);
+      return formatDistanceToNow(lastActive, { addSuffix: true, locale: ptBR });
+    } catch (error) {
+      return 'Tempo inválido';
+    }
+  };
+
+  const getRobotStatusBadge = (robot) => {
+    const status = robotStatus[robot?.robot_id];
+    
+    if (!status) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+          Estado desconhecido
+        </span>
+      );
+    }
+    
+    if (status.is_active) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
+          <CheckIcon className="mr-1 h-3 w-3" />
+          Ativo
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">
+          <ExclamationTriangleIcon className="mr-1 h-3 w-3" />
+          Inativo
+        </span>
+      );
+    }
+  };
 
   if (!isOpen) return null;
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { XMarkIcon, PlusIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { showToast } from '../../components/Toast/ToastContainer';
 
 export default function AddNTModal({ isOpen, onClose, onNTAdded }) {
   const [ntNumber, setNtNumber] = useState('');
@@ -151,6 +152,9 @@ export default function AddNTModal({ isOpen, onClose, onNTAdded }) {
       if (ntError) throw ntError;
       
       const ntId = ntData[0].id;
+
+      // Add a flag to indicate this is a new NT with items
+      localStorage.setItem('new_nt_with_items', ntId);
       
       // Then, insert all the items
       const itemsToInsert = items.map(item => ({
@@ -170,14 +174,27 @@ export default function AddNTModal({ isOpen, onClose, onNTAdded }) {
       
       if (itemsError) throw itemsError;
       
-      // Reset form and close modal
+      // Show a single toast with the NT number and number of items
+      showToast(
+        `NT ${ntNumber} criada com ${items.length} ${items.length === 1 ? 'item' : 'itens'}`,
+        'success',
+        5000
+      );
+      
+      // Reset form
       setNtNumber('');
       setItems([{ codigo: '', descricao: '', quantidade: '', item_number: 1 }]);
+      
+      // Notificar o componente pai que a operação foi concluída
+      // A UI será atualizada automaticamente via listener em tempo real
       onNTAdded();
       
     } catch (error) {
       console.error('Error adding NT:', error);
       setError('Erro ao adicionar NT. Por favor, tente novamente.');
+      
+      // Clear the flag if there's an error
+      localStorage.removeItem('new_nt_with_items');
     } finally {
       setIsSubmitting(false);
     }

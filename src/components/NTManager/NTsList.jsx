@@ -168,9 +168,52 @@ export default function NTsList({
   };
 
   const renderTimeStatus = (item) => {
-    if (item.status !== 'Ag. Pagamento') {
+    if (item.status === 'Pago' || item.status === 'Pago Parcial') {
+      // Calculate time between creation and payment
+      if (item.payment_time && item.created_time) {
+        try {
+          // Parse dates for comparison
+          const [day, month, year] = item.created_date.split('/').map(Number);
+          const [createdHours, createdMinutes] = item.created_time.split(':').map(Number);
+          const [paymentHours, paymentMinutes] = item.payment_time.split(':').map(Number);
+          
+          // Calculate minutes between creation and payment
+          const createdDate = new Date(2000 + year, month - 1, day, createdHours, createdMinutes);
+          const paymentDate = new Date(2000 + year, month - 1, day, paymentHours, paymentMinutes);
+          
+          // If payment was on next day, adjust
+          if (paymentHours < createdHours || (paymentHours === createdHours && paymentMinutes < createdMinutes)) {
+            paymentDate.setDate(paymentDate.getDate() + 1);
+          }
+          
+          const diffMinutes = Math.floor((paymentDate - createdDate) / (1000 * 60));
+          const deadlineMinutes = 120; // 2 hours in minutes
+          
+          if (diffMinutes <= deadlineMinutes) {
+            return (
+              <span className="text-[9px] sm:text-xs text-green-600 dark:text-green-400 font-medium">
+                Pago a tempo ({formatElapsedTime(diffMinutes)})
+              </span>
+            );
+          } else {
+            return (
+              <span className="text-[9px] sm:text-xs text-orange-600 dark:text-orange-400 font-medium">
+                Pago com atraso de {formatElapsedTime(diffMinutes - deadlineMinutes)}
+              </span>
+            );
+          }
+        } catch (error) {
+          console.error('Error calculating payment time:', error);
+          return (
+            <span className="text-[9px] sm:text-xs text-gray-600 dark:text-gray-400">
+              {item.status}
+            </span>
+          );
+        }
+      }
+      
       return (
-        <span className="text-[9px] sm:text-xs text-green-600 dark:text-green-400">
+        <span className="text-[9px] sm:text-xs text-green-600 dark:text-green-400 font-medium">
           Pago a tempo
         </span>
       );
@@ -466,7 +509,7 @@ export default function NTsList({
                               {item.created_time}
                             </td>
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap">
-                              {item.payment_time ? (
+                              {item.payment_time && (item.status === 'Pago' || item.status === 'Pago Parcial') ? (
                                 <span className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 font-medium">
                                   {item.payment_time}
                                 </span>

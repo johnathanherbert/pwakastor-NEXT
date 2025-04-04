@@ -11,7 +11,8 @@ import {
   ExclamationTriangleIcon,
   TrashIcon,
   PencilIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ChartBarIcon // Add this import
 } from '@heroicons/react/24/outline';
 import AddNTModal from '../../../components/NTManager/AddNTModal';
 import EditNTModal from '../../../components/NTManager/EditNTModal';
@@ -19,6 +20,7 @@ import NTsList from '../../../components/NTManager/NTsList';
 import DeleteConfirmationModal from '../../../components/NTManager/DeleteConfirmationModal';
 import RobotAlertBanner from '../../../components/RobotStatus/RobotAlertBanner';
 import RobotStatusModal from '../../../components/RobotStatus/RobotStatusModal';
+import AnalyticsModal from '../../../components/Analytics/AnalyticsModal'; // Add this import
 import { 
   calculatePaymentDeadline, 
   getCurrentShift, 
@@ -26,6 +28,9 @@ import {
   parseBrazilianDateTime,
   formatShiftName
 } from '../../../utils/ntHelpers';
+import { setupRealtimeSubscription, removeSubscription, setupMultipleSubscriptions, removeMultipleSubscriptions } from '../../../utils/supabaseRealtime';
+import ToastContainer from '../../../components/Toast/ToastContainer';
+import { showToast } from '../../../components/Toast/ToastContainer';
 
 export default function NTsPage() {
   const [user, setUser] = useState(null);
@@ -51,6 +56,8 @@ export default function NTsPage() {
   const [robotAlerts, setRobotAlerts] = useState([]);
   const [selectedShift, setSelectedShift] = useState(0); // 0 = all shifts, 1-3 for specific shifts
   const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false); // Add this state
 
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode');
@@ -64,7 +71,7 @@ export default function NTsPage() {
       if (user) {
         setUser(user);
         await fetchNTs();
-        setupRealtimeSubscription();
+        setupRealtimeListeners();
         fetchRobotAlerts();
       }
       setIsLoading(false);
@@ -73,32 +80,193 @@ export default function NTsPage() {
     checkUser();
     
     return () => {
-      const subscription = supabase.getChannels()[0];
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
+      removeMultipleSubscriptions(subscriptions);
     };
   }, []);
 
-  const setupRealtimeSubscription = () => {
-    const ntChannel = supabase
-      .channel('nts-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'nts' }, 
-        () => {
-          console.log('NT table changed, refreshing data');
-          fetchNTs();
-        }
-      )
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'nt_items' }, 
-        () => {
-          console.log('NT items changed, refreshing data');
-          fetchNTs();
-        }
-      )
-      .subscribe();
+  const setupRealtimeListeners = () => {
+    console.log("Setting up realtime listeners for NT updates");
+    
+    const newSubscriptions = setupMultipleSubscriptions([
+      {
+        table: 'nts',
+        callback: handleNTChange,
+        options: { event: '*' }
+      },
+      {
+        table: 'nt_items',
+        callback: handleNTItemChange,
+        options: { event: '*' }
+      }
+    ]);
+    
+    setSubscriptions(newSubscriptions);
   };
+
+  const handleNTChange = async (payload) => {
+    console.log("NT changed:", payload);
+    
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    if (eventType === 'INSERT') {
+      const { data: newNT } = await supabase
+        .from('nts')
+        .select('*')
+        .eq('id', newRecord.id)
+        .single();
+      
+      const { data: newItems } = await supabase
+        .from('nt_items')
+        .select('*')
+        .eq('nt_id', newRecord.id);
+      
+      if (newNT) {
+        // Verificar se a NT já existe no estado antes de adicioná-la
+        setNTs(prev => {
+          // Se já existe uma NT com este ID, não adicione novamente
+          if (prev.some(nt => nt.id === newNT.id)) {
+            return prev;
+          }
+          
+          // Check if this is a new NT with items (created from AddNTModal)
+          const newNTWithItems = localStorage.getItem('new_nt_with_items') === newNT.id;
+          
+          // Only show toast if this isn't from a batch creation in AddNTModal
+          if (!newNTWithItems) {
+            showToast(`NT ${newNT.nt_number} criada com sucesso!`, 'success');
+          } else {
+            // Clear the flag after using it
+            localStorage.removeItem('new_nt_with_items');
+          }
+          
+          return [newNT, ...prev];
+        });
+        
+        setFilteredNTs(prev => {
+          // Se já existe uma NT com este ID, não adicione novamente
+          if (prev.some(nt => nt.id === newNT.id)) {
+            return prev;
+          }
+          return [newNT, ...prev];
+        });
+        
+        if (newItems && newItems.length > 0) {
+          setNTItems(prev => ({
+            ...prev,
+            [newRecord.id]: newItems
+          }));
+        }
+      }
+    }
+    else if (eventType === 'UPDATE') {
+      setNTs(prev => 
+        prev.map(nt => nt.id === newRecord.id ? { ...nt, ...newRecord } : nt)
+      );
+      setFilteredNTs(prev => 
+        prev.map(nt => nt.id === newRecord.id ? { ...nt, ...newRecord } : nt)
+      );
+      
+      showToast(`NT ${newRecord.nt_number || 'atualizada'} alterada`, 'info');
+    }
+    else if (eventType === 'DELETE') {
+      setNTs(prev => prev.filter(nt => nt.id !== oldRecord.id));
+      setFilteredNTs(prev => prev.filter(nt => nt.id !== oldRecord.id));
+      
+      setNTItems(prev => {
+        const newState = { ...prev };
+        delete newState[oldRecord.id];
+        return newState;
+      });
+    }
+  };
+
+  const handleNTItemChange = async (payload) => {
+    console.log("NT item changed:", payload);
+    
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    if (eventType === 'INSERT') {
+      setNTItems(prev => {
+        const ntId = newRecord.nt_id;
+        const currentItems = prev[ntId] || [];
+        
+        // Check if this item is part of a new NT with items
+        const newNTWithItems = localStorage.getItem('new_nt_with_items') === ntId;
+        
+        // Find NT number for the toast - only show toast for items added to existing NTs
+        if (!newNTWithItems) {
+          const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
+          showToast(`Item ${newRecord.code} adicionado à NT ${ntNumber}`, 'success');
+        }
+        
+        return {
+          ...prev,
+          [ntId]: [...currentItems, newRecord]
+        };
+      });
+    }
+    else if (eventType === 'UPDATE') {
+      setNTItems(prev => {
+        const ntId = newRecord.nt_id;
+        const currentItems = prev[ntId] || [];
+        const updatedItems = currentItems.map(item => 
+          item.id === newRecord.id ? { ...item, ...newRecord } : item
+        );
+        
+        // Show different toast messages based on status changes,
+        // but only if the update wasn't triggered by the local updateItemStatus function
+        // to avoid duplicate toasts
+        if (oldRecord && oldRecord.status !== newRecord.status) {
+          const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
+          const itemDesc = newRecord.description || '';
+          
+          // Only show toasts for changes that came from other sessions,
+          // since updateItemStatus already shows toasts for local changes
+          const isLocalChange = localStorage.getItem(`status_update_${newRecord.id}`);
+          if (!isLocalChange) {
+            if (newRecord.status === 'Pago') {
+              showToast(`${itemDesc} (${newRecord.code}) foi marcado como pago`, 'success');
+            } else if (newRecord.status === 'Pago Parcial') {
+              showToast(`${itemDesc} (${newRecord.code}) foi marcado como parcialmente pago`, 'info');
+            } else {
+              showToast(`Status de ${itemDesc} (${newRecord.code}) alterado`, 'info');
+            }
+          } else {
+            // Clear the flag after using it
+            localStorage.removeItem(`status_update_${newRecord.id}`);
+          }
+        }
+        
+        return {
+          ...prev,
+          [ntId]: updatedItems
+        };
+      });
+    }
+    else if (eventType === 'DELETE') {
+      setNTItems(prev => {
+        const ntId = oldRecord.nt_id;
+        const currentItems = prev[ntId] || [];
+        const filteredItems = currentItems.filter(item => item.id !== oldRecord.id);
+        
+        // Find NT number for the toast
+        const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
+        showToast(`Item ${oldRecord.code} removido da NT ${ntNumber}`, 'warning');
+        
+        return {
+          ...prev,
+          [ntId]: filteredItems
+        };
+      });
+    }
+    
+    // No manual call to filterNTs() here - it will be triggered by the useEffect
+  };
+
+  // Make sure we're watching for ntItems changes in the useEffect
+  useEffect(() => {
+    filterNTs();
+  }, [searchTerm, filterStatus, itemSearchTerm, showOverdueOnly, selectedShift, nts, ntItems]);
 
   const fetchNTs = async () => {
     try {
@@ -296,7 +464,8 @@ export default function NTsPage() {
 
   const handleNTAdded = () => {
     setShowAddModal(false);
-    refreshData();
+    // Não precisamos chamar refreshData aqui, pois o listener em tempo real
+    // já vai detectar a nova NT e atualizar a UI
   };
 
   const updateItemStatus = async (itemId, newStatus, ntId) => {
@@ -308,7 +477,18 @@ export default function NTsPage() {
       
       if (newStatus === 'Pago' || newStatus === 'Pago Parcial') {
         updates.payment_time = paymentTime;
+      } else if (newStatus === 'Ag. Pagamento') {
+        // Clear payment time when status is changed back to "Awaiting Payment"
+        updates.payment_time = null;
       }
+
+      // Get the item before update to reference in toast
+      const itemToUpdate = ntItems[ntId]?.find(item => item.id === itemId);
+      if (!itemToUpdate) throw new Error('Item não encontrado');
+      
+      const itemCode = itemToUpdate?.code || '';
+      const itemDesc = itemToUpdate?.description || '';
+      const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || '';
 
       const { error } = await supabase
         .from('nt_items')
@@ -317,20 +497,33 @@ export default function NTsPage() {
 
       if (error) throw error;
       
-      setNTItems(prev => {
-        const updatedItems = prev[ntId] ? [...prev[ntId]] : [];
-        const itemIndex = updatedItems.findIndex(item => item.id === itemId);
-        if (itemIndex !== -1) {
-          updatedItems[itemIndex] = { 
-            ...updatedItems[itemIndex], 
-            status: newStatus, 
-            payment_time: updates.payment_time || updatedItems[itemIndex].payment_time 
-          };
-        }
-        return { ...prev, [ntId]: updatedItems };
-      });
+      // Flag this as a local status update to prevent duplicate toasts
+      localStorage.setItem(`status_update_${itemId}`, 'true');
+      setTimeout(() => localStorage.removeItem(`status_update_${itemId}`), 5000);
+      
+      // Show toast with item description and status
+      let statusText = '';
+      let toastType = 'info';
+      
+      switch (newStatus) {
+        case 'Pago':
+          statusText = 'pago';
+          toastType = 'success';
+          break;
+        case 'Pago Parcial':
+          statusText = 'parcialmente pago';
+          toastType = 'info';
+          break;
+        default:
+          statusText = 'aguardando pagamento';
+          toastType = 'warning';
+      }
+      
+      showToast(`${itemDesc} (${itemCode}) foi marcado como ${statusText}`, toastType);
+      
     } catch (error) {
       console.error('Error updating item status:', error);
+      showToast(`Erro ao atualizar status: ${error.message}`, 'error');
     }
   };
 
@@ -412,7 +605,8 @@ export default function NTsPage() {
 
   const addItemToNT = async (ntId, newItem) => {
     try {
-      console.log("Adding item to NT:", ntId, newItem); // Debugging
+      console.log("Adding item to NT:", ntId, newItem);
+      
       const now = new Date();
       const formattedDate = now.toLocaleDateString('pt-BR');
       const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -433,6 +627,9 @@ export default function NTsPage() {
         status: 'Ag. Pagamento'
       };
       
+      // Find the NT number to display in the toast
+      const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
+      
       console.log("Inserting item:", itemToInsert);
       
       const { data, error } = await supabase
@@ -442,26 +639,35 @@ export default function NTsPage() {
       
       if (error) throw error;
       
+      showToast(`Item ${newItem.codigo} adicionado à NT ${ntNumber}`, 'success');
       console.log("Item added successfully:", data);
-      refreshData();
+      // O listener em tempo real cuidará da atualização
     } catch (error) {
       console.error('Error adding item to NT:', error);
-      alert(`Error adding item: ${error.message}`);
+      showToast(`Erro ao adicionar item: ${error.message}`, 'error');
     }
   };
 
   const editItem = async (itemId, updates, ntId) => {
     try {
-      console.log("Editing item:", itemId, "with updates:", updates); // Debugging
+      console.log("Editing item:", itemId, "with updates:", updates);
       
       const { error } = await supabase
         .from('nt_items')
         .update(updates)
         .eq('id', itemId);
-      
+
       if (error) throw error;
       
       console.log("Item updated successfully");
+      
+      // Show toast with updated item description
+      const itemToUpdate = ntItems[ntId]?.find(item => item.id === itemId);
+      if (itemToUpdate) {
+        const newDesc = updates.description || itemToUpdate.description;
+        const itemCode = updates.code || itemToUpdate.code;
+        showToast(`Item ${newDesc} (${itemCode}) atualizado com sucesso`, 'success');
+      }
       
       setNTItems(prev => {
         const updatedItems = [...prev[ntId]];
@@ -475,14 +681,16 @@ export default function NTsPage() {
       refreshData();
     } catch (error) {
       console.error('Error updating item:', error);
-      alert(`Error updating item: ${error.message}`);
+      showToast(`Erro ao atualizar item: ${error.message}`, 'error');
     }
   };
 
   if (isLoading && nts.length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
+      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
+        </div>
       </div>
     );
   }
@@ -491,21 +699,22 @@ export default function NTsPage() {
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
+      {/* Add ToastContainer to the top level */}
+      <ToastContainer />
+      
       <main className="p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <button
+              <button 
                 onClick={() => setDrawerOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </button>
-              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                Gerenciamento de NTs
-              </h1>
+              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Gerenciamento de NTs</h1>
             </div>
             
             <button
@@ -518,11 +727,11 @@ export default function NTsPage() {
             >
               {darkMode ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               )}
             </button>
@@ -540,7 +749,7 @@ export default function NTsPage() {
                 className="pl-9 pr-3 py-2 w-full bg-white dark:bg-gray-700/80 border border-gray-200 dark:border-gray-700
                          rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
                          focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-              />
+              /> 
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
             
@@ -557,6 +766,15 @@ export default function NTsPage() {
                 <FunnelIcon className="h-5 w-5" />
               </button>
 
+              {/* Add Analytics Button */}
+              <button
+                onClick={() => setShowAnalyticsModal(true)}
+                className="p-2 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors"
+                title="Análise de Desempenho"
+              >
+                <ChartBarIcon className="h-5 w-5" />
+              </button>
+              
               <button
                 onClick={() => setShowRobotStatusModal(true)}
                 className="p-2 bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-500 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors relative"
@@ -585,7 +803,7 @@ export default function NTsPage() {
                 <PlusIcon className="h-5 w-5" />
                 <span className="hidden sm:inline">Adicionar NT</span>
               </button>
-
+              
               <div className="relative">
                 <button
                   onClick={() => setShiftMenuOpen(!shiftMenuOpen)}
@@ -597,7 +815,6 @@ export default function NTsPage() {
                   </span>
                   <ChevronDownIcon className="h-4 w-4" />
                 </button>
-                
                 {shiftMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700 py-1">
                     <button
@@ -664,7 +881,7 @@ export default function NTsPage() {
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                     Status dos itens
                   </label>
-                  <select
+                  <select 
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
@@ -784,7 +1001,7 @@ export default function NTsPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
               <p className="text-gray-600 dark:text-gray-400">
                 {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0
-                  ? 'Nenhuma NT encontrada com os filtros aplicados.' 
+                  ? 'Nenhuma NT encontrada com os filtros aplicados.'
                   : 'Nenhuma NT encontrada. Clique em "Adicionar NT" para começar.'}
               </p>
               {(searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0) && (
@@ -811,7 +1028,7 @@ export default function NTsPage() {
               </button>
             </div>
           )}
-          
+
           <div className={isLoading && filteredNTs.length > 0 ? "opacity-60 pointer-events-none" : ""}>
             <NTsList 
               nts={filteredNTs} 
@@ -836,31 +1053,31 @@ export default function NTsPage() {
       />
 
       {showEditModal && currentNT && (
-        <EditNTModal
-          isOpen={showEditModal}
+        <EditNTModal 
+          isOpen={showEditModal} 
           onClose={() => {
             console.log("Closing edit modal");
             setShowEditModal(false);
             setCurrentNT(null);
-          }}
+          }} 
           onNTEdited={handleNTEdited}
           nt={currentNT}
           ntItems={currentNT ? ntItems[currentNT.id] || [] : []}
         />
       )}
 
-      <DeleteConfirmationModal
-        isOpen={showDeleteConfirmation}
+      <DeleteConfirmationModal 
+        isOpen={showDeleteConfirmation} 
         onClose={() => {
           setShowDeleteConfirmation(false);
           setCurrentNT(null);
           setItemToDelete(null);
           setDeleteType(null);
-        }}
-        onConfirm={confirmDelete}
+        }} 
+        onConfirm={confirmDelete} 
         type={deleteType}
-        item={itemToDelete}
         nt={currentNT}
+        item={itemToDelete}
       />
 
       <RobotStatusModal 
@@ -870,6 +1087,12 @@ export default function NTsPage() {
         selectedAlert={null}
         onResolve={resolveRobotAlert}
         onRefresh={fetchRobotAlerts}
+      />
+
+      {/* Add Analytics Modal */}
+      <AnalyticsModal 
+        isOpen={showAnalyticsModal} 
+        onClose={() => setShowAnalyticsModal(false)}
       />
     </div>
   );

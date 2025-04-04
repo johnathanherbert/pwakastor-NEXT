@@ -1,26 +1,41 @@
 import { useState, useEffect } from 'react';
-import { ExclamationTriangleIcon, XMarkIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { ExclamationTriangleIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../supabaseClient';
-import RobotStatusModal from './RobotStatusModal';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { setupRealtimeSubscription, removeSubscription } from '../../utils/supabaseRealtime';
 
 export default function RobotAlertBanner() {
   const [alerts, setAlerts] = useState([]);
-  const [showBanner, setShowBanner] = useState(true);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState(null);
-
+  const [isVisible, setIsVisible] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Fetch alerts on component mount and set up subscription
   useEffect(() => {
     fetchAlerts();
-    setupRealtimeSubscription();
-
+    
+    const sub = setupRealtimeSubscription('robot_alerts', handleRobotAlertChange);
+    setSubscription(sub);
+    
+    // Update time every minute for "time ago" calculations
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    
     return () => {
-      const subscription = supabase.getChannels().find(channel => channel.topic === 'robot_alerts');
       if (subscription) {
-        supabase.removeChannel(subscription);
+        removeSubscription(subscription);
       }
+      clearInterval(timer);
     };
   }, []);
-
+  
+  // Update visibility when alerts change
+  useEffect(() => {
+    setIsVisible(alerts.length > 0);
+  }, [alerts]);
+  
   const fetchAlerts = async () => {
     try {
       const { data, error } = await supabase
@@ -28,91 +43,95 @@ export default function RobotAlertBanner() {
         .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
-
+      
       if (error) throw error;
-      setAlerts(data || []);
+      setAlerts(data);
     } catch (error) {
       console.error('Error fetching robot alerts:', error);
     }
   };
-
-  const setupRealtimeSubscription = () => {
-    const robotChannel = supabase
-      .channel('robot_alerts')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'robot_alerts' }, 
-        () => {
-          console.log('Robot alerts changed, refreshing data');
-          fetchAlerts();
-        }
-      )
-      .subscribe();
+  
+  const handleRobotAlertChange = (payload) => {
+    console.log('Robot alert change:', payload);
+    fetchAlerts(); // Refresh alerts list
   };
-
-  const resolveAlert = async (alertId) => {
+  
+  const calculateInactiveTime = (timestamp) => {
+    if (!timestamp) return 'tempo desconhecido';
+    
     try {
-      const { error } = await supabase
-        .from('robot_alerts')
-        .update({ active: false, resolved_at: new Date().toISOString() })
-        .eq('id', alertId);
-
-      if (error) throw error;
-      fetchAlerts();
+      const date = new Date(timestamp);
+      return formatDistanceToNow(date, { addSuffix: false, locale: ptBR });
     } catch (error) {
-      console.error('Error resolving alert:', error);
+      return 'tempo inválido';
     }
   };
-
-  const handleUpdateStatus = (alert) => {
-    setSelectedAlert(alert);
-    setShowStatusModal(true);
+  
+  const formatDateTime = (dateTimeString) => {
+    try {
+      const date = new Date(dateTimeString);
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+    } catch (error) {
+      return 'data inválida';
+    }
   };
-
-  if (alerts.length === 0 || !showBanner) return null;
-
+  
+  if (!isVisible || alerts.length === 0) return null;
+  
+  // Display the most recent alert
+  const alert = alerts[0];
+  
   return (
-    <>
-      <div className="mb-4">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
-          <div className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                <ExclamationTriangleIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+    <div className="mb-6 animate-fadeIn">
+      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-lg p-4">
+        <div className="flex flex-col md:flex-row">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <ExclamationTriangleIcon className="h-5 w-5 text-orange-500 dark:text-orange-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                Robô {alert.robot_number} parado!
+              </h3>
+              <div className="mt-1 text-sm text-orange-700 dark:text-orange-300">
+                {alert.description || "Sem descrição disponível"}
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {alerts.length === 1 ? '1 robô inativo' : `${alerts.length} robôs inativos`}
+            </div>
+          </div>
+          
+          <div className="mt-3 md:mt-0 md:ml-auto flex flex-wrap gap-4 items-center text-xs">
+            <div className="flex items-center bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded">
+              <DocumentTextIcon className="h-3 w-3 mr-1 text-orange-500 dark:text-orange-400" />
+              <span className="text-orange-800 dark:text-orange-300">OS: {alert.os_number || "N/A"}</span>
+            </div>
+            
+            <div className="flex items-center bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded">
+              <ClockIcon className="h-3 w-3 mr-1 text-orange-500 dark:text-orange-400" />
+              <span className="text-orange-800 dark:text-orange-300">
+                Previsão: {formatDateTime(alert.estimated_resolution)}
               </span>
             </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setShowStatusModal(true)}
-                className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
-              >
-                <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" />
-                <span>Gerenciar</span>
-              </button>
-              <button
-                onClick={() => setShowBanner(false)}
-                className="p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
+            
+            <div className="flex items-center bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded">
+              <ClockIcon className="h-3 w-3 mr-1 text-orange-500 dark:text-orange-400" />
+              <span className="text-orange-800 dark:text-orange-300">
+                Parado há {calculateInactiveTime(alert.created_at)}
+              </span>
             </div>
           </div>
         </div>
+        
+        {alerts.length > 1 && (
+          <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-800/50 text-xs text-orange-700 dark:text-orange-300">
+            {alerts.length - 1} {alerts.length - 1 === 1 ? 'outro robô está' : 'outros robôs estão'} parados
+          </div>
+        )}
       </div>
-
-      <RobotStatusModal 
-        isOpen={showStatusModal} 
-        onClose={() => {
-          setShowStatusModal(false); 
-          setSelectedAlert(null);
-        }}
-        alerts={alerts}
-        selectedAlert={selectedAlert}
-        onResolve={resolveAlert}
-        onRefresh={fetchAlerts}
-      />
-    </>
+    </div>
   );
 }
