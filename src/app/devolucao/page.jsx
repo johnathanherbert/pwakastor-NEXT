@@ -96,21 +96,18 @@ const Devolucao = () => {
   const formatNumberBR = (number) => {
     if (number === null || number === undefined) return '';
     
-    // Check if number is integer
-    if (Number.isInteger(number)) {
-      return number.toLocaleString('pt-BR');
-    }
-    
-    // If not integer, format with 3 decimal places
-    return number.toLocaleString('pt-BR', {
+    // Always format with 3 decimal places for consistency
+    return Number(number).toLocaleString('pt-BR', {
       minimumFractionDigits: 3,
       maximumFractionDigits: 3,
+      useGrouping: true, // Enable thousands separators for large numbers
     });
   };
 
   // Function to convert BR string to number
   const parseBRNumber = (string) => {
     if (!string) return 0;
+    // Remove all dots (thousand separators) and replace comma with dot for decimal point
     return Number(string.replace(/\./g, '').replace(',', '.'));
   };
 
@@ -643,7 +640,9 @@ const Devolucao = () => {
   // Function to handle quantidade confirmation
   const handleConfirmQuantidade = () => {
     if (quantidadeDevolver) {
-      handleAddDevolucaoItem(selectedLote, parseFloat(quantidadeDevolver));
+      // Parse the input value correctly to handle decimal comma
+      const parsedQuantidade = parseBRNumber(quantidadeDevolver);
+      handleAddDevolucaoItem(selectedLote, parsedQuantidade);
       setShowQuantidadeModal(false);
       setSelectedLote(null);
       setQuantidadeDevolver("");
@@ -1083,7 +1082,7 @@ const Devolucao = () => {
                                     handleUpdateItem(item.id, 'quantidade', value);
                                   }
                                 }}
-                                className="w-16 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                                className="w-20 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs text-right text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
                               />
                             </td>
                             <td className="px-2 py-1 whitespace-nowrap">
@@ -1455,7 +1454,10 @@ const Devolucao = () => {
                   <input
                     type="text"
                     value={quantidadeDevolver}
-                    onChange={(e) => setQuantidadeDevolver(e.target.value)}
+                    onChange={(e) => {
+                      // Allow typing with comma as decimal separator
+                      setQuantidadeDevolver(e.target.value);
+                    }}
                     onKeyDown={handleQuantidadeKeyPress}
                     placeholder={`Ex: ${formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)}`}
                     className="w-full px-3 py-2 
