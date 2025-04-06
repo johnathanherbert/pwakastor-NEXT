@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   CheckCircleIcon, 
   ClockIcon, 
@@ -9,7 +9,8 @@ import {
   PencilIcon,
   TrashIcon,
   PlusIcon,
-  EllipsisHorizontalIcon 
+  EllipsisHorizontalIcon,
+  CalendarIcon  // Changed from CalendarDayIcon to CalendarIcon
 } from '@heroicons/react/24/outline';
 import AddItemToNTModal from './AddItemToNTModal';
 import EditItemModal from './EditItemModal';
@@ -40,6 +41,7 @@ export default function NTsList({
   const [showEditItemModal, setShowEditItemModal] = useState(false);
   const [currentNT, setCurrentNT] = useState(null);
   const [currentItem, setCurrentItem] = useState(null);
+  const [showTodayOnly, setShowTodayOnly] = useState(false);
 
   const toggleNTExpansion = (ntId, e) => {
     if (e && (e.target.closest('button') || e.target.tagName === 'BUTTON')) {
@@ -56,6 +58,104 @@ export default function NTsList({
       [ntId]: !prev[ntId]
     }));
   };
+
+  // Fix the isCreatedToday function to handle various date formats
+  const isCreatedToday = (nt) => {
+    if (!nt.created_date) return false;
+    
+    try {
+      // Get today's date components
+      const today = new Date();
+      
+      // Get NT date components (expecting format DD/MM/YY or DD/MM/YYYY)
+      const [ntDay, ntMonth, ntYear] = nt.created_date.split('/');
+      
+      // Convert to numbers
+      const todayDay = today.getDate();
+      const todayMonth = today.getMonth() + 1; // JS months are 0-indexed
+      const todayFullYear = today.getFullYear();
+      const todayYear = todayFullYear % 100; // Get last 2 digits of year
+      
+      const ntDayNum = parseInt(ntDay, 10);
+      const ntMonthNum = parseInt(ntMonth, 10);
+      let ntYearNum = parseInt(ntYear, 10);
+      
+      // Handle 2-digit or 4-digit year
+      if (ntYear.length === 4) {
+        // If it's a 4-digit year, compare with full year
+        const match = ntYearNum === todayFullYear && 
+                      ntMonthNum === todayMonth && 
+                      ntDayNum === todayDay;
+                      
+        console.log(`NT ${nt.nt_number} (4-digit year): ${nt.created_date}, Today: ${todayDay}/${todayMonth}/${todayFullYear}, Match: ${match}`);
+        
+        return match;
+      } else {
+        // For 2-digit year, compare with 2-digit year
+        const match = ntYearNum === todayYear && 
+                      ntMonthNum === todayMonth && 
+                      ntDayNum === todayDay;
+                      
+        console.log(`NT ${nt.nt_number} (2-digit year): ${nt.created_date}, Today: ${todayDay}/${todayMonth}/${todayYear}, Match: ${match}`);
+        
+        return match;
+      }
+    } catch (error) {
+      console.error("Error comparing dates:", error, "for NT date:", nt.created_date);
+      return false;
+    }
+  };
+
+  // Add a more detailed debugging check for date formats
+  useEffect(() => {
+    if (nts.length > 0) {
+      // Format and display today's date in various formats
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const shortYear = year % 100;
+      
+      console.log("Today Date Debug:");
+      console.log(`- Full JS Date: ${today}`);
+      console.log(`- Locale pt-BR: ${today.toLocaleDateString('pt-BR')}`);
+      console.log(`- Manual DD/MM/YY: ${day}/${month}/${String(shortYear).padStart(2, '0')}`);
+      console.log(`- Manual DD/MM/YYYY: ${day}/${month}/${year}`);
+      
+      // Check the first few NTs and log their dates for comparison
+      console.log("NT Dates Sample:");
+      nts.slice(0, 5).forEach(nt => {
+        console.log(`- NT ${nt.nt_number}: ${nt.created_date}`);
+        
+        // Try to parse the NT date and log components
+        try {
+          const [ntDay, ntMonth, ntYear] = nt.created_date.split('/');
+          console.log(`  Parsed: day=${ntDay}, month=${ntMonth}, year=${ntYear} (length: ${ntYear.length})`);
+          console.log(`  Is Today: ${isCreatedToday(nt)}`);
+        } catch (error) {
+          console.error(`  Error parsing date: ${error}`);
+        }
+      });
+    }
+  }, [nts]);
+
+  // Add debug logging for dates when showTodayOnly changes
+  useEffect(() => {
+    if (showTodayOnly && nts.length > 0) {
+      console.log("Today's date:", new Date().toLocaleDateString('pt-BR'));
+      console.log("NTs dates:", nts.map(nt => ({ 
+        id: nt.id, 
+        number: nt.nt_number, 
+        date: nt.created_date, 
+        isToday: isCreatedToday(nt) 
+      })));
+    }
+  }, [showTodayOnly, nts]);
+
+  // Filter NTs based on today's date if showTodayOnly is true
+  const filteredNTs = showTodayOnly 
+    ? nts.filter(isCreatedToday)
+    : nts;
 
   const getStatusBadge = (status, paymentTime) => {
     switch(status) {
@@ -257,13 +357,45 @@ export default function NTsList({
     }
   };
 
-  if (nts.length === 0) {
-    return null;
+  if (filteredNTs.length === 0) {
+    return (
+      <div className="p-4">
+        <div className="mb-4 flex justify-end">
+          <button 
+            onClick={() => setShowTodayOnly(!showTodayOnly)}
+            className={`px-3 py-2 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors
+              ${showTodayOnly 
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50' 
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'}`}
+          >
+            <CalendarIcon className="h-4 w-4" />
+            {showTodayOnly ? 'Todas as datas' : 'Apenas hoje'}
+          </button>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-500 dark:text-gray-400">
+            {showTodayOnly ? 'Não há NTs criadas hoje.' : 'Nenhuma NT encontrada.'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {nts.map(nt => {
+      <div className="flex justify-end mb-2">
+        <button 
+          onClick={() => setShowTodayOnly(!showTodayOnly)}
+          className={`px-3 py-2 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors
+            ${showTodayOnly 
+              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50' 
+              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'}`}
+        >
+          <CalendarIcon className="h-4 w-4" />
+          {showTodayOnly ? 'Todas as datas' : 'Apenas hoje'}
+        </button>
+      </div>
+      {filteredNTs.map(nt => {
         const ntItemsList = ntItems[nt.id] || [];
         const progress = calculateNTProgress(ntItemsList);
         const statusColor = getNTStatusColor(ntItemsList);
@@ -307,10 +439,23 @@ export default function NTsList({
                         <DocumentDuplicateIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       </button>
                       
+                      {/* Creation time badge */}
+                      <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
+                        <ClockIcon className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
+                        {nt.created_time || "00:00"}
+                      </span>
+                      
                       {hasOverdueItems && (
                         <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50">
                           <ClockIcon className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
                           Em atraso
+                        </span>
+                      )}
+                      
+                      {isCreatedToday(nt) && (
+                        <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+                          <CalendarIcon className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
+                          Hoje
                         </span>
                       )}
                     </div>
@@ -322,6 +467,9 @@ export default function NTsList({
                       <span className="whitespace-nowrap">
                         {ntItemsList.length} {ntItemsList.length === 1 ? 'item' : 'itens'}
                       </span>
+                      
+                      {/* We're now showing the time as a badge above, so we can remove it from here if needed */}
+                      
                       {ntItemsList.some(item => item.status === 'Pago') && (
                         <>
                           <span className="hidden sm:inline">•</span>

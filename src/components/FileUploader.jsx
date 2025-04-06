@@ -16,7 +16,8 @@ const FileUploader = ({ onFileUpload }) => {
         // Log para verificar os dados lidos
         console.log("Dados lidos do Excel:", jsonData);
 
-        onFileUpload(jsonData);
+        // Pass both the data and the file object
+        onFileUpload(jsonData, file);
       };
       reader.readAsArrayBuffer(file);
     }
