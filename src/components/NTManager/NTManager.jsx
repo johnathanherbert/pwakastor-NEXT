@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
 import NTsList from './NTsList';
-// ...existing code...
+import Clock from '../Clock/Clock';
+import { ArrowPathIcon as RefreshIcon } from '@heroicons/react/24/outline'; // Adicionando importação correta do ícone
 
 export default function NTManager() {
   const [nts, setNTs] = useState([]);
@@ -61,6 +62,14 @@ export default function NTManager() {
   // Initial data load
   useEffect(() => {
     fetchData(true);
+    
+    // Set up interval to fetch data every 5 seconds without visual indication
+    const intervalId = setInterval(() => {
+      fetchData(false); // Don't show loading effect when auto-refreshing
+    }, 5000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, [fetchData]);
   
   // Manual refresh handler - shows loading effect
@@ -106,9 +115,13 @@ export default function NTManager() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Gerenciamento de NTs
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Gerenciamento de NTs
+          </h1>
+          {/* Clock component com estilos mais visíveis */}
+          <Clock className="z-10" /> {/* Adicionando z-index para garantir que o relógio está visível */}
+        </div>
         <div className="flex gap-2">
           {/* Refresh button */}
           <button
@@ -137,6 +150,11 @@ export default function NTManager() {
         isLoading={isLoading}
         showOverdueWarnings={showOverdueWarnings}
       />
+      
+      {/* Debug message para verificar se o componente está sendo renderizado */}
+      <div className="fixed bottom-2 left-2 text-xs text-gray-500">
+        Clock component should be visible above
+      </div>
       
       {/* Modals */}
       {/* ...existing code... */}
