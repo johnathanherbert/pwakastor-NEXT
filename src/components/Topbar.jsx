@@ -7,11 +7,10 @@ import Sidebar from "./Sidebar";
 import { Bars3Icon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import ExcelUploader from "./ExcelUploader";
 import { HiOutlineUpload } from 'react-icons/hi';
+import ThemeToggle from "./ThemeToggle";
 
 export default function Topbar({ 
   user, 
-  darkMode, 
-  setDarkMode, 
   drawerOpen, 
   setDrawerOpen, 
   openDialog, 
@@ -52,6 +51,8 @@ export default function Topbar({
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
+            
             {setOpenDialog && ( // Only render if setOpenDialog prop is provided
               <button
                 onClick={() => setOpenDialog(true)}
@@ -81,8 +82,6 @@ export default function Topbar({
             )}
             <UserMenu 
               user={user} 
-              darkMode={darkMode} 
-              setDarkMode={setDarkMode}
               onSignOut={handleSignOut}
               onUserUpdate={() => {}} // Add an empty function to avoid errors
             />

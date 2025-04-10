@@ -1,11 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../supabaseClient";
+import { useTheme } from "next-themes";
 
-export default function UserMenu({ user, onUserUpdate, darkMode, setDarkMode, onSignOut }) {
+export default function UserMenu({ user, onUserUpdate, onSignOut }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Aguarda a montagem do componente para evitar problemas de hidratação
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleMenu = () => {
     setIsOpen(!isOpen);
@@ -22,9 +30,7 @@ export default function UserMenu({ user, onUserUpdate, darkMode, setDarkMode, on
   };
 
   const handleDarkModeToggle = () => {
-    if (setDarkMode) {
-      setDarkMode(!darkMode);
-    }
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   // Fecha o menu quando clica fora
@@ -51,6 +57,17 @@ export default function UserMenu({ user, onUserUpdate, darkMode, setDarkMode, on
       getUser();
     }
   }, [user, onUserUpdate]);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-700">
+          {user?.email || "Usuário"}
+        </span>
+        <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={menuRef}>
@@ -79,14 +96,12 @@ export default function UserMenu({ user, onUserUpdate, darkMode, setDarkMode, on
       {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-50">
-          {setDarkMode && (
-            <button
-              onClick={handleDarkModeToggle}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              {darkMode ? "Modo Claro" : "Modo Escuro"}
-            </button>
-          )}
+          <button
+            onClick={handleDarkModeToggle}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {theme === 'dark' ? "Modo Claro" : "Modo Escuro"}
+          </button>
           <button
             onClick={handleLogout}
             className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

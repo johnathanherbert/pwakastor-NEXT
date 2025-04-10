@@ -6,8 +6,8 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 export function Providers({ children }) {
   return (
     <NextUIProvider>
-      <NextThemesProvider attribute="class" defaultTheme="light" enableSystem>
-        <div className="min-h-screen dark:bg-gray-900 transition-colors">
+      <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+        <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
           {children}
         </div>
       </NextThemesProvider>

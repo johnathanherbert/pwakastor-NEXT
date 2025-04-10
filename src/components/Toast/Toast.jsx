@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 
-export default function Toast({ message, type = 'success', duration = 3000, onClose }) {
+export function Toast({ message, type = 'success', duration = 3000, onClose }) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(() => {
-        onClose();
+        if (onClose) onClose();
       }, 300); // Wait for fade out animation
     }, duration);
 
@@ -80,7 +80,7 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
             onClick={() => {
               setIsVisible(false);
               setTimeout(() => {
-                onClose();
+                if (onClose) onClose();
               }, 300);
             }}
             className={`inline-flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 ${getTextColor()}`}
