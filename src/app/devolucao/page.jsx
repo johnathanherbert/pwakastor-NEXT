@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient';
 import Sidebar from '../../components/Sidebar';
 import HeaderClock from '../../components/Clock/HeaderClock'; // Adicionar esta importação
 import ToastContainer, { showToast } from '../../components/Toast/ToastContainer';
+import { Toast } from '../../components/Toast/Toast'; // Corrigido para importar a função nomeada
 import ExcelUploader from '../../components/ExcelUploader';
 import { 
   PlusIcon, 
