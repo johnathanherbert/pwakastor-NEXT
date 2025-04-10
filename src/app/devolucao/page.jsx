@@ -3,9 +3,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../supabaseClient';
 import Sidebar from '../../components/Sidebar';
-import HeaderClock from '../../components/Clock/HeaderClock'; // Adicionar esta importação
-import ToastContainer, { showToast } from '../../components/Toast/ToastContainer';
-import { Toast } from '../../components/Toast/Toast'; // Corrigido para importar a função nomeada
+import HeaderClock from '../../components/Clock/HeaderClock';
+import ToastContainer from '../../components/Toast/ToastContainer';
+import { showToast } from '../../components/Toast/ToastContainer';
 import ExcelUploader from '../../components/ExcelUploader';
 import { 
   PlusIcon, 

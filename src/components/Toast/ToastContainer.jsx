@@ -1,53 +1,52 @@
-import { useState, useCallback, useEffect } from 'react';
-import Toast from './Toast';
+'use client';
+import { useState, useEffect } from 'react';
+import { Toast } from './Toast';
+
+// Toast context to manage toast state globally
+let showToastFn = () => {};
+
+export function showToast(message, type = 'info', duration = 3000) {
+  showToastFn(message, type, duration);
+}
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState([]);
+  const [count, setCount] = useState(0);
 
-  // Listen for custom toast events
-  useEffect(() => {
-    const handleToast = (event) => {
-      if (event.detail) {
-        addToast(event.detail.message, event.detail.type, event.detail.duration);
-      }
-    };
-
-    window.addEventListener('showToast', handleToast);
+  // Expose the function to show toasts
+  showToastFn = (message, type, duration) => {
+    const id = count;
+    setCount(prevCount => prevCount + 1);
     
-    return () => {
-      window.removeEventListener('showToast', handleToast);
+    const newToast = {
+      id,
+      message,
+      type,
+      duration,
     };
-  }, []);
-
-  // Add a new toast
-  const addToast = useCallback((message, type = 'success', duration = 3000) => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type, duration }]);
-  }, []);
-
-  // Remove a toast by id
-  const removeToast = useCallback((id) => {
+    
+    setToasts(prev => [...prev, newToast]);
+    
+    // Auto remove toast after duration
+    setTimeout(() => {
+      removeToast(id);
+    }, duration);
+  };
+  
+  const removeToast = (id) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  };
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-4 w-full max-w-sm">
+    <div className="fixed top-4 right-4 z-50 space-y-2 min-w-[300px]">
       {toasts.map(toast => (
         <Toast
           key={toast.id}
           message={toast.message}
           type={toast.type}
-          duration={toast.duration}
           onClose={() => removeToast(toast.id)}
         />
       ))}
     </div>
   );
 }
-
-// Helper function to show a toast from anywhere in the app
-export const showToast = (message, type = 'success', duration = 3000) => {
-  window.dispatchEvent(new CustomEvent('showToast', {
-    detail: { message, type, duration }
-  }));
-};
