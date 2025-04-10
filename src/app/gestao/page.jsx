@@ -21,6 +21,12 @@ export default function GestaoPage() {
   const [isAddingSpace, setIsAddingSpace] = useState(false);
   const [newSpace, setNewSpace] = useState({ name: "", position: "" });
   
+  // Estados para autenticação de adição de salas e vagas
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordAction, setPasswordAction] = useState(""); // "room" ou "space"
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  
   // Filtros
   const [filters, setFilters] = useState({
     status: "all", // empty, occupied, all
@@ -557,6 +563,33 @@ export default function GestaoPage() {
     }
   };
 
+  // Handle password verification for creating rooms or spaces
+  const handlePasswordVerification = (action) => {
+    setPasswordAction(action);
+    setPassword("");
+    setPasswordError("");
+    setPasswordDialogOpen(true);
+  };
+  
+  // Verify password and trigger the appropriate action
+  const verifyPassword = () => {
+    const correctPassword = "@06291"; // Senha padrão conforme solicitado
+    
+    if (password === correctPassword) {
+      setPasswordDialogOpen(false);
+      setPasswordError("");
+      
+      // Trigger the correct action based on passwordAction
+      if (passwordAction === "room") {
+        setIsAddingRoom(true);
+      } else if (passwordAction === "space") {
+        setIsAddingSpace(true);
+      }
+    } else {
+      setPasswordError("Senha incorreta. Tente novamente.");
+    }
+  };
+
   // Render component
   return (
     <div className="container mx-auto p-4 text-gray-800 dark:text-gray-200">
@@ -596,7 +629,7 @@ export default function GestaoPage() {
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Salas de Armazenamento</h2>
                 <Button 
                   size="sm" 
-                  onClick={() => setIsAddingRoom(true)}
+                  onClick={() => handlePasswordVerification("room")}
                   disabled={isAddingRoom}
                 >
                   <HiPlus className="mr-1 h-4 w-4" /> Adicionar
@@ -665,7 +698,7 @@ export default function GestaoPage() {
                 {selectedRoom && (
                   <Button 
                     size="sm" 
-                    onClick={() => setIsAddingSpace(true)}
+                    onClick={() => handlePasswordVerification("space")}
                     disabled={isAddingSpace}
                   >
                     <HiPlus className="mr-1 h-4 w-4" /> Adicionar Vaga
@@ -1295,6 +1328,67 @@ export default function GestaoPage() {
             Confirmar Remoção
           </Button>
           <Button color="gray" onClick={() => setRemoveDialogOpen(false)}>
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
+      {/* Password Verification Modal */}
+      <Modal theme={{
+        root: {
+          base: "fixed top-0 right-0 left-0 z-50 h-modal h-screen overflow-y-auto overflow-x-hidden md:inset-0 md:h-full",
+          show: {
+            on: "flex bg-gray-900 bg-opacity-50 dark:bg-opacity-80",
+            off: "hidden"
+          }
+        },
+        content: {
+          base: "relative h-full w-full p-4 md:h-auto",
+          inner: "relative rounded-lg bg-white shadow dark:bg-gray-800 flex flex-col max-h-[90vh]"
+        }
+      }} show={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
+        <Modal.Header theme={{
+          base: "flex items-start justify-between rounded-t border-b p-5 dark:border-gray-700",
+          title: "text-xl font-medium text-gray-900 dark:text-white",
+          close: {
+            base: "ml-auto inline-flex items-center rounded-lg bg-transparent p-1.5 text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white"
+          }
+        }}>
+          Verificação de Senha
+        </Modal.Header>
+        <Modal.Body className="dark:text-gray-300">
+          <div className="space-y-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Digite a senha para confirmar a ação.
+            </p>
+            
+            <div>
+              <Label htmlFor="password" value="Senha" className="text-gray-700 dark:text-gray-300" />
+              <TextInput
+                id="password"
+                type="password"
+                placeholder="Digite a senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                theme={{
+                  field: {
+                    input: {
+                      base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    }
+                  }
+                }}
+              />
+              {passwordError && (
+                <p className="text-red-600 dark:text-red-400 text-sm mt-2">{passwordError}</p>
+              )}
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer theme={{
+          base: "flex items-center space-x-2 rounded-b border-t border-gray-200 p-6 dark:border-gray-700"
+        }}>
+          <Button onClick={verifyPassword} color="success">Confirmar</Button>
+          <Button color="gray" onClick={() => setPasswordDialogOpen(false)}>
             Cancelar
           </Button>
         </Modal.Footer>
