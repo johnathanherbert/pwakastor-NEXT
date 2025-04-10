@@ -21,6 +21,7 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon // Add this import for the upload icon
 } from '@heroicons/react/24/outline';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const Devolucao = () => {
   const router = useRouter();
@@ -41,7 +42,6 @@ const Devolucao = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [sapDialogOpen, setSapDialogOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // Main states
@@ -72,13 +72,14 @@ const Devolucao = () => {
   // Debounce ref
   const debounceTimeout = useRef(null);
 
+  // Using the global theme context instead of local darkMode state
+  const { darkMode, toggleDarkMode } = useTheme();
+
   // Load dark mode from localStorage on component mount
   useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode) {
-      setDarkMode(JSON.parse(savedMode));
-    }
-
+    // O dark mode agora é gerenciado pelo ThemeContext global
+    // Não precisamos mais carregar do localStorage aqui
+    
     const checkUser = async () => {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -864,11 +865,7 @@ const Devolucao = () => {
               <HeaderClock />
               
               <button
-                onClick={() => {
-                  const newMode = !darkMode;
-                  setDarkMode(newMode);
-                  localStorage.setItem('darkMode', JSON.stringify(newMode));
-                }}
+                onClick={toggleDarkMode}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
               >
                 {darkMode ? (

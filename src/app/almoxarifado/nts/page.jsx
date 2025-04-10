@@ -32,6 +32,7 @@ import {
 import { setupRealtimeSubscription, removeSubscription, setupMultipleSubscriptions, removeMultipleSubscriptions } from '../../../utils/supabaseRealtime';
 import ToastContainer from '../../../components/Toast/ToastContainer';
 import { showToast } from '../../../components/Toast/ToastContainer';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function NTsPage() {
   const [user, setUser] = useState(null);
@@ -40,7 +41,7 @@ export default function NTsPage() {
   const [filteredNTs, setFilteredNTs] = useState([]);
   const [ntItems, setNTItems] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const { darkMode, toggleDarkMode } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,10 +62,8 @@ export default function NTsPage() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false); // Add this state
 
   useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode) {
-      setDarkMode(JSON.parse(savedMode));
-    }
+    // Remover manipulação direta do localStorage aqui
+    // Agora vamos apenas checar o usuário e carregar os dados necessários
 
     const checkUser = async () => {
       setIsLoading(true);
@@ -731,9 +730,8 @@ export default function NTsPage() {
               
               <button
                 onClick={() => {
-                  const newMode = !darkMode;
-                  setDarkMode(newMode);
-                  localStorage.setItem('darkMode', JSON.stringify(newMode));
+                  toggleDarkMode();
+                  localStorage.setItem('darkMode', JSON.stringify(!darkMode));
                 }}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
               >

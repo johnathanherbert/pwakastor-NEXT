@@ -36,6 +36,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { RequestsProvider } from "../contexts/RequestsContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const EXCIPIENTES_ESPECIAIS = [
   "LACTOSE (200)",
@@ -65,6 +66,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // State declarations continue...
   const [editingOrdemDialog, setEditingOrdemDialog] = useState(null);
   const [editingExcipientes, setEditingExcipientes] = useState({});
   const [selectAllChecked, setSelectAllChecked] = useState(false);
@@ -94,7 +96,8 @@ export default function Home() {
 
   const [showAnalysis, setShowAnalysis] = useState(false);
 
-  const [darkMode, setDarkMode] = useState(false);
+  // Usando o hook useTheme global em vez do estado local
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const inputRef = useRef(null);
 
@@ -113,27 +116,7 @@ export default function Home() {
 
   const [sugestoes, setSugestoes] = useState([]);
 
-  const handleOpenUploadDialog = () => {
-    setOpenDialog(true);
-  };
-
-  const handleCloseUploadDialog = () => {
-    setOpenDialog(false);
-  };
-
-  useEffect(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    if (savedMode) {
-      setDarkMode(JSON.parse(savedMode));
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("darkMode", JSON.stringify(newMode));
-  };
-
+  // Define loadState first - before it's used in fetchOrdens
   const loadState = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase
@@ -154,7 +137,7 @@ export default function Home() {
           selectedOrdem,
           pesados,
           materiaisNaArea,
-          inputValues, // Adicione esta linha
+          inputValues,
         } = data.state;
         setOrdens(ordens || []);
         setExcipientes(excipientes || {});
@@ -162,7 +145,7 @@ export default function Home() {
         setSelectedOrdem(selectedOrdem || null);
         setPesados(pesados || {});
         setMateriaisNaArea(materiaisNaArea || {});
-        setInputValues(inputValues || {}); // Adicione esta linha
+        setInputValues(inputValues || {});
         localStorage.setItem(`appState_${userId}`, JSON.stringify(data.state));
       } else {
         const storedState = localStorage.getItem(`appState_${userId}`);
@@ -174,7 +157,7 @@ export default function Home() {
           setSelectedOrdem(parsedState.selectedOrdem || null);
           setPesados(parsedState.pesados || {});
           setMateriaisNaArea(parsedState.materiaisNaArea || {});
-          setInputValues(parsedState.inputValues || {}); // Adicione esta linha
+          setInputValues(parsedState.inputValues || {});
         }
       }
     } catch (error) {
@@ -185,9 +168,50 @@ export default function Home() {
       setSelectedOrdem(null);
       setPesados({});
       setMateriaisNaArea({});
-      setInputValues({}); // Adicione esta linha
+      setInputValues({});
     }
   }, []);
+
+  // Function to fetch orders - defined AFTER loadState
+  const fetchOrdens = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await loadState(user.id);
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Erro ao carregar ordens:", error);
+      setIsLoading(false);
+    }
+  }, [loadState]);
+
+  // Now we can use loadState directly in our first useEffect
+  useEffect(() => {
+    const checkUser = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        await loadState(user.id);
+      } else {
+        router.push("/login");
+      }
+      setIsLoading(false);
+    };
+    
+    checkUser();
+  }, [router, loadState]);
+
+  // Define functions for handling upload dialog
+  const handleOpenUploadDialog = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseUploadDialog = () => {
+    setOpenDialog(false);
+  };
 
   const saveState = useCallback(
     async (userId) => {

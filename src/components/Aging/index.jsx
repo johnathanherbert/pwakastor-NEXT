@@ -15,11 +15,11 @@ import { user } from '../../app/aging/layout'
 import { User } from 'lucide-react';
 import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function AgingDashboard() {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   
@@ -59,6 +59,12 @@ export default function AgingDashboard() {
   // Add state for ajuste data
   const [ajusteData, setAjusteData] = useState([]);
   const [isLoadingAjuste, setIsLoadingAjuste] = useState(true);
+
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Usando o contexto global de tema
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -322,7 +328,7 @@ export default function AgingDashboard() {
       <Topbar
         user={currentUser || user}
         darkMode={darkMode}
-        setDarkMode={setDarkMode}
+        toggleDarkMode={toggleDarkMode}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         title="Dashboard de Aging de Materiais"
