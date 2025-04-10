@@ -1310,7 +1310,7 @@ export default function GestaoPage() {
             <Modal.Footer theme={{
               base: "flex items-center space-x-2 rounded-b border-t border-gray-200 p-6 dark:border-gray-700"
             }}>
-              <Button onClick={allocatePallet} color="success">Confirmar</Button>
+              <Button className="text-black dark:text-white" onClick={allocatePallet} color="success">Confirmar</Button>
               <Button color="gray" onClick={() => setAllocateDialogOpen(false)}>
                 Cancelar
               </Button>
