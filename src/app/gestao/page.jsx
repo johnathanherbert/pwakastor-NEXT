@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/supabaseClient";
-import { Button, Modal, Label, TextInput, Table, Tabs } from "flowbite-react";
+import { Button, Modal, Label, TextInput, Table, Tabs, Select, Spinner, Badge } from "flowbite-react";
 import { 
   HiPlus, 
   HiSearch, 
@@ -10,7 +10,11 @@ import {
   HiPencil, 
   HiSave, 
   HiX,
-  HiMenu
+  HiMenu,
+  HiFilter,
+  HiOutlineRefresh,
+  HiOutlineDocumentReport,
+  HiCalendar
 } from "react-icons/hi";
 import { Toast } from "@/components/Toast/Toast";
 import ToastContainer, { showToast } from "@/components/Toast/ToastContainer";
@@ -82,6 +86,18 @@ export default function GestaoPage() {
   // Estado para controlar a sidebar
   const [drawerOpen, setDrawerOpen] = useState(false);
   
+  // Estados para logs e movimentações
+  const [storageLogs, setStorageLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logFilters, setLogFilters] = useState({
+    actionType: "all",
+    startDate: "",
+    endDate: "",
+    op: "",
+    userId: "",
+    roomId: "all"
+  });
+  
   // Usando o hook useTheme para acessar o dark mode global
   const { darkMode, toggleDarkMode } = useTheme();
 
@@ -91,12 +107,76 @@ export default function GestaoPage() {
     setTimeout(() => setToast({ visible: false, message: "", type: "" }), 3000);
   };
 
+  // Fetch storage logs from Supabase
+  const fetchStorageLogs = async () => {
+    setIsLoadingLogs(true);
+    
+    try {
+      let query = supabase
+        .from("storage_logs")
+        .select("*, storage_rooms(name), storage_spaces(name, position)")
+        .order("timestamp", { ascending: false });
+      
+      // Apply filters
+      if (logFilters.actionType !== "all") {
+        query = query.eq("action", logFilters.actionType);
+      }
+      
+      if (logFilters.startDate) {
+        query = query.gte("timestamp", `${logFilters.startDate}T00:00:00`);
+      }
+      
+      if (logFilters.endDate) {
+        query = query.lte("timestamp", `${logFilters.endDate}T23:59:59`);
+      }
+      
+      if (logFilters.op) {
+        query = query.ilike("op", `%${logFilters.op}%`);
+      }
+      
+      if (logFilters.userId) {
+        query = query.eq("user_id", logFilters.userId);
+      }
+      
+      if (logFilters.roomId !== "all") {
+        query = query.eq("room_id", logFilters.roomId);
+      }
+      
+      // Limitar a 100 resultados para evitar sobrecarga
+      query = query.limit(100);
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      setStorageLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching storage logs:", error);
+      showToast("Não foi possível carregar os logs de movimentação.", "error");
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  // Resetar filtros de logs
+  const resetLogFilters = () => {
+    setLogFilters({
+      actionType: "all",
+      startDate: "",
+      endDate: "",
+      op: "",
+      userId: "",
+      roomId: "all"
+    });
+  };
+
   // Load dark mode from localStorage on component mount
   useEffect(() => {
     fetchRooms();
     fetchMaterials();
     fetchAllSpaces();
     fetchOccupiedPallets();
+    fetchStorageLogs(); // Carregar logs iniciais
   }, []);
 
   // Fetch all storage spaces for statistics
@@ -1195,6 +1275,249 @@ export default function GestaoPage() {
                   ) : (
                     <p className="text-center py-4 text-gray-600 dark:text-gray-400">Digite um termo para buscar</p>
                   )
+                )}
+              </div>
+            </Tabs.Item>
+            
+            <Tabs.Item 
+              title="Movimentações e Logs" 
+              icon={HiOutlineDocumentReport}
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-700/20 p-4">
+                <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Histórico de Movimentações</h2>
+                
+                {/* Filtros de logs */}
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtros</h3>
+                    <Button 
+                      size="xs" 
+                      color="light" 
+                      onClick={resetLogFilters}
+                      className="text-xs py-1"
+                    >
+                      <HiX className="mr-1 h-3 w-3" /> Limpar filtros
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="action-type" value="Tipo de Movimentação" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <Select
+                        id="action-type"
+                        value={logFilters.actionType}
+                        onChange={(e) => setLogFilters({...logFilters, actionType: e.target.value})}
+                        theme={{
+                          field: {
+                            select: {
+                              base: "block w-full rounded-lg border disabled:cursor-not-allowed disabled:opacity-50 text-sm border-gray-300 bg-gray-50 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500 p-2.5"
+                            }
+                          }
+                        }}
+                      >
+                        <option value="all">Todas as ações</option>
+                        <option value="allocated">Alocação de palete</option>
+                        <option value="removed">Remoção de palete</option>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="start-date" value="Data Inicial" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <TextInput
+                        id="start-date"
+                        type="date"
+                        value={logFilters.startDate}
+                        onChange={(e) => setLogFilters({...logFilters, startDate: e.target.value})}
+                        theme={{
+                          field: {
+                            input: {
+                              base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="end-date" value="Data Final" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <TextInput
+                        id="end-date"
+                        type="date"
+                        value={logFilters.endDate}
+                        onChange={(e) => setLogFilters({...logFilters, endDate: e.target.value})}
+                        theme={{
+                          field: {
+                            input: {
+                              base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="op-filter" value="Ordem de Produção (OP)" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <TextInput
+                        id="op-filter"
+                        placeholder="Filtrar por OP"
+                        value={logFilters.op}
+                        onChange={(e) => setLogFilters({...logFilters, op: e.target.value})}
+                        theme={{
+                          field: {
+                            input: {
+                              base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="user-id-filter" value="ID de Usuário" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <TextInput
+                        id="user-id-filter"
+                        placeholder="ID de 5 dígitos"
+                        value={logFilters.userId}
+                        onChange={(e) => setLogFilters({...logFilters, userId: e.target.value})}
+                        theme={{
+                          field: {
+                            input: {
+                              base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="room-filter" value="Sala" className="text-xs text-gray-600 dark:text-gray-400 mb-1" />
+                      <Select
+                        id="room-filter"
+                        value={logFilters.roomId}
+                        onChange={(e) => setLogFilters({...logFilters, roomId: e.target.value})}
+                        theme={{
+                          field: {
+                            select: {
+                              base: "block w-full rounded-lg border disabled:cursor-not-allowed disabled:opacity-50 text-sm border-gray-300 bg-gray-50 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500 p-2.5"
+                            }
+                          }
+                        }}
+                      >
+                        <option value="all">Todas as salas</option>
+                        {rooms.map(room => (
+                          <option key={room.id} value={room.id}>{room.name}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex justify-end">
+                    <Button 
+                      size="sm" 
+                      onClick={fetchStorageLogs}
+                      disabled={isLoadingLogs}
+                    >
+                      {isLoadingLogs ? (
+                        <>
+                          <Spinner className="mr-2 h-4 w-4" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <HiOutlineRefresh className="mr-2 h-4 w-4" />
+                          Atualizar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Tabela de logs */}
+                {isLoadingLogs ? (
+                  <div className="flex justify-center items-center h-40">
+                    <Spinner size="xl" />
+                  </div>
+                ) : storageLogs.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table theme={{
+                      root: {
+                        base: "w-full text-left text-sm text-gray-500 dark:text-gray-400",
+                        shadow: "absolute bg-white dark:bg-gray-800 hidden group-hover:block right-0 top-0 h-full w-1.5 rounded-tr-lg rounded-br-lg"
+                      },
+                      head: {
+                        base: "group/head text-xs uppercase text-gray-700 dark:text-gray-400",
+                        cell: {
+                          base: "bg-gray-50 dark:bg-gray-700 px-4 py-2 text-xs"
+                        }
+                      },
+                      body: {
+                        base: "divide-y divide-gray-200 dark:divide-gray-700",
+                        cell: {
+                          base: "px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                        }
+                      },
+                      row: {
+                        base: "group/row border-b border-gray-200 dark:border-gray-700 dark:bg-gray-800 bg-white",
+                        hovered: "hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }
+                    }}>
+                      <Table.Head>
+                        <Table.HeadCell className="w-32">Data/Hora</Table.HeadCell>
+                        <Table.HeadCell className="w-24">Ação</Table.HeadCell>
+                        <Table.HeadCell className="w-24">OP</Table.HeadCell>
+                        <Table.HeadCell>Material</Table.HeadCell>
+                        <Table.HeadCell className="w-24">Sala</Table.HeadCell>
+                        <Table.HeadCell className="w-24">Vaga</Table.HeadCell>
+                        <Table.HeadCell className="w-24">Usuário</Table.HeadCell>
+                      </Table.Head>
+                      <Table.Body className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {storageLogs.map((log) => (
+                          <Table.Row key={log.id} className="bg-white dark:bg-gray-800 dark:border-gray-700">
+                            <Table.Cell className="text-xs">
+                              {new Date(log.timestamp).toLocaleString('pt-BR', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </Table.Cell>
+                            <Table.Cell>
+                              <Badge 
+                                color={log.action === 'allocated' ? 'success' : 'failure'}
+                                className="px-2.5 py-0.5"
+                              >
+                                {log.action === 'allocated' ? 'Alocação' : 'Remoção'}
+                              </Badge>
+                            </Table.Cell>
+                            <Table.Cell className="text-xs">{log.op || '-'}</Table.Cell>
+                            <Table.Cell className="text-xs truncate max-w-[150px]" title={log.material_name || '-'}>
+                              {log.material_name || '-'}
+                            </Table.Cell>
+                            <Table.Cell className="text-xs">{log.storage_rooms?.name || '-'}</Table.Cell>
+                            <Table.Cell className="text-xs">
+                              {log.storage_spaces?.name ? 
+                                `${log.storage_spaces.name} (${log.storage_spaces.position})` : 
+                                '-'}
+                            </Table.Cell>
+                            <Table.Cell className="text-xs">{log.user_id || '-'}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                    
+                    {storageLogs.length === 100 && (
+                      <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        * Mostrando apenas os 100 registros mais recentes. Use filtros para refinar a busca.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-10 text-center">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Nenhum registro de movimentação encontrado com os filtros atuais.
+                    </p>
+                  </div>
                 )}
               </div>
             </Tabs.Item>

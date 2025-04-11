@@ -238,6 +238,7 @@ export default function VagaDetailPage() {
     );
   }
 
+
   // Renderiza mensagem de erro
   if (error) {
     return (
