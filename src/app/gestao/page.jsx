@@ -92,6 +92,11 @@ export default function GestaoPage() {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [paginatedSpaces, setPaginatedSpaces] = useState([]);
+  
   // Filtros
   const [filters, setFilters] = useState({
     status: "all", // empty, occupied, all
@@ -648,6 +653,8 @@ export default function GestaoPage() {
   useEffect(() => {
     if (!spaces.length) {
       setFilteredSpaces([]);
+      setPaginatedSpaces([]);
+      setCurrentPage(1);
       return;
     }
     
@@ -674,7 +681,25 @@ export default function GestaoPage() {
     filtered = applySorting(filtered, sortConfig);
     
     setFilteredSpaces(filtered);
-  }, [spaces, filters, sortConfig]); // Adicionar sortConfig como dependência
+    
+    // Resetar para a primeira página quando os filtros ou ordenação mudam
+    setCurrentPage(1);
+    
+    // Aplicar paginação
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedSpaces(filtered.slice(startIndex, endIndex));
+    
+  }, [spaces, filters, sortConfig, itemsPerPage]); // Adicionar sortConfig como dependência
+  
+  // Effect para aplicar paginação quando a página atual muda
+  useEffect(() => {
+    if (filteredSpaces.length > 0) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setPaginatedSpaces(filteredSpaces.slice(startIndex, endIndex));
+    }
+  }, [currentPage, filteredSpaces, itemsPerPage]);
 
   // Calcular holding time para um espaço
   const calculateHoldingTime = (space) => {
@@ -1303,7 +1328,7 @@ export default function GestaoPage() {
                               <Table.HeadCell className="w-16">Ações</Table.HeadCell>
                             </Table.Head>
                             <Table.Body className="divide-y divide-gray-200 dark:divide-gray-700">
-                              {filteredSpaces.map((space) => {
+                              {paginatedSpaces.map((space) => {
                                 const holdingTime = calculateHoldingTime(space);
                                 return (
                                   <Table.Row 
@@ -1365,6 +1390,81 @@ export default function GestaoPage() {
                               })}
                             </Table.Body>
                           </Table>
+                          
+                          {/* Paginação */}
+                          {filteredSpaces.length > 0 && (
+                            <div className="mt-4 flex justify-between items-center">
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Exibindo {paginatedSpaces.length} de {filteredSpaces.length} vagas
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  color="light" 
+                                  disabled={currentPage === 1}
+                                  onClick={() => setCurrentPage(prevPage => Math.max(prevPage - 1, 1))}
+                                >
+                                  Anterior
+                                </Button>
+                                
+                                {/* Numeração das páginas */}
+                                {Array.from({ length: Math.min(5, Math.ceil(filteredSpaces.length / itemsPerPage)) }).map((_, index) => {
+                                  // Lógica para mostrar páginas ao redor da atual
+                                  const totalPages = Math.ceil(filteredSpaces.length / itemsPerPage);
+                                  let pageNum;
+                                  
+                                  if (totalPages <= 5) {
+                                    // Se temos 5 ou menos páginas, mostramos todas
+                                    pageNum = index + 1;
+                                  } else if (currentPage <= 3) {
+                                    // Se estamos nas primeiras 3 páginas, mostramos 1-5
+                                    pageNum = index + 1;
+                                  } else if (currentPage >= totalPages - 2) {
+                                    // Se estamos nas últimas 3 páginas, mostramos as últimas 5
+                                    pageNum = totalPages - 4 + index;
+                                  } else {
+                                    // Caso contrário, mostramos 2 antes e 2 depois da atual
+                                    pageNum = currentPage - 2 + index;
+                                  }
+                                  
+                                  return (
+                                    <Button
+                                      key={pageNum}
+                                      size="sm"
+                                      color={currentPage === pageNum ? "blue" : "light"}
+                                      onClick={() => setCurrentPage(pageNum)}
+                                    >
+                                      {pageNum}
+                                    </Button>
+                                  );
+                                })}
+                                
+                                <Button 
+                                  size="sm" 
+                                  color="light" 
+                                  disabled={currentPage >= Math.ceil(filteredSpaces.length / itemsPerPage)}
+                                  onClick={() => setCurrentPage(prevPage => Math.min(prevPage + 1, Math.ceil(filteredSpaces.length / itemsPerPage)))}
+                                >
+                                  Próximo
+                                </Button>
+                                
+                                {/* Seletor de itens por página */}
+                                <Select
+                                  size="sm"
+                                  value={itemsPerPage}
+                                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                  className="ml-4 w-24"
+                                >
+                                  <option value="5">5</option>
+                                  <option value="10">10</option>
+                                  <option value="20">20</option>
+                                  <option value="50">50</option>
+                                </Select>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

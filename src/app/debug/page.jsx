@@ -131,10 +131,7 @@ export default function DebugPage() {
                     <SortHeader label="Vaga" keyVal="name" />
                     <SortHeader label="Posição" keyVal="position" />
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                    {!showQrOnly && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Link Direto</th>
-                    )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">QR Code</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Link Direto</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
@@ -150,20 +147,17 @@ export default function DebugPage() {
                           {space.status === 'empty' ? 'Vazia' : 'Ocupada'}
                         </span>
                       </td>
-                      {!showQrOnly && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-col items-center space-y-3">
+                          <div className="flex flex-col items-center p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <QRCodeCanvas value={generateDirectLink(space)} size={228} bgColor="#ffffff" fgColor="#000000" level="H" />
+                            <div className="mt-2 text-center">
+                              <div className="font-bold text-large text-gray-900 dark:text-white">{space.name || "—"}-{space.position || "—"}</div>
+                            </div>
+                          </div>
                           <div className="flex items-center">
                             <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-48 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={generateDirectLink(space)} readOnly />
                             <Button size="xs" color="light" onClick={() => copyToClipboard(generateDirectLink(space), `direct-${index}`)} className="ml-2">{copiedIndex === `direct-${index}` ? 'Copiado!' : <HiClipboardCopy />}</Button>
-                          </div>
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex flex-col items-center space-y-1">
-                          <QRCodeCanvas value={generateQrLink(space)} size={96} bgColor="#ffffff" fgColor="#000000" level="H" />
-                          <div className="flex items-center">
-                            <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-48 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={generateQrLink(space)} readOnly />
-                            <Button size="xs" color="light" onClick={() => copyToClipboard(generateQrLink(space), `qr-${index}`)} className="ml-2">{copiedIndex === `qr-${index}` ? 'Copiado!' : <HiClipboardCopy />}</Button>
                           </div>
                         </div>
                       </td>
