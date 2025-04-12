@@ -273,11 +273,6 @@ export default function VagaDetailPage() {
                 <HiOutlineQrcode className="h-6 w-6 mr-2" />
                 <h1 className="text-xl font-bold">Vaga: {space?.name}</h1>
               </div>
-              <Link href="/gestao">
-                <button className="p-2 hover:bg-blue-700 dark:hover:bg-blue-800 rounded-full" title="Voltar para Gestão">
-                  <HiArrowLeft className="h-5 w-5" />
-                </button>
-              </Link>
             </div>
             <p className="text-sm mt-1 opacity-80">Sala: {space?.storage_rooms?.name}</p>
             <p className="text-sm opacity-80">Posição: {space?.position}</p>
@@ -360,7 +355,7 @@ export default function VagaDetailPage() {
               <div className="space-y-3">
                 <Button 
                   color="failure" 
-                  className="w-full"
+                  className="w-full text-black dark:text-white"
                   onClick={() => setRemoveDialogOpen(true)}
                 >
                   Remover Palete
@@ -368,7 +363,7 @@ export default function VagaDetailPage() {
                 
                 <Button 
                   color="purple" 
-                  className="w-full"
+                  className="w-full text-black dark:text-white"
                   onClick={() => setReallocateDialogOpen(true)}
                 >
                   Realocar para Outra Vaga
@@ -376,14 +371,6 @@ export default function VagaDetailPage() {
               </div>
             )}
           </div>
-        </div>
-        
-        <div className="mt-4 text-center">
-          <Link href="/gestao">
-            <Button color="gray">
-              <HiArrowLeft className="mr-2 h-5 w-5" /> Voltar para Gestão
-            </Button>
-          </Link>
         </div>
       </div>
       
@@ -426,7 +413,8 @@ export default function VagaDetailPage() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button 
+          <Button
+            className="text-black dark:text-white" 
             color="failure" 
             onClick={removePallet}
           >

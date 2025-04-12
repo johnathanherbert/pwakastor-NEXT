@@ -41,43 +41,43 @@ export function StorageStats({
       </div>
 
       {/* Materiais mais comuns */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-          <HiChartBar className="w-5 h-5 mr-2 text-green-500" />
-          Materiais Mais Frequentes
-        </h3>
-        <div className="space-y-2">
-          {topMaterials.length > 0 ? (
-            topMaterials.map((material, index) => (
-              <div
-                key={material.code}
-                className="flex justify-between items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div className="flex items-center">
-                  <span className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-bold mr-2">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {material.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Código: {material.code}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                  {material.count}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-              Nenhum material alocado
-            </p>
-          )}
+<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+  <h3 className="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+    <HiChartBar className="w-5 h-5 mr-2 text-green-500" />
+    Materiais Mais Frequentes
+  </h3>
+  <div className="space-y-2 max-h-60 overflow-y-auto"> {/* Adicionado max-h-60 e overflow-y-auto */}
+    {topMaterials.length > 0 ? (
+      topMaterials.map((material, index) => (
+        <div
+          key={material.code}
+          className="flex justify-between items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          <div className="flex items-center">
+            <span className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-bold mr-2">
+              {index + 1}
+            </span>
+            <div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                {material.name}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Código: {material.code}
+              </p>
+            </div>
+          </div>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+            {material.count}
+          </span>
         </div>
-      </div>
+      ))
+    ) : (
+      <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+        Nenhum material alocado
+      </p>
+    )}
+  </div>
+</div>
 
       {/* Holding Time */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">

@@ -67,7 +67,7 @@ const TableFilter = ({
         size="sm"
         color={hasActiveFilters ? "info" : "light"}
         onClick={handleToggleFilters}
-        className={`flex items-center ${hasActiveFilters ? "ring-2 ring-blue-300" : ""}`}
+        className={`flex items-center text-black dark:text-white ${hasActiveFilters ? "ring-2 ring-blue-300" : ""}`}
       >
         <HiOutlineFilter className="mr-2 h-4 w-4" />
         Filtros
