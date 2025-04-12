@@ -14,7 +14,10 @@ import {
   HiFilter,
   HiOutlineRefresh,
   HiOutlineDocumentReport,
-  HiCalendar
+  HiCalendar,
+  HiArrowDown,
+  HiArrowUp,
+  HiAdjustments
 } from "react-icons/hi";
 import { Toast } from "@/components/Toast/Toast";
 import ToastContainer, { showToast } from "@/components/Toast/ToastContainer";
@@ -22,6 +25,53 @@ import { StorageStats } from "@/components/PaleteSystem/StorageStats";
 import Sidebar from "@/components/Sidebar";
 import HeaderClock from "@/components/Clock/HeaderClock";
 import { useTheme } from "@/contexts/ThemeContext";
+import TableFilter from "@/components/TableFilter";
+import SortableHeader from "@/components/SortableHeader";
+
+// Definição das opções de filtro
+const filterOptions = [
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    defaultValue: 'all',
+    options: [
+      { value: 'all', label: 'Todos' },
+      { value: 'empty', label: 'Vazios' },
+      { value: 'occupied', label: 'Ocupados' }
+    ]
+  },
+  {
+    id: 'searchText',
+    label: 'Buscar',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'Nome, posição, OP ou material...'
+  },
+  {
+    id: 'startDate',
+    label: 'Data Inicial',
+    type: 'date',
+    defaultValue: ''
+  },
+  {
+    id: 'endDate',
+    label: 'Data Final',
+    type: 'date',
+    defaultValue: ''
+  },
+  {
+    id: 'materialType',
+    label: 'Tipo de Material',
+    type: 'select',
+    defaultValue: 'all',
+    options: [
+      { value: 'all', label: 'Todos' },
+      { value: 'materia_prima', label: 'Matéria-prima' },
+      { value: 'produto_acabado', label: 'Produto Acabado' }
+    ]
+  }
+];
 
 export default function GestaoPage() {
   // State for rooms
@@ -46,7 +96,26 @@ export default function GestaoPage() {
   const [filters, setFilters] = useState({
     status: "all", // empty, occupied, all
     searchText: "",
+    dateRange: { start: "", end: "" },
+    materialType: "all"
   });
+  
+  // Estados para ordenação
+  const [sortConfig, setSortConfig] = useState({
+    key: "position", 
+    direction: "asc"
+  });
+  const [occupiedSortConfig, setSortOccupiedConfig] = useState({
+    key: "weighing_date", 
+    direction: "desc"
+  });
+  const [logSortConfig, setLogSortConfig] = useState({
+    key: "timestamp", 
+    direction: "desc"
+  });
+  
+  // Filtros avançados
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Paletes ocupados (para mostrar holding time global)
   const [occupiedPallets, setOccupiedPallets] = useState([]);
@@ -601,8 +670,11 @@ export default function GestaoPage() {
       );
     }
     
+    // Aplicar ordenação usando a função genérica
+    filtered = applySorting(filtered, sortConfig);
+    
     setFilteredSpaces(filtered);
-  }, [spaces, filters]);
+  }, [spaces, filters, sortConfig]); // Adicionar sortConfig como dependência
 
   // Calcular holding time para um espaço
   const calculateHoldingTime = (space) => {
@@ -685,6 +757,90 @@ export default function GestaoPage() {
     } else {
       setPasswordError("Senha incorreta. Tente novamente.");
     }
+  };
+
+  // Function to handle sorting for main spaces table
+  const handleSort = (key) => {
+    if (sortConfig.key === key) {
+      setSortConfig({
+        key,
+        direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      setSortConfig({
+        key,
+        direction: 'asc'
+      });
+    }
+  };
+
+  // Function to handle sorting for occupied pallets
+  const handleOccupiedSort = (key) => {
+    if (occupiedSortConfig.key === key) {
+      setSortOccupiedConfig({
+        key,
+        direction: occupiedSortConfig.direction === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      setSortOccupiedConfig({
+        key,
+        direction: 'asc'
+      });
+    }
+  };
+
+  // Function to handle sorting for logs table
+  const handleLogSort = (key) => {
+    if (logSortConfig.key === key) {
+      setLogSortConfig({
+        key,
+        direction: logSortConfig.direction === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      setLogSortConfig({
+        key,
+        direction: 'asc'
+      });
+    }
+  };
+
+  // Function to apply sorting to arrays of data
+  const applySorting = (data, sortConfig) => {
+    const sortableData = [...data];
+    if (sortConfig.key) {
+      sortableData.sort((a, b) => {
+        // Handle numerical values
+        if (typeof a[sortConfig.key] === 'number' && typeof b[sortConfig.key] === 'number') {
+          return sortConfig.direction === 'asc' 
+            ? a[sortConfig.key] - b[sortConfig.key]
+            : b[sortConfig.key] - a[sortConfig.key];
+        }
+        
+        // Handle date values
+        if (a[sortConfig.key] && b[sortConfig.key] && 
+            !isNaN(new Date(a[sortConfig.key])) && !isNaN(new Date(b[sortConfig.key]))) {
+          const dateA = new Date(a[sortConfig.key]);
+          const dateB = new Date(b[sortConfig.key]);
+          return sortConfig.direction === 'asc' 
+            ? dateA - dateB 
+            : dateB - dateA;
+        }
+        
+        // Handle string values (case insensitive)
+        if (a[sortConfig.key] && b[sortConfig.key]) {
+          return sortConfig.direction === 'asc'
+            ? a[sortConfig.key].toString().localeCompare(b[sortConfig.key].toString())
+            : b[sortConfig.key].toString().localeCompare(a[sortConfig.key].toString());
+        }
+        
+        // Handle null/undefined values (null values go last)
+        if (a[sortConfig.key] === null || a[sortConfig.key] === undefined) return 1;
+        if (b[sortConfig.key] === null || b[sortConfig.key] === undefined) return -1;
+        
+        return 0;
+      });
+    }
+    return sortableData;
   };
 
   // Render component
@@ -825,24 +981,6 @@ export default function GestaoPage() {
                 
                 {/* Spaces Section */}
                 <div className="col-span-1 md:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-700/20 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-                      {selectedRoom 
-                        ? `Vagas - ${rooms.find(r => r.id === selectedRoom)?.name}`
-                        : "Vagas de Armazenamento"}
-                    </h2>
-                    {selectedRoom && (
-                      <Button
-                        className="font-bold text-black dark:text-white" 
-                        size="sm" 
-                        onClick={() => handlePasswordVerification("space")}
-                        disabled={isAddingSpace}
-                      >
-                        <HiPlus className="mr-1 h-4 w-4 font-bold text-black dark:text-white" /> Adicionar Vaga
-                      </Button>
-                    )}
-                  </div>
-                  
                   {!selectedRoom ? (
                     <>
                       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-md p-3 mb-4">
@@ -951,6 +1089,24 @@ export default function GestaoPage() {
                     </>
                   ) : (
                     <>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                          {selectedRoom 
+                            ? `Vagas - ${rooms.find(r => r.id === selectedRoom)?.name}`
+                            : "Vagas de Armazenamento"}
+                        </h2>
+                        {selectedRoom && (
+                          <Button
+                            className="font-bold text-black dark:text-white" 
+                            size="sm" 
+                            onClick={() => handlePasswordVerification("space")}
+                            disabled={isAddingSpace}
+                          >
+                            <HiPlus className="mr-1 h-4 w-4 font-bold text-black dark:text-white" /> Adicionar Vaga
+                          </Button>
+                        )}
+                      </div>
+                      
                       {isAddingSpace && (
                         <div className="grid grid-cols-2 gap-4 mb-6">
                           <div>
@@ -1003,46 +1159,34 @@ export default function GestaoPage() {
                         </div>
                       )}
                       
-                      {/* Barra de filtros */}
-                      <div className="mb-4 flex flex-wrap gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <Label htmlFor="status-filter" value="Status:" className="text-gray-700 dark:text-gray-300 whitespace-nowrap" />
-                          <select
-                            id="status-filter"
-                            value={filters.status}
-                            onChange={(e) => setFilters({...filters, status: e.target.value})}
-                            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2"
-                          >
-                            <option value="all">Todos</option>
-                            <option value="empty">Vazios</option>
-                            <option value="occupied">Ocupados</option>
-                          </select>
+                      {/* Barra de filtros - Removido título duplicado */}
+                      <div className="mb-4 flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {filteredSpaces.length} vagas encontradas
+                          </p>
                         </div>
                         
-                        <div className="flex-1">
-                          <TextInput
-                            placeholder="Buscar por nome, posição, OP ou material..."
-                            value={filters.searchText}
-                            onChange={(e) => setFilters({...filters, searchText: e.target.value})}
-                            theme={{
-                              field: {
-                                input: {
-                                  base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
-                                }
-                              }
+                        <div className="flex gap-2">
+                          <TableFilter 
+                            filters={filters}
+                            setFilters={setFilters}
+                            filterOptions={filterOptions}
+                            onApplyFilters={() => {
+                              console.log("Filtros aplicados:", filters);
+                            }}
+                            onResetFilters={() => {
+                              console.log("Filtros resetados");
+                              setFilters({
+                                status: "all",
+                                searchText: "",
+                                startDate: "",
+                                endDate: "",
+                                materialType: "all"
+                              });
                             }}
                           />
                         </div>
-                        
-                        {filters.status !== "all" || filters.searchText ? (
-                          <Button
-                            size="sm"
-                            color="light"
-                            onClick={() => setFilters({ status: "all", searchText: "" })}
-                          >
-                            <HiX className="h-4 w-4 mr-1" /> Limpar
-                          </Button>
-                        ) : null}
                       </div>
                       
                       {spaces.length === 0 ? (
@@ -1078,12 +1222,84 @@ export default function GestaoPage() {
                             }
                           }}>
                             <Table.Head>
-                              <Table.HeadCell className="w-16">Vaga</Table.HeadCell>
-                              <Table.HeadCell className="w-24">Posição</Table.HeadCell>
-                              <Table.HeadCell className="w-16">Status</Table.HeadCell>
-                              <Table.HeadCell className="w-20">OP</Table.HeadCell>
-                              <Table.HeadCell>Material</Table.HeadCell>
-                              <Table.HeadCell className="w-24">Holding</Table.HeadCell>
+                              <Table.HeadCell 
+                                className="w-16 cursor-pointer" 
+                                onClick={() => handleSort("name")}
+                              >
+                                <div className="flex items-center">
+                                  <span>Vaga</span>
+                                  {sortConfig.key === "name" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
+                              <Table.HeadCell 
+                                className="w-24 cursor-pointer"
+                                onClick={() => handleSort("position")}
+                              >
+                                <div className="flex items-center">
+                                  <span>Posição</span>
+                                  {sortConfig.key === "position" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
+                              <Table.HeadCell 
+                                className="w-16 cursor-pointer"
+                                onClick={() => handleSort("status")}
+                              >
+                                <div className="flex items-center">
+                                  <span>Status</span>
+                                  {sortConfig.key === "status" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
+                              <Table.HeadCell 
+                                className="w-20 cursor-pointer"
+                                onClick={() => handleSort("current_op")}
+                              >
+                                <div className="flex items-center">
+                                  <span>OP</span>
+                                  {sortConfig.key === "current_op" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
+                              <Table.HeadCell 
+                                className="cursor-pointer"
+                                onClick={() => handleSort("material_name")}
+                              >
+                                <div className="flex items-center">
+                                  <span>Material</span>
+                                  {sortConfig.key === "material_name" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
+                              <Table.HeadCell 
+                                className="w-24 cursor-pointer"
+                                onClick={() => handleSort("weighing_date")}
+                              >
+                                <div className="flex items-center">
+                                  <span>Holding</span>
+                                  {sortConfig.key === "weighing_date" && (
+                                    <span className="ml-1.5">
+                                      {sortConfig.direction === "asc" ? "↑" : "↓"}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.HeadCell>
                               <Table.HeadCell className="w-16">Ações</Table.HeadCell>
                             </Table.Head>
                             <Table.Body className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1462,16 +1678,65 @@ export default function GestaoPage() {
                       }
                     }}>
                       <Table.Head>
-                        <Table.HeadCell className="w-32">Data/Hora</Table.HeadCell>
-                        <Table.HeadCell className="w-24">Ação</Table.HeadCell>
-                        <Table.HeadCell className="w-24">OP</Table.HeadCell>
-                        <Table.HeadCell>Material</Table.HeadCell>
-                        <Table.HeadCell className="w-24">Sala</Table.HeadCell>
-                        <Table.HeadCell className="w-24">Vaga</Table.HeadCell>
-                        <Table.HeadCell className="w-24">Usuário</Table.HeadCell>
+                        <Table.HeadCell className="w-32">
+                          <SortableHeader 
+                            label="Data/Hora"
+                            field="timestamp"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell className="w-24">
+                          <SortableHeader 
+                            label="Ação"
+                            field="action"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell className="w-24">
+                          <SortableHeader 
+                            label="OP"
+                            field="op"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell>
+                          <SortableHeader 
+                            label="Material"
+                            field="material_name"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell className="w-24">
+                          <SortableHeader 
+                            label="Sala"
+                            field="room_id"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell className="w-24">
+                          <SortableHeader 
+                            label="Vaga"
+                            field="space_id"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
+                        <Table.HeadCell className="w-24">
+                          <SortableHeader 
+                            label="Usuário"
+                            field="user_id"
+                            sortConfig={logSortConfig}
+                            onSort={handleLogSort}
+                          />
+                        </Table.HeadCell>
                       </Table.Head>
                       <Table.Body className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {storageLogs.map((log) => (
+                        {applySorting(storageLogs, logSortConfig).map((log) => (
                           <Table.Row key={log.id} className="bg-white dark:bg-gray-800 dark:border-gray-700">
                             <Table.Cell className="text-xs">
                               {new Date(log.timestamp).toLocaleString('pt-BR', {
