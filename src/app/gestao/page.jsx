@@ -42,6 +42,13 @@ const filterOptions = [
     ]
   },
   {
+    id: 'spaceName',
+    label: 'Nome da Vaga',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'Ex: A ou A-1'
+  },
+  {
     id: 'searchText',
     label: 'Buscar',
     type: 'text',
@@ -665,7 +672,30 @@ export default function GestaoPage() {
       filtered = filtered.filter(space => space.status === filters.status);
     }
     
-    // Filtrar por texto de busca
+    // Filtrar por nome de vaga (nova funcionalidade)
+    if (filters.spaceName) {
+      const nameQuery = filters.spaceName.toLowerCase().trim();
+      
+      // Verificar se é um padrão de "nome-posição" (ex: A-1)
+      if (nameQuery.includes('-')) {
+        const [vagaNome, vagaPosicao] = nameQuery.split('-');
+        filtered = filtered.filter(space => 
+          space.name && 
+          space.name.toLowerCase() === vagaNome.toLowerCase() && 
+          space.position && 
+          space.position.toLowerCase().includes(vagaPosicao.toLowerCase())
+        );
+      } 
+      // Caso contrário, buscar todas as vagas que começam com o nome especificado
+      else {
+        filtered = filtered.filter(space => 
+          space.name && 
+          space.name.toLowerCase().startsWith(nameQuery)
+        );
+      }
+    }
+    
+    // Filtrar por texto de busca geral
     if (filters.searchText) {
       const searchLower = filters.searchText.toLowerCase();
       filtered = filtered.filter(

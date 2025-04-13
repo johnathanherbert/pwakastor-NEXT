@@ -6,7 +6,8 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
   const [item, setItem] = useState({
     codigo: '',
     descricao: '',
-    quantidade: ''
+    quantidade: '',
+    lote: ''
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +20,8 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
       setItem({
         codigo: '',
         descricao: '',
-        quantidade: ''
+        quantidade: '',
+        lote: ''
       });
       setBulkText('');
       setShowBulkInput(false);
@@ -55,18 +57,44 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
           const newItem = {
             codigo: parts[0],
             descricao: parts[1],
-            quantidade: parts[2]
+            quantidade: parts[2],
+            lote: ''
           };
           setItem(newItem);
           setShowBulkInput(false);
           setBulkText('');
           return;
         } else if (parts.length === 4) {
-          // If there are 4 parts, assume first part is item number which we can ignore
+          // Check if last part might be a batch (lote) or if it's the item number pattern
+          if (/^\d{1,3}$/.test(parts[0])) {
+            // If first part looks like an item number (1-3 digits)
+            const newItem = {
+              codigo: parts[1],
+              descricao: parts[2],
+              quantidade: parts[3],
+              lote: ''
+            };
+            setItem(newItem);
+          } else {
+            // Fourth part is the batch (lote)
+            const newItem = {
+              codigo: parts[0],
+              descricao: parts[1],
+              quantidade: parts[2],
+              lote: parts[3]
+            };
+            setItem(newItem);
+          }
+          setShowBulkInput(false);
+          setBulkText('');
+          return;
+        } else if (parts.length === 5) {
+          // Assume format is: item_number code description quantity lote
           const newItem = {
             codigo: parts[1],
             descricao: parts[2],
-            quantidade: parts[3]
+            quantidade: parts[3],
+            lote: parts[4]
           };
           setItem(newItem);
           setShowBulkInput(false);
@@ -88,6 +116,13 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
           const beforeLastNumber = trimmedLine.substring(0, lastNumberPos);
           const quantity = lastNumberMatch[0].trim();
           
+          // Check if there's text after the quantity which might be a batch (lote)
+          let lote = '';
+          const remainingText = line.substring(lastNumberPos + quantity.length).trim();
+          if (remainingText) {
+            lote = remainingText;
+          }
+          
           // Now find where the code ends and description begins
           const parts = beforeLastNumber.trim().split(/\s+/);
           
@@ -108,7 +143,8 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
             const newItem = {
               codigo: code,
               descricao: description,
-              quantidade: quantity
+              quantidade: quantity,
+              lote: lote
             };
             
             setItem(newItem);
@@ -218,13 +254,25 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
                     • código[tab]descrição[tab]quantidade
                   </p>
                   <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
+                    • código[tab]descrição[tab]quantidade[tab]lote
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
                     • item_num[tab]código[tab]descrição[tab]quantidade
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
+                    • item_num[tab]código[tab]descrição[tab]quantidade[tab]lote
                   </p>
                   <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
                     • código descrição quantidade
                   </p>
                   <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
+                    • código descrição quantidade lote
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
                     • item_num código descrição quantidade
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
+                    • item_num código descrição quantidade lote
                   </p>
                 </div>
                 <button
@@ -284,6 +332,25 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
                     value={item.quantidade}
                     onChange={(e) => handleChange('quantidade', e.target.value)}
                     placeholder="Ex: 24"
+                    className="w-full px-3 py-2 
+                      bg-white dark:bg-gray-700
+                      border border-gray-200 dark:border-gray-600 
+                      rounded-lg text-gray-900 dark:text-gray-100
+                      placeholder-gray-400 dark:placeholder-gray-400
+                      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                      focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Lote
+                  </label>
+                  <input
+                    type="text"
+                    value={item.lote}
+                    onChange={(e) => handleChange('lote', e.target.value)}
+                    placeholder="Ex: L12345"
                     className="w-full px-3 py-2 
                       bg-white dark:bg-gray-700
                       border border-gray-200 dark:border-gray-600 
