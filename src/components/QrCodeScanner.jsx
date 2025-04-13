@@ -91,7 +91,7 @@ const QrCodeScanner = ({ onResult, onClose }) => {
   }, [scanning, loading, error, onResult]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-75 p-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black bg-opacity-75 p-4">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

@@ -426,47 +426,100 @@ export default function AlocacaoMobilePage() {
     }
   };
 
+  // Abrir scanner QR code temporariamente fechando o modal de alocação
+  const openQrScanner = () => {
+    // Fechar temporariamente o modal de alocação
+    setIsAllocateModalOpen(false);
+    // Abrir o scanner de QR code
+    setIsQrScannerOpen(true);
+  };
+
   // Processar scan de QR code para detectar vaga
   const handleQrCodeResult = async (qrData) => {
     try {
       setIsQrScannerOpen(false);
       
-      // Extrair sala e posição do QR code (formato: sala/posição)
-      const qrParts = qrData.split('/');
-      if (qrParts.length !== 2) {
-        showFeedback("QR code em formato inválido. Use sala/posição", "error");
+      // Verificar se o QR code contém um link ou um ID direto da vaga
+      let spaceId;
+      
+      // Verificar se é um URL completo (ex: https://exemplo.com/vaga/123)
+      if (qrData.includes('/vaga/')) {
+        const urlParts = qrData.split('/vaga/');
+        spaceId = urlParts[1].split('/')[0]; // Extrai o ID da vaga da URL
+      } 
+      // Verificar se é apenas o ID da vaga
+      else if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(qrData)) {
+        spaceId = qrData;
+      }
+      // Manter o formato antigo como fallback (sala/posição)
+      else {
+        const qrParts = qrData.split('/');
+        if (qrParts.length !== 2) {
+          showFeedback("QR code em formato inválido. Deve ser uma URL da vaga ou ID", "error");
+          // Reabrir o modal de alocação
+          setIsAllocateModalOpen(true);
+          return;
+        }
+        
+        const [sala, posicao] = qrParts;
+        
+        // Buscar a sala pelo nome
+        const { data: roomData, error: roomError } = await supabase
+          .from("storage_rooms")
+          .select("id")
+          .ilike("name", sala);
+        
+        if (roomError) throw roomError;
+        
+        if (!roomData || roomData.length === 0) {
+          showFeedback(`Sala "${sala}" não encontrada`, "error");
+          // Reabrir o modal de alocação
+          setIsAllocateModalOpen(true);
+          return;
+        }
+        
+        const roomId = roomData[0].id;
+        
+        // Buscar a vaga específica pela sala e posição
+        const { data: spaceData, error: spaceError } = await supabase
+          .from("storage_spaces")
+          .select("*")
+          .eq("room_id", roomId)
+          .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`)
+          .eq("status", "empty");
+        
+        if (spaceError) throw spaceError;
+        
+        if (!spaceData || spaceData.length === 0) {
+          showFeedback(`Vaga "${posicao}" não encontrada ou não está vazia`, "error");
+          // Reabrir o modal de alocação
+          setIsAllocateModalOpen(true);
+          return;
+        }
+        
+        // Selecionar a vaga escaneada
+        setSelectedSpace(spaceData[0]);
+        showFeedback(`Vaga ${spaceData[0].name} selecionada com sucesso!`, "success");
+        
+        // Reabrir o modal de alocação com a vaga selecionada
+        setIsAllocateModalOpen(true);
         return;
       }
       
-      const [sala, posicao] = qrParts;
-      
-      // Buscar a sala pelo nome
-      const { data: roomData, error: roomError } = await supabase
-        .from("storage_rooms")
-        .select("id")
-        .ilike("name", sala);
-      
-      if (roomError) throw roomError;
-      
-      if (!roomData || roomData.length === 0) {
-        showFeedback(`Sala "${sala}" não encontrada`, "error");
-        return;
-      }
-      
-      const roomId = roomData[0].id;
-      
-      // Buscar a vaga específica pela sala e posição
+      // Se chegou aqui, é porque identificamos o spaceId de um link ou ID direto
+      // Buscar a vaga diretamente pelo ID
       const { data: spaceData, error: spaceError } = await supabase
         .from("storage_spaces")
         .select("*")
-        .eq("room_id", roomId)
-        .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`)
+        .eq("id", spaceId)
         .eq("status", "empty");
       
       if (spaceError) throw spaceError;
       
       if (!spaceData || spaceData.length === 0) {
-        showFeedback(`Vaga "${posicao}" não encontrada ou não está vazia`, "error");
+        showFeedback(`Vaga com ID "${spaceId}" não encontrada ou não está vazia`, "error");
+        // Reabrir o modal de alocação
+        setIsAllocateModalOpen(true);
         return;
       }
       
@@ -474,9 +527,15 @@ export default function AlocacaoMobilePage() {
       setSelectedSpace(spaceData[0]);
       showFeedback(`Vaga ${spaceData[0].name} selecionada com sucesso!`, "success");
       
+      // Reabrir o modal de alocação com a vaga selecionada
+      setIsAllocateModalOpen(true);
+      
     } catch (error) {
       console.error("Erro ao processar QR code:", error);
       showFeedback("Erro ao processar QR code", "error");
+      
+      // Reabrir o modal de alocação mesmo em caso de erro
+      setIsAllocateModalOpen(true);
     }
   };
 
@@ -805,12 +864,12 @@ export default function AlocacaoMobilePage() {
                     Use o botão abaixo para abrir a câmera e escanear o QR code da vaga onde deseja alocar o material.
                   </p>
                   <Button
+                    onClick={openQrScanner}
                     color="info"
-                    className="text-white w-full"
-                    onClick={() => setIsQrScannerOpen(true)}
+                    className="text-white"
                   >
-                    <HiCamera className="mr-2 h-5 w-5" />
-                    Abrir Scanner de QR Code
+                    <HiQrcode className="mr-2 h-5 w-5" />
+                    Escanear QR Code
                   </Button>
                 </div>
               )}
@@ -851,7 +910,7 @@ export default function AlocacaoMobilePage() {
               ) : (
                 // Caso contrário, botão para abrir scanner
                 <Button
-                  onClick={() => setIsQrScannerOpen(true)}
+                  onClick={openQrScanner}
                   color="info"
                   className="text-white"
                 >
