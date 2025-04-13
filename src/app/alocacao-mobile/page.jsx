@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
 import { Button, TextInput, Modal, Label, Spinner, Badge, Card } from "flowbite-react";
-import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera } from "react-icons/hi";
+import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera, HiQrcode } from "react-icons/hi";
 import MobileOcrScanner from "@/components/MobileOcrScanner";
+import QrCodeScanner from "@/components/QrCodeScanner";
 
 export default function AlocacaoMobilePage() {
   // Estado para armazenar salas e vagas
@@ -17,6 +18,9 @@ export default function AlocacaoMobilePage() {
   // Estado para scanner OCR
   const [isOcrScannerOpen, setIsOcrScannerOpen] = useState(false);
   const [scannedData, setScannedData] = useState(null);
+  
+  // Estado para scanner QR Code de vaga
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   
   // Estado para controlar a seleção de sala
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -31,6 +35,9 @@ export default function AlocacaoMobilePage() {
     weighingDate: "",
     signature: "",
   });
+  
+  // Estado para controlar o fluxo em etapas do modal
+  const [allocationStep, setAllocationStep] = useState(1); // 1: dados do material, 2: escanear vaga
   
   // Estado para o material selecionado
   const [activeMaterial, setActiveMaterial] = useState(null);
@@ -280,6 +287,42 @@ export default function AlocacaoMobilePage() {
     }
   };
   
+  // Validar dados antes de passar para escaneamento
+  const handleValidateAndMoveToQrScan = () => {
+    const { op, recipeCode, weighingDate, signature } = allocationData;
+    
+    // Validações básicas
+    if (!op || !recipeCode || !weighingDate || !signature) {
+      showFeedback("Preencha todos os campos obrigatórios", "error");
+      return;
+    }
+
+    if (signature.length !== 5) {
+      showFeedback("A assinatura deve conter 5 dígitos", "error");
+      return;
+    }
+
+    // Verificar se o material existe no banco
+    findMaterialByRecipeCode(recipeCode).then(material => {
+      if (!material) {
+        showFeedback("Material não encontrado. Verifique o código da receita.", "error");
+        return;
+      }
+      
+      // Todos os dados estão válidos, avançar para escaneamento
+      setAllocationStep(2);
+      
+      // Se já tiver uma vaga selecionada, pular o escaneamento
+      if (selectedSpace) {
+        // Continuar com a alocação usando a vaga já selecionada
+        handleAllocatePallet();
+      } else {
+        // Abrir scanner de QR code
+        setIsQrScannerOpen(true);
+      }
+    });
+  };
+  
   // Processar alocação de palete
   const handleAllocatePallet = async () => {
     const { op, recipeCode, weighingDate, signature } = allocationData;
@@ -383,8 +426,62 @@ export default function AlocacaoMobilePage() {
     }
   };
 
+  // Processar scan de QR code para detectar vaga
+  const handleQrCodeResult = async (qrData) => {
+    try {
+      setIsQrScannerOpen(false);
+      
+      // Extrair sala e posição do QR code (formato: sala/posição)
+      const qrParts = qrData.split('/');
+      if (qrParts.length !== 2) {
+        showFeedback("QR code em formato inválido. Use sala/posição", "error");
+        return;
+      }
+      
+      const [sala, posicao] = qrParts;
+      
+      // Buscar a sala pelo nome
+      const { data: roomData, error: roomError } = await supabase
+        .from("storage_rooms")
+        .select("id")
+        .ilike("name", sala);
+      
+      if (roomError) throw roomError;
+      
+      if (!roomData || roomData.length === 0) {
+        showFeedback(`Sala "${sala}" não encontrada`, "error");
+        return;
+      }
+      
+      const roomId = roomData[0].id;
+      
+      // Buscar a vaga específica pela sala e posição
+      const { data: spaceData, error: spaceError } = await supabase
+        .from("storage_spaces")
+        .select("*")
+        .eq("room_id", roomId)
+        .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`)
+        .eq("status", "empty");
+      
+      if (spaceError) throw spaceError;
+      
+      if (!spaceData || spaceData.length === 0) {
+        showFeedback(`Vaga "${posicao}" não encontrada ou não está vazia`, "error");
+        return;
+      }
+      
+      // Selecionar a vaga escaneada
+      setSelectedSpace(spaceData[0]);
+      showFeedback(`Vaga ${spaceData[0].name} selecionada com sucesso!`, "success");
+      
+    } catch (error) {
+      console.error("Erro ao processar QR code:", error);
+      showFeedback("Erro ao processar QR code", "error");
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6 pb-20">
       {/* Feedback ao usuário */}
       {feedback.show && (
         <div className={`p-4 mb-4 rounded-lg ${
@@ -396,11 +493,32 @@ export default function AlocacaoMobilePage() {
         </div>
       )}
       
+      {/* Barra de navegação fixa no rodapé */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-20 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-center">
+          <Button
+            color="success"
+            className="p-3 rounded-none w-full flex items-center justify-center"
+            onClick={() => openAllocationModal(null)}
+          >
+            <HiPlus className="mr-2 h-5 w-5" />
+            Alocar
+          </Button>
+        </div>
+      </div>
+      
       {/* Scanner OCR (só aparece quando ativado) */}
       {isOcrScannerOpen && (
         <MobileOcrScanner 
           onResult={handleOcrResult} 
           onClose={() => setIsOcrScannerOpen(false)} 
+        />
+      )}
+      
+      {isQrScannerOpen && (
+        <QrCodeScanner
+          onResult={handleQrCodeResult}
+          onClose={() => setIsQrScannerOpen(false)}
         />
       )}
       
@@ -560,87 +678,204 @@ export default function AlocacaoMobilePage() {
       )}
       
       {/* Modal de alocação */}
-      <Modal show={isAllocateModalOpen} onClose={() => setIsAllocateModalOpen(false)}>
+      <Modal show={isAllocateModalOpen} onClose={() => {
+        setIsAllocateModalOpen(false);
+        setAllocationStep(1); // Reset para a primeira etapa ao fechar
+      }}>
         <Modal.Header>
-          Alocar Palete na Vaga {selectedSpace?.name}
+          {allocationStep === 1 
+            ? "Preencha os Dados do Material" 
+            : selectedSpace 
+              ? `Vaga Selecionada: ${selectedSpace.name}` 
+              : "Escaneie o QR Code da Vaga"}
         </Modal.Header>
         <Modal.Body>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Preencha os detalhes para alocar um palete na vaga {selectedSpace?.name} 
-              ({rooms.find(r => r.id === selectedRoom)?.name}).
-            </p>
+          {allocationStep === 1 ? (
+            // Etapa 1: Preenchimento dos dados do material
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Preencha os detalhes do material para alocação. Após confirmar, você poderá escanear o QR code da vaga.
+              </p>
             
-            {scannedData && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg mb-4">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200 flex justify-between items-center">
-                  <span>Dados lidos da etiqueta</span>
-                  <Button 
-                    size="xs" 
-                    color="light" 
-                    onClick={() => setScannedData(null)}
+              {scannedData && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg mb-4">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200 flex justify-between items-center">
+                    <span>Dados lidos da etiqueta</span>
+                    <Button 
+                      size="xs" 
+                      color="light" 
+                      onClick={() => setScannedData(null)}
+                    >
+                      <HiX className="h-4 w-4" />
+                    </Button>
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="op" value="Ordem de Produção (OP)" className="mb-1 text-gray-700 dark:text-gray-300" />
+                <TextInput
+                  id="op"
+                  placeholder="Ex: 2284465"
+                  value={allocationData.op}
+                  onChange={(e) => setAllocationData({...allocationData, op: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="recipe-code" value="Código da Receita" className="mb-1 text-gray-700 dark:text-gray-300" />
+                <TextInput
+                  id="recipe-code"
+                  placeholder="Ex: 123456"
+                  value={allocationData.recipeCode}
+                  onChange={(e) => setAllocationData({...allocationData, recipeCode: e.target.value})}
+                />
+              </div>
+              
+              {activeMaterial && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Material: {activeMaterial.Ativo || "Material não encontrado"}
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="weighing-date" value="Data da Pesagem" className="mb-1 text-gray-700 dark:text-gray-300" />
+                <TextInput
+                  id="weighing-date"
+                  type="date"
+                  value={allocationData.weighingDate}
+                  onChange={(e) => setAllocationData({...allocationData, weighingDate: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="signature" value="Assinatura (ID de 5 dígitos)" className="mb-1 text-gray-700 dark:text-gray-300" />
+                <TextInput
+                  id="signature"
+                  placeholder="Ex: 12345"
+                  maxLength={5}
+                  value={allocationData.signature}
+                  onChange={(e) => setAllocationData({...allocationData, signature: e.target.value})}
+                />
+              </div>
+            </div>
+          ) : (
+            // Etapa 2: Seleção/confirmação da vaga
+            <div className="space-y-4">
+              {selectedSpace ? (
+                // Mostrar detalhes da vaga selecionada via QR code
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                      Vaga selecionada com sucesso!
+                    </h3>
+                    <Button 
+                      size="xs" 
+                      color="light" 
+                      onClick={() => setSelectedSpace(null)}
+                    >
+                      <HiX className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm mb-2 text-green-800 dark:text-green-200">
+                    <span className="font-medium">Nome:</span> {selectedSpace.name}
+                  </p>
+                  <p className="text-sm mb-2 text-green-800 dark:text-green-200">
+                    <span className="font-medium">Sala:</span> {rooms.find(r => r.id === selectedSpace.room_id)?.name || ''}
+                  </p>
+                  <p className="text-sm mb-2 text-green-800 dark:text-green-200">
+                    <span className="font-medium">Posição:</span> {selectedSpace.position || ''}
+                  </p>
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    Clique em "Confirmar Alocação" para concluir o processo.
+                  </p>
+                </div>
+              ) : (
+                // Instruções para escanear QR code
+                <div className="text-center p-4">
+                  <div className="mb-4">
+                    <HiQrcode className="mx-auto h-16 w-16 text-blue-500 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">
+                    Escaneie o QR Code da Vaga
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Use o botão abaixo para abrir a câmera e escanear o QR code da vaga onde deseja alocar o material.
+                  </p>
+                  <Button
+                    color="info"
+                    className="text-white w-full"
+                    onClick={() => setIsQrScannerOpen(true)}
                   >
-                    <HiX className="h-4 w-4" />
+                    <HiCamera className="mr-2 h-5 w-5" />
+                    Abrir Scanner de QR Code
                   </Button>
-                </p>
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="op" value="Ordem de Produção (OP)" className="mb-1 text-gray-700 dark:text-gray-300" />
-              <TextInput
-                id="op"
-                placeholder="Ex: 2284465"
-                value={allocationData.op}
-                onChange={(e) => setAllocationData({...allocationData, op: e.target.value})}
-              />
+                </div>
+              )}
             </div>
-            
-            <div>
-              <Label htmlFor="recipe-code" value="Código da Receita" className="mb-1 text-gray-700 dark:text-gray-300" />
-              <TextInput
-                id="recipe-code"
-                placeholder="Ex: 123456"
-                value={allocationData.recipeCode}
-                onChange={(e) => setAllocationData({...allocationData, recipeCode: e.target.value})}
-              />
-            </div>
-            
-            {activeMaterial && (
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Material: {activeMaterial.Ativo || "Material não encontrado"}
-                </p>
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="weighing-date" value="Data da Pesagem" className="mb-1 text-gray-700 dark:text-gray-300" />
-              <TextInput
-                id="weighing-date"
-                type="date"
-                value={allocationData.weighingDate}
-                onChange={(e) => setAllocationData({...allocationData, weighingDate: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="signature" value="Assinatura (ID de 5 dígitos)" className="mb-1 text-gray-700 dark:text-gray-300" />
-              <TextInput
-                id="signature"
-                placeholder="Ex: 12345"
-                maxLength={5}
-                value={allocationData.signature}
-                onChange={(e) => setAllocationData({...allocationData, signature: e.target.value})}
-              />
-            </div>
-          </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={handleAllocatePallet} color="success">Confirmar Alocação</Button>
-          <Button color="gray" onClick={() => setIsAllocateModalOpen(false)}>
-            Cancelar
-          </Button>
+          {allocationStep === 1 ? (
+            // Botões para a etapa 1
+            <>
+              <Button 
+                onClick={handleValidateAndMoveToQrScan} 
+                color="success"
+              >
+                Próximo Passo
+              </Button>
+              <Button 
+                color="gray" 
+                onClick={() => {
+                  setIsAllocateModalOpen(false);
+                  setAllocationStep(1);
+                }}
+              >
+                Cancelar
+              </Button>
+            </>
+          ) : (
+            // Botões para a etapa 2
+            <>
+              {selectedSpace ? (
+                // Se já tiver selecionado uma vaga, mostrar botão de confirmar
+                <Button 
+                  onClick={handleAllocatePallet} 
+                  color="success"
+                >
+                  Confirmar Alocação
+                </Button>
+              ) : (
+                // Caso contrário, botão para abrir scanner
+                <Button
+                  onClick={() => setIsQrScannerOpen(true)}
+                  color="info"
+                  className="text-white"
+                >
+                  <HiQrcode className="mr-2 h-5 w-5" />
+                  Escanear QR Code
+                </Button>
+              )}
+              <Button 
+                color="light" 
+                onClick={() => setAllocationStep(1)}
+              >
+                Voltar
+              </Button>
+              <Button 
+                color="gray" 
+                onClick={() => {
+                  setIsAllocateModalOpen(false);
+                  setAllocationStep(1);
+                }}
+              >
+                Cancelar
+              </Button>
+            </>
+          )}
         </Modal.Footer>
       </Modal>
     </div>
