@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, TextInput, Select, Label } from 'flowbite-react';
 import { HiOutlineFilter, HiX, HiChevronDown, HiCheck } from 'react-icons/hi';
 
@@ -23,16 +23,19 @@ const TableFilter = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [tempFilters, setTempFilters] = useState(filters);
+  const [isDirty, setIsDirty] = useState(false);
   
   const handleToggleFilters = () => {
     setIsOpen(!isOpen);
     setTempFilters(filters); // Reset temp filters quando abrir
+    setIsDirty(false);
   };
   
   const handleApplyFilters = () => {
     setFilters(tempFilters);
     if (onApplyFilters) onApplyFilters(tempFilters);
     setIsOpen(false);
+    setIsDirty(false);
   };
   
   const handleResetFilters = () => {
@@ -45,6 +48,7 @@ const TableFilter = ({
     setFilters(defaultFilters);
     if (onResetFilters) onResetFilters();
     setIsOpen(false);
+    setIsDirty(false);
   };
   
   const handleFilterChange = (id, value) => {
@@ -52,35 +56,67 @@ const TableFilter = ({
       ...prev,
       [id]: value
     }));
+    setIsDirty(true);
   };
+  
+  // Detecta cliques fora do componente para fechar o dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const filterElement = document.getElementById('table-filter-dropdown');
+      if (filterElement && !filterElement.contains(event.target)) {
+        // Se houve mudanças, aplicar os filtros antes de fechar
+        if (isDirty) {
+          setFilters(tempFilters);
+          if (onApplyFilters) onApplyFilters(tempFilters);
+        }
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, isDirty, tempFilters, setFilters, onApplyFilters]);
   
   // Verificar se há filtros ativos
   const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
     // Verificar se é diferente do valor padrão
     const option = filterOptions.find(opt => opt.id === key);
-    return value !== (option?.defaultValue || '');
+    if (option?.type === 'select' && value !== 'all') return true;
+    return value !== '' && value !== (option?.defaultValue || '');
   });
   
+  // Contagem de filtros ativos
+  const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
+    const option = filterOptions.find(opt => opt.id === key);
+    if (option?.type === 'select' && value !== 'all') return true;
+    return value !== '' && value !== (option?.defaultValue || '');
+  }).length;
+  
   return (
-    <div className={`relative ${className}`}>
+    <div id="table-filter-dropdown" className={`relative ${className}`}>
       <Button
         size="sm"
         color={hasActiveFilters ? "info" : "light"}
         onClick={handleToggleFilters}
-        className={`flex items-center text-black dark:text-white ${hasActiveFilters ? "ring-2 ring-blue-300" : ""}`}
+        className={`flex items-center text-black dark:text-white ${hasActiveFilters ? "ring-2 ring-blue-300 dark:ring-blue-700" : ""}`}
       >
         <HiOutlineFilter className="mr-2 h-4 w-4" />
         Filtros
         {hasActiveFilters && (
           <span className="ml-1.5 flex items-center justify-center bg-blue-600 text-white rounded-full w-5 h-5 text-xs">
-            {Object.values(filters).filter(v => v !== '' && v !== 'all' && v !== null).length}
+            {activeFilterCount}
           </span>
         )}
         <HiChevronDown className={`ml-2 h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </Button>
       
       {isOpen && (
-        <div className="absolute z-10 mt-2 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[300px]">
+        <div className="absolute z-20 mt-2 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[300px] animate-fadeIn">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtros avançados</h3>
             <button 
@@ -91,7 +127,7 @@ const TableFilter = ({
             </button>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
             {filterOptions.map((option) => (
               <div key={option.id}>
                 <Label 

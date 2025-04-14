@@ -104,13 +104,28 @@ export default function GestaoPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [paginatedSpaces, setPaginatedSpaces] = useState([]);
   
-  // Filtros
+  // Filtros com busca rápida
+  const [quickSearch, setQuickSearch] = useState("");
   const [filters, setFilters] = useState({
     status: "all", // empty, occupied, all
+    spaceName: "",
     searchText: "",
-    dateRange: { start: "", end: "" },
+    startDate: "",
+    endDate: "",
     materialType: "all"
   });
+  
+  // Estado para rastrear qual material foi clicado na lista de mais frequentes
+  const [selectedTopMaterial, setSelectedTopMaterial] = useState(null);
+  
+  // Referência para a aba ativa
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Estado para highlight de linha na tabela
+  const [highlightedPalletId, setHighlightedPalletId] = useState(null);
+  
+  // Indicadores de filtros ativos
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
   
   // Estados para ordenação
   const [sortConfig, setSortConfig] = useState({
@@ -667,6 +682,36 @@ export default function GestaoPage() {
     
     let filtered = [...spaces];
     
+    // Aplicar busca rápida se existir
+    if (quickSearch.trim()) {
+      const query = quickSearch.toLowerCase().trim();
+      
+      // Verificar se é um padrão de busca de "vaga+posição" (ex: A1, A-1, B2, etc)
+      const vagaPosicaoRegex = /^([a-z]+)[-]?(\d+)$/i;
+      const vagaPosicaoMatch = query.match(vagaPosicaoRegex);
+      
+      if (vagaPosicaoMatch) {
+        // Se corresponder ao padrão "A1" ou "A-1", extrai a vaga e posição
+        const [, vaga, posicao] = vagaPosicaoMatch;
+        
+        // Busca de modo inteligente - vaga que combina com o nome E posição que contém o número
+        filtered = filtered.filter(space => 
+          space.name && 
+          space.name.toLowerCase() === vaga.toLowerCase() && 
+          space.position && 
+          space.position.includes(posicao)
+        );
+      } else {
+        // Busca normal em todos os campos
+        filtered = filtered.filter(space => 
+          (space.name && space.name.toLowerCase().includes(query)) ||
+          (space.position && space.position.toLowerCase().includes(query)) ||
+          (space.current_op && space.current_op.toLowerCase().includes(query)) ||
+          (space.material_name && space.material_name.toLowerCase().includes(query))
+        );
+      }
+    }
+    
     // Filtrar por status
     if (filters.status !== "all") {
       filtered = filtered.filter(space => space.status === filters.status);
@@ -686,12 +731,27 @@ export default function GestaoPage() {
           space.position.toLowerCase().includes(vagaPosicao.toLowerCase())
         );
       } 
-      // Caso contrário, buscar todas as vagas que começam com o nome especificado
+      // Verificar se é um padrão "A1", "B2", etc
       else {
-        filtered = filtered.filter(space => 
-          space.name && 
-          space.name.toLowerCase().startsWith(nameQuery)
-        );
+        const vagaPosicaoRegex = /^([a-z]+)(\d+)$/i;
+        const vagaPosicaoMatch = nameQuery.match(vagaPosicaoRegex);
+        
+        if (vagaPosicaoMatch) {
+          const [, vaga, posicao] = vagaPosicaoMatch;
+          filtered = filtered.filter(space => 
+            space.name && 
+            space.name.toLowerCase() === vaga.toLowerCase() && 
+            space.position && 
+            space.position.toLowerCase().includes(posicao.toLowerCase())
+          );
+        }
+        // Caso contrário, buscar todas as vagas que começam com o nome especificado
+        else {
+          filtered = filtered.filter(space => 
+            space.name && 
+            space.name.toLowerCase().startsWith(nameQuery)
+          );
+        }
       }
     }
     
@@ -707,10 +767,40 @@ export default function GestaoPage() {
       );
     }
     
+    // Filtrar por data inicial
+    if (filters.startDate) {
+      const startDate = new Date(filters.startDate);
+      filtered = filtered.filter(space => {
+        if (!space.weighing_date) return false;
+        return new Date(space.weighing_date) >= startDate;
+      });
+    }
+    
+    // Filtrar por data final
+    if (filters.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59);
+      filtered = filtered.filter(space => {
+        if (!space.weighing_date) return false;
+        return new Date(space.weighing_date) <= endDate;
+      });
+    }
+    
     // Aplicar ordenação usando a função genérica
     filtered = applySorting(filtered, sortConfig);
     
     setFilteredSpaces(filtered);
+    
+    // Calculando filtros ativos
+    const activeFilters = Object.entries(filters).filter(([key, value]) => {
+      if (key === 'status' && value !== 'all') return true;
+      if (key === 'materialType' && value !== 'all') return true;
+      return value && value !== '';
+    }).length;
+    
+    // Se tiver busca rápida, adicionar como filtro ativo
+    const totalActiveFilters = activeFilters + (quickSearch.trim() ? 1 : 0);
+    setActiveFilterCount(totalActiveFilters);
     
     // Resetar para a primeira página quando os filtros ou ordenação mudam
     setCurrentPage(1);
@@ -720,7 +810,7 @@ export default function GestaoPage() {
     const endIndex = startIndex + itemsPerPage;
     setPaginatedSpaces(filtered.slice(startIndex, endIndex));
     
-  }, [spaces, filters, sortConfig, itemsPerPage]); // Adicionar sortConfig como dependência
+  }, [spaces, filters, sortConfig, itemsPerPage, quickSearch]); // Adicionar quickSearch às dependências
   
   // Effect para aplicar paginação quando a página atual muda
   useEffect(() => {
@@ -898,6 +988,71 @@ export default function GestaoPage() {
     return sortableData;
   };
 
+  // Função para lidar com o clique em um palete expirado
+  const handleExpiredPalletClick = (pallet) => {
+    // Muda para a aba "Salas e Vagas"
+    setActiveTab(0);
+    
+    // Seleciona a sala correta
+    const room = rooms.find(r => r.name === pallet.roomName);
+    if (room) {
+      fetchSpaces(room.id);
+    }
+    
+    // Limpa os filtros existentes
+    setFilters({
+      status: "occupied", // Define como ocupados pois paletes expirados estão ocupados
+      spaceName: "",
+      searchText: "",
+      startDate: "",
+      endDate: "",
+      materialType: "all"
+    });
+    
+    // Define a busca rápida para o OP do palete
+    setQuickSearch(pallet.current_op || "");
+    
+    // Define o ID do palete para destacar na tabela
+    setHighlightedPalletId(pallet.id);
+    
+    // Scroll para a tabela de vagas
+    setTimeout(() => {
+      document.getElementById('spaces-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  };
+
+  // Função para lidar com o clique em um material frequente
+  const handleTopMaterialClick = (material) => {
+    // Muda para a aba "Salas e Vagas"
+    setActiveTab(0);
+    
+    // Limpa os filtros existentes e define um novo filtro por material
+    setFilters({
+      status: "occupied", // Apenas vagas ocupadas podem ter materiais
+      spaceName: "",
+      searchText: "",
+      startDate: "",
+      endDate: "",
+      materialType: "all"
+    });
+    
+    // Define o material selecionado
+    setSelectedTopMaterial(material);
+    
+    // Define a busca rápida para o nome do material
+    setQuickSearch(material.name || "");
+    
+    // Scroll para a tabela de vagas
+    setTimeout(() => {
+      document.getElementById('spaces-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+    
+    // Se não tivermos uma sala selecionada, seleciona a primeira sala da lista
+    if (!selectedRoom && rooms.length > 0) {
+      fetchSpaces(rooms[0].id);
+    }
+  };
+
   // Render component
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
@@ -946,6 +1101,8 @@ export default function GestaoPage() {
             roomStats={roomStats}
             topMaterials={topMaterials}
             expiredPallets={expiredPallets}
+            onExpiredPalletClick={handleExpiredPalletClick}
+            onTopMaterialClick={handleTopMaterialClick}
           />
           
           <Tabs theme={{
@@ -1214,32 +1371,86 @@ export default function GestaoPage() {
                         </div>
                       )}
                       
-                      {/* Barra de filtros - Removido título duplicado */}
-                      <div className="mb-4 flex justify-between items-center">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {filteredSpaces.length} vagas encontradas
-                          </p>
+                      {/* Barra de filtros com busca independente */}
+                      <div className="mb-4 flex flex-wrap gap-3 justify-between items-center">
+                        {/* Barra de busca independente */}
+                        <div className="flex-grow relative max-w-md">
+                          <input
+                            type="text"
+                            value={quickSearch}
+                            onChange={(e) => setQuickSearch(e.target.value)}
+                            placeholder="Buscar vaga, posição, OP ou material..."
+                            className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                                   rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                                   focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                          />
+                          <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                          {quickSearch && (
+                            <button
+                              onClick={() => setQuickSearch("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300"
+                            >
+                              <HiX className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Filtros rápidos */}
+                          <div className="flex gap-1">
+                            <Button 
+                              size="xs"
+                              color={filters.status === "empty" ? "success" : "light"}
+                              onClick={() => setFilters(prev => ({
+                                ...prev,
+                                status: prev.status === "empty" ? "all" : "empty"
+                              }))}
+                              className="whitespace-nowrap"
+                            >
+                              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                              Vazios
+                            </Button>
+                            <Button 
+                              size="xs"
+                              color={filters.status === "occupied" ? "failure" : "light"}
+                              onClick={() => setFilters(prev => ({
+                                ...prev,
+                                status: prev.status === "occupied" ? "all" : "occupied"
+                              }))}
+                              className="whitespace-nowrap"
+                            >
+                              <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>
+                              Ocupados
+                            </Button>
+                          </div>
+                          
+                          {(activeFilterCount > 0 || quickSearch) && (
+                            <Button
+                              size="xs"
+                              color="light"
+                              onClick={() => {
+                                setFilters({
+                                  status: "all",
+                                  spaceName: "",
+                                  searchText: "",
+                                  startDate: "",
+                                  endDate: "",
+                                  materialType: "all"
+                                });
+                                setQuickSearch("");
+                              }}
+                              className="whitespace-nowrap"
+                            >
+                              <HiX className="h-3 w-3 mr-1" />
+                              Limpar {activeFilterCount > 0 && quickSearch ? "tudo" : activeFilterCount > 0 ? "filtros" : "busca"}
+                              {activeFilterCount > 0 && ` (${activeFilterCount})`}
+                            </Button>
+                          )}
+                          
                           <TableFilter 
                             filters={filters}
                             setFilters={setFilters}
                             filterOptions={filterOptions}
-                            onApplyFilters={() => {
-                              console.log("Filtros aplicados:", filters);
-                            }}
-                            onResetFilters={() => {
-                              console.log("Filtros resetados");
-                              setFilters({
-                                status: "all",
-                                searchText: "",
-                                startDate: "",
-                                endDate: "",
-                                materialType: "all"
-                              });
-                            }}
                           />
                         </div>
                       </div>
@@ -1363,8 +1574,13 @@ export default function GestaoPage() {
                                 return (
                                   <Table.Row 
                                     key={space.id} 
+                                    id={space.id === highlightedPalletId ? 'spaces-table' : undefined}
                                     className={`bg-white dark:bg-gray-800 dark:border-gray-700 ${
-                                      holdingTime?.isExpired ? 'bg-red-50 dark:bg-red-900/10' : ''
+                                      space.id === highlightedPalletId 
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
+                                        : holdingTime?.isExpired 
+                                          ? 'bg-red-50 dark:bg-red-900/10' 
+                                          : ''
                                     }`}
                                   >
                                     <Table.Cell className="text-xs">{space.name}</Table.Cell>

@@ -1,123 +1,176 @@
-import React from 'react';
-import { Table, Badge } from 'flowbite-react';
-import SortableHeader from './SortableHeader';
-import { HiOutlineArrowUp, HiOutlineArrowDown } from 'react-icons/hi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Table, Button, Spinner } from 'flowbite-react';
+import { HiArrowUp, HiArrowDown, HiSearch } from 'react-icons/hi';
 
 /**
- * SortableTable é um componente de tabela genérico com capacidade de ordenação em todas as colunas
+ * Componente de tabela ordenável com recursos avançados
  * 
  * @param {Object} props
  * @param {Array} props.data - Dados a serem exibidos na tabela
  * @param {Array} props.columns - Definição das colunas
- * @param {Object} props.sortConfig - Configuração atual de ordenação { key, direction }
- * @param {Function} props.onSort - Função chamada quando um cabeçalho é clicado
- * @param {string} props.className - Classes CSS adicionais
- * @param {Function} props.onRowClick - Função chamada quando uma linha é clicada
+ * @param {Object} props.sortConfig - Configuração de ordenação (key, direction)
+ * @param {Function} props.onSort - Função chamada quando o usuário clica em uma coluna ordenável
+ * @param {boolean} props.isLoading - Indica se a tabela está carregando dados
  * @param {string} props.emptyMessage - Mensagem a ser exibida quando não há dados
- * @param {Boolean} props.isLoading - Indica se os dados estão sendo carregados
+ * @param {Function} props.onRowClick - Função chamada quando o usuário clica em uma linha
+ * @param {number} props.highlightRow - ID da linha a ser destacada
  */
 const SortableTable = ({
   data = [],
   columns = [],
   sortConfig = { key: null, direction: 'asc' },
   onSort,
-  className = "",
+  isLoading = false,
+  emptyMessage = 'Nenhum dado encontrado',
   onRowClick,
-  emptyMessage = "Nenhum registro encontrado",
-  isLoading = false
+  highlightRow
 }) => {
-  
-  // Renderiza o valor da célula de acordo com o tipo de dado
-  const renderCell = (item, column) => {
-    // Se a coluna tiver um renderizador personalizado, use-o
+  const [quickFilter, setQuickFilter] = useState('');
+  const [filteredData, setFilteredData] = useState(data);
+
+  // Atualizar dados filtrados quando mudar o filtro rápido ou os dados
+  useEffect(() => {
+    if (!quickFilter.trim()) {
+      setFilteredData(data);
+      return;
+    }
+
+    const filtered = data.filter(item => {
+      // Busca em todas as propriedades do item que são strings ou números
+      return Object.keys(item).some(key => {
+        const value = item[key];
+        if (typeof value === 'string') {
+          return value.toLowerCase().includes(quickFilter.toLowerCase());
+        }
+        if (typeof value === 'number') {
+          return value.toString().includes(quickFilter);
+        }
+        return false;
+      });
+    });
+
+    setFilteredData(filtered);
+  }, [quickFilter, data]);
+
+  const handleHeaderClick = (column) => {
+    if (!column.sortable) return;
+    if (onSort) {
+      onSort(column.key, sortConfig.key === column.key 
+        ? (sortConfig.direction === 'asc' ? 'desc' : 'asc')
+        : 'asc'
+      );
+    }
+  };
+
+  const renderSortIcon = (column) => {
+    if (!column.sortable) return null;
+    if (sortConfig.key !== column.key) {
+      return <span className="opacity-0 group-hover:opacity-50 ml-1">↕</span>;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <HiArrowUp className="ml-1 inline-block h-4 w-4" /> 
+      : <HiArrowDown className="ml-1 inline-block h-4 w-4" />;
+  };
+
+  const renderCellContent = (item, column) => {
+    // Se a coluna tem um renderizador personalizado, use-o
     if (column.render) {
       return column.render(item);
     }
+
+    // Renderização padrão baseada no tipo
+    const value = item[column.key];
     
-    // Se o valor for null ou undefined
-    if (item[column.key] === null || item[column.key] === undefined) {
-      return <span className="text-gray-400 dark:text-gray-500">-</span>;
+    if (value === null || value === undefined) {
+      return '-';
     }
-    
-    // Verifica o tipo de dados e renderiza de acordo
-    if (column.type === 'date') {
-      return new Date(item[column.key]).toLocaleDateString('pt-BR');
+
+    if (column.type === 'date' && value) {
+      try {
+        return new Date(value).toLocaleDateString();
+      } catch (e) {
+        return value;
+      }
     }
-    
-    if (column.type === 'datetime') {
-      return new Date(item[column.key]).toLocaleString('pt-BR');
+
+    if (column.type === 'currency' && !isNaN(value)) {
+      return value.toLocaleString('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL' 
+      });
     }
-    
-    if (column.type === 'number') {
+
+    if (column.type === 'number' && !isNaN(value)) {
+      return value.toLocaleString('pt-BR');
+    }
+
+    if (column.type === 'badge' && column.badgeColors && column.badgeColors[value]) {
+      const colorMap = {
+        'success': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+        'failure': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+        'warning': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+        'info': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      };
+      const badgeColor = colorMap[column.badgeColors[value]] || colorMap.info;
       return (
-        <span className="tabular-nums">
-          {typeof item[column.key] === 'number' 
-            ? item[column.key].toLocaleString('pt-BR', { 
-                minimumFractionDigits: column.fractionDigits || 0,
-                maximumFractionDigits: column.fractionDigits || 2
-              })
-            : item[column.key]
-          }
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}>
+          {value}
         </span>
       );
     }
-    
-    if (column.type === 'currency') {
-      return (
-        <span className="tabular-nums">
-          {typeof item[column.key] === 'number' 
-            ? `R$ ${item[column.key].toLocaleString('pt-BR', { 
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}`
-            : item[column.key]
-          }
-        </span>
-      );
-    }
-    
-    if (column.type === 'percentage') {
-      return (
-        <span className="tabular-nums">
-          {typeof item[column.key] === 'number' 
-            ? `${item[column.key].toLocaleString('pt-BR', { 
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              })}%`
-            : item[column.key]
-          }
-        </span>
-      );
-    }
-    
-    if (column.type === 'badge') {
-      return (
-        <Badge 
-          color={column.badgeColors?.[item[column.key]] || 'info'}
-          className="whitespace-nowrap"
-        >
-          {item[column.key]}
-        </Badge>
-      );
-    }
-    
-    // Valor padrão (texto)
-    return item[column.key];
+
+    return value;
   };
-  
-  const handleSort = (field) => {
-    if (!onSort) return;
+
+  const getRowClassName = (item) => {
+    let className = "transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 group/row cursor-pointer";
     
-    if (sortConfig.key === field) {
-      onSort(field, sortConfig.direction === 'asc' ? 'desc' : 'asc');
-    } else {
-      onSort(field, 'asc');
+    // Adicionar classe para linhas destacadas
+    if (highlightRow && item.id === highlightRow) {
+      className += " bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500";
     }
+    
+    return className;
   };
-  
+
   return (
-    <div className={`${className}`}>
-      <div className="overflow-x-auto">
+    <div>
+      {/* Filtro rápido para a tabela */}
+      {data.length > 0 && (
+        <div className="mb-4 flex">
+          <div className="relative flex-1 max-w-sm">
+            <input
+              type="text"
+              value={quickFilter}
+              onChange={(e) => setQuickFilter(e.target.value)}
+              placeholder="Filtro rápido..."
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                       rounded-md text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                       focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            />
+            <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+          
+          {quickFilter && (
+            <div className="ml-2 flex items-center">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {filteredData.length} de {data.length} {data.length === 1 ? 'resultado' : 'resultados'}
+              </span>
+              <Button 
+                size="xs" 
+                color="light" 
+                onClick={() => setQuickFilter('')}
+                className="ml-2"
+              >
+                Limpar
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Tabela */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <Table theme={{
           root: {
             base: "w-full text-left text-sm text-gray-500 dark:text-gray-400",
@@ -144,19 +197,13 @@ const SortableTable = ({
             {columns.map((column) => (
               <Table.HeadCell 
                 key={column.key} 
-                className={`${column.width || ''} ${column.sortable !== false ? 'cursor-pointer' : ''}`}
-                onClick={column.sortable !== false ? () => handleSort(column.key) : undefined}
+                className={`${column.width || ''} ${column.sortable ? 'cursor-pointer' : ''} group`}
+                onClick={() => handleHeaderClick(column)}
               >
-                {column.sortable !== false ? (
-                  <SortableHeader 
-                    label={column.label}
-                    field={column.key}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                  />
-                ) : (
+                <div className="flex items-center">
                   <span>{column.label}</span>
-                )}
+                  {renderSortIcon(column)}
+                </div>
               </Table.HeadCell>
             ))}
           </Table.Head>
@@ -164,32 +211,38 @@ const SortableTable = ({
           <Table.Body>
             {isLoading ? (
               <Table.Row>
-                <Table.Cell colSpan={columns.length} className="text-center py-8">
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-500"></div>
-                    <span className="ml-3 text-gray-600 dark:text-gray-400">Carregando...</span>
+                <Table.Cell colSpan={columns.length} className="text-center py-10">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <Spinner size="xl" />
+                    <p className="text-gray-500 dark:text-gray-400">Carregando dados...</p>
                   </div>
                 </Table.Cell>
               </Table.Row>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <Table.Row>
-                <Table.Cell colSpan={columns.length} className="text-center py-8">
-                  <span className="text-gray-500 dark:text-gray-400">{emptyMessage}</span>
+                <Table.Cell colSpan={columns.length} className="text-center py-10">
+                  <div className="flex flex-col items-center justify-center h-32">
+                    <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 16h.01M9 14a3 3 0 100-6 3 3 0 000 6zm6 0a3 3 0 100-6 3 3 0 000 6z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 7.497a5.507 5.507 0 018-4.76M20 7.497a5.507 5.507 0 00-8-4.76" />
+                    </svg>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">{emptyMessage}</p>
+                  </div>
                 </Table.Cell>
               </Table.Row>
             ) : (
-              data.map((item, index) => (
+              filteredData.map((item, index) => (
                 <Table.Row 
                   key={item.id || index} 
-                  className={`${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={getRowClassName(item)}
                   onClick={onRowClick ? () => onRowClick(item) : undefined}
                 >
                   {columns.map((column) => (
                     <Table.Cell 
                       key={`${item.id || index}-${column.key}`}
-                      className={column.cellClassName}
+                      className={`${column.cellClassName || ''}`}
                     >
-                      {renderCell(item, column)}
+                      {renderCellContent(item, column)}
                     </Table.Cell>
                   ))}
                 </Table.Row>
@@ -198,6 +251,33 @@ const SortableTable = ({
           </Table.Body>
         </Table>
       </div>
+    </div>
+  );
+};
+
+/**
+ * Componente para o cabeçalho da tabela com ícone de ordenação
+ */
+export const SortableHeader = ({ label, field, sortConfig, onSort }) => {
+  const handleClick = () => {
+    if (onSort) {
+      onSort(field);
+    }
+  };
+  
+  return (
+    <div 
+      onClick={handleClick}
+      className="flex items-center cursor-pointer select-none"
+    >
+      <span>{label}</span>
+      {sortConfig.key === field ? (
+        <span className="ml-1.5">
+          {sortConfig.direction === "asc" ? "↑" : "↓"}
+        </span>
+      ) : (
+        <span className="ml-1.5 opacity-0 group-hover:opacity-30">↕</span>
+      )}
     </div>
   );
 };
