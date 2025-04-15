@@ -3,17 +3,19 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
 import { Button, TextInput, Modal, Label, Spinner, Badge, Card } from "flowbite-react";
-import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera, HiQrcode } from "react-icons/hi";
+import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera, HiQrcode, HiTrash } from "react-icons/hi";
 import MobileOcrScanner from "@/components/MobileOcrScanner";
 import QrCodeScanner from "@/components/QrCodeScanner";
 
 export default function AlocacaoMobilePage() {
   // Estado para armazenar salas e vagas
   const [rooms, setRooms] = useState([]);
+  const [spaces, setSpaces] = useState([]); // Todas as vagas (vazias e ocupadas)
   const [emptySpaces, setEmptySpaces] = useState([]);
   const [filteredSpaces, setFilteredSpaces] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAllSpaces, setShowAllSpaces] = useState(false); // Alternar entre mostrar apenas vazias ou todas
   
   // Estado para scanner OCR
   const [isOcrScannerOpen, setIsOcrScannerOpen] = useState(false);
@@ -36,6 +38,12 @@ export default function AlocacaoMobilePage() {
     signature: "",
   });
   
+  // Estados para remoção de palete
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [spaceToRemove, setSpaceToRemove] = useState(null);
+  const [removalSignature, setRemovalSignature] = useState("");
+  const [continueWithAllocation, setContinueWithAllocation] = useState(false);
+  
   // Estado para controlar o fluxo em etapas do modal
   const [allocationStep, setAllocationStep] = useState(1); // 1: dados do material, 2: escanear vaga
   
@@ -47,6 +55,8 @@ export default function AlocacaoMobilePage() {
   
   // Estado para feedback ao usuário
   const [feedback, setFeedback] = useState({ show: false, message: "", type: "" });
+
+  const [isViewQrScannerOpen, setIsViewQrScannerOpen] = useState(false);
 
   // Carregar dados ao iniciar
   useEffect(() => {
@@ -73,14 +83,24 @@ export default function AlocacaoMobilePage() {
     if (!selectedRoom) return;
     
     if (searchQuery.trim() === "") {
-      setFilteredSpaces(emptySpaces);
+      // Se estiver mostrando todas as vagas ou apenas as vazias
+      if (showAllSpaces) {
+        setFilteredSpaces(spaces);
+      } else {
+        setFilteredSpaces(emptySpaces);
+      }
       return;
     }
     
     const query = searchQuery.toLowerCase().trim();
-    const filtered = emptySpaces.filter(space => {
+    
+    // Base de filtro - todas as vagas ou apenas vazias
+    const baseSpaces = showAllSpaces ? spaces : emptySpaces;
+    
+    const filtered = baseSpaces.filter(space => {
       const spaceName = space.name?.toLowerCase() || "";
       const spacePosition = space.position?.toLowerCase() || "";
+      const spaceOP = space.current_op?.toLowerCase() || "";
       
       // Verificar se o query é um padrão de "nome-posição" (ex: A-1)
       if (query.includes('-')) {
@@ -91,14 +111,16 @@ export default function AlocacaoMobilePage() {
         );
       }
       
+      // Buscar em todos os campos relevantes, incluindo a OP
       return (
         spaceName.includes(query) ||
-        spacePosition.includes(query)
+        spacePosition.includes(query) ||
+        spaceOP.includes(query)
       );
     });
     
     setFilteredSpaces(filtered);
-  }, [searchQuery, emptySpaces, selectedRoom]);
+  }, [searchQuery, emptySpaces, spaces, selectedRoom, showAllSpaces]);
 
   // Buscar todas as salas de armazenamento
   const fetchRooms = async () => {
@@ -159,28 +181,52 @@ export default function AlocacaoMobilePage() {
     }
   };
   
-  // Buscar vagas vazias para uma sala específica
-  const fetchEmptySpacesByRoom = async (roomId) => {
+  // Buscar vagas para uma sala específica
+  const fetchSpacesByRoom = async (roomId) => {
     setIsLoading(true);
     try {
+      // Buscar TODAS as vagas, independente do status
       const { data, error } = await supabase
         .from("storage_spaces")
         .select("*")
         .eq("room_id", roomId)
-        .eq("status", "empty")
         .order("name");
       
       if (error) throw error;
       
-      setEmptySpaces(data || []);
-      setFilteredSpaces(data || []);
+      // Armazenar todas as vagas
+      setSpaces(data || []);
+      
+      // Filtrar vagas vazias
+      const emptySpacesFiltered = data?.filter(space => space.status === "empty") || [];
+      setEmptySpaces(emptySpacesFiltered);
+      
+      // Definir as vagas a serem exibidas baseado na seleção do usuário
+      if (showAllSpaces) {
+        setFilteredSpaces(data || []);
+      } else {
+        setFilteredSpaces(emptySpacesFiltered);
+      }
+      
       setSelectedRoom(roomId);
       setSearchQuery("");
     } catch (error) {
-      console.error("Erro ao carregar vagas vazias:", error);
-      showFeedback("Erro ao carregar vagas vazias", "error");
+      console.error("Erro ao carregar vagas:", error);
+      showFeedback("Erro ao carregar vagas", "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Alternar entre mostrar todas as vagas ou apenas vazias
+  const toggleSpacesView = () => {
+    const newShowAllSpaces = !showAllSpaces;
+    setShowAllSpaces(newShowAllSpaces);
+    
+    if (newShowAllSpaces) {
+      setFilteredSpaces(spaces);
+    } else {
+      setFilteredSpaces(emptySpaces);
     }
   };
   
@@ -388,7 +434,7 @@ export default function AlocacaoMobilePage() {
       showFeedback("Palete alocado com sucesso!", "success");
       
       // Atualizar a lista de vagas vazias e estatísticas da sala
-      fetchEmptySpacesByRoom(selectedRoom);
+      fetchSpacesByRoom(selectedRoom);
       
       // Atualizar as estatísticas de todas as salas
       fetchRooms();
@@ -399,6 +445,83 @@ export default function AlocacaoMobilePage() {
     }
   };
   
+  // Remover palete da vaga
+  const handleRemovePallet = async () => {
+    if (!removalSignature || removalSignature.length !== 5) {
+      showFeedback("A assinatura deve conter 5 dígitos para remover o palete.", "error");
+      return;
+    }
+
+    try {
+      if (!spaceToRemove) {
+        showFeedback("Nenhuma vaga selecionada para remoção.", "error");
+        return;
+      }
+
+      // Log da remoção
+      const { error: logError } = await supabase
+        .from("storage_logs")
+        .insert([{
+          space_id: spaceToRemove.id,
+          room_id: spaceToRemove.room_id,
+          action: "removed",
+          op: spaceToRemove.current_op,
+          recipe_code: spaceToRemove.recipe_code,
+          material_name: spaceToRemove.material_name,
+          user_id: removalSignature,
+          timestamp: new Date().toISOString(),
+        }]);
+      
+      if (logError) throw logError;
+      
+      // Atualiza o status da vaga
+      const { error: updateError } = await supabase
+        .from("storage_spaces")
+        .update({
+          status: "empty",
+          current_op: null,
+          recipe_code: null,
+          material_name: null,
+          weighing_date: null,
+          last_updated: new Date().toISOString(),
+          updated_by: removalSignature,
+        })
+        .eq("id", spaceToRemove.id);
+      
+      if (updateError) throw updateError;
+
+      // Fechar o diálogo de remoção
+      setIsRemoveDialogOpen(false);
+      setRemovalSignature("");
+      
+      // Se continueWithAllocation é true, continuar o fluxo de alocação
+      if (continueWithAllocation) {
+        // Definir a vaga agora vazia como a selecionada para alocação
+        setSelectedSpace(spaceToRemove);
+        // Abrir o modal de alocação
+        setIsAllocateModalOpen(true);
+      }
+
+      // Resetar o spaceToRemove
+      setSpaceToRemove(null);
+      setContinueWithAllocation(false);
+
+      // Feedback ao usuário
+      showFeedback("Palete removido com sucesso!", "success");
+      
+      // Atualizar as listas de vagas
+      if (selectedRoom) {
+        fetchSpacesByRoom(selectedRoom);
+      }
+      
+      // Atualizar estatísticas de salas
+      fetchRooms();
+    } catch (error) {
+      console.error("Erro ao remover palete:", error);
+      showFeedback("Erro ao remover palete. Tente novamente.", "error");
+    }
+  };
+
   // Mostrar feedback ao usuário
   const showFeedback = (message, type = "success") => {
     setFeedback({ show: true, message, type });
@@ -480,26 +603,39 @@ export default function AlocacaoMobilePage() {
         
         const roomId = roomData[0].id;
         
-        // Buscar a vaga específica pela sala e posição
+        // Buscar a vaga específica pela sala e posição - não restringir apenas a vagas vazias
         const { data: spaceData, error: spaceError } = await supabase
           .from("storage_spaces")
           .select("*")
           .eq("room_id", roomId)
-          .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`)
-          .eq("status", "empty");
+          .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`);
         
         if (spaceError) throw spaceError;
         
         if (!spaceData || spaceData.length === 0) {
-          showFeedback(`Vaga "${posicao}" não encontrada ou não está vazia`, "error");
+          showFeedback(`Vaga "${posicao}" não encontrada`, "error");
           // Reabrir o modal de alocação
           setIsAllocateModalOpen(true);
           return;
         }
         
         // Selecionar a vaga escaneada
-        setSelectedSpace(spaceData[0]);
-        showFeedback(`Vaga ${spaceData[0].name} selecionada com sucesso!`, "success");
+        const selectedVaga = spaceData[0];
+        
+        // Verificar se a vaga está ocupada
+        if (selectedVaga.status === "occupied") {
+          // Armazenar a vaga para possível remoção
+          setSpaceToRemove(selectedVaga);
+          // Abrir o modal de remoção
+          setIsRemoveDialogOpen(true);
+          // Sinalizar que após a remoção queremos continuar com a alocação
+          setContinueWithAllocation(true);
+          return;
+        }
+        
+        // Se a vaga está vazia, continuar normalmente
+        setSelectedSpace(selectedVaga);
+        showFeedback(`Vaga ${selectedVaga.name} selecionada com sucesso!`, "success");
         
         // Reabrir o modal de alocação com a vaga selecionada
         setIsAllocateModalOpen(true);
@@ -507,25 +643,38 @@ export default function AlocacaoMobilePage() {
       }
       
       // Se chegou aqui, é porque identificamos o spaceId de um link ou ID direto
-      // Buscar a vaga diretamente pelo ID
+      // Buscar a vaga diretamente pelo ID - não restringir apenas a vagas vazias
       const { data: spaceData, error: spaceError } = await supabase
         .from("storage_spaces")
         .select("*")
-        .eq("id", spaceId)
-        .eq("status", "empty");
+        .eq("id", spaceId);
       
       if (spaceError) throw spaceError;
       
       if (!spaceData || spaceData.length === 0) {
-        showFeedback(`Vaga com ID "${spaceId}" não encontrada ou não está vazia`, "error");
+        showFeedback(`Vaga com ID "${spaceId}" não encontrada`, "error");
         // Reabrir o modal de alocação
         setIsAllocateModalOpen(true);
         return;
       }
       
       // Selecionar a vaga escaneada
-      setSelectedSpace(spaceData[0]);
-      showFeedback(`Vaga ${spaceData[0].name} selecionada com sucesso!`, "success");
+      const selectedVaga = spaceData[0];
+      
+      // Verificar se a vaga está ocupada
+      if (selectedVaga.status === "occupied") {
+        // Armazenar a vaga para possível remoção
+        setSpaceToRemove(selectedVaga);
+        // Abrir o modal de remoção
+        setIsRemoveDialogOpen(true);
+        // Sinalizar que após a remoção queremos continuar com a alocação
+        setContinueWithAllocation(true);
+        return;
+      }
+      
+      // Se a vaga está vazia, continuar normalmente
+      setSelectedSpace(selectedVaga);
+      showFeedback(`Vaga ${selectedVaga.name} selecionada com sucesso!`, "success");
       
       // Reabrir o modal de alocação com a vaga selecionada
       setIsAllocateModalOpen(true);
@@ -537,6 +686,86 @@ export default function AlocacaoMobilePage() {
       // Reabrir o modal de alocação mesmo em caso de erro
       setIsAllocateModalOpen(true);
     }
+  };
+
+  // Processar QR code para visualizar detalhes da vaga
+  const handleViewQrCodeResult = async (qrData) => {
+    try {
+      setIsViewQrScannerOpen(false);
+      
+      // Analisar o QR code para extrair o ID da vaga
+      let spaceId;
+      
+      // Verificar se é um URL completo (ex: https://exemplo.com/vaga/123)
+      if (qrData.includes('/vaga/')) {
+        const urlParts = qrData.split('/vaga/');
+        spaceId = urlParts[1].split('/')[0]; // Extrai o ID da vaga da URL
+      } 
+      // Verificar se é apenas o ID da vaga
+      else if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(qrData)) {
+        spaceId = qrData;
+      }
+      // Manter o formato antigo como fallback (sala/posição)
+      else {
+        const qrParts = qrData.split('/');
+        if (qrParts.length !== 2) {
+          showFeedback("QR code em formato inválido. Deve ser uma URL da vaga ou ID", "error");
+          return;
+        }
+        
+        const [sala, posicao] = qrParts;
+        
+        // Buscar a sala pelo nome
+        const { data: roomData, error: roomError } = await supabase
+          .from("storage_rooms")
+          .select("id")
+          .ilike("name", sala);
+        
+        if (roomError) throw roomError;
+        
+        if (!roomData || roomData.length === 0) {
+          showFeedback(`Sala "${sala}" não encontrada`, "error");
+          return;
+        }
+        
+        const roomId = roomData[0].id;
+        
+        // Buscar a vaga específica pela sala e posição
+        const { data: spaceData, error: spaceError } = await supabase
+          .from("storage_spaces")
+          .select("id")
+          .eq("room_id", roomId)
+          .or(`name.ilike.%${posicao}%,position.ilike.%${posicao}%`);
+        
+        if (spaceError) throw spaceError;
+        
+        if (!spaceData || spaceData.length === 0) {
+          showFeedback(`Vaga "${posicao}" não encontrada`, "error");
+          return;
+        }
+        
+        // Usar o ID da primeira vaga encontrada
+        spaceId = spaceData[0].id;
+      }
+      
+      if (!spaceId) {
+        showFeedback("Não foi possível identificar a vaga do QR code", "error");
+        return;
+      }
+      
+      // Redirecionar para a página da vaga com query param para voltar
+      window.location.href = `/vaga/${spaceId}?returnTo=alocacao-mobile`;
+      
+    } catch (error) {
+      console.error("Erro ao processar QR code:", error);
+      showFeedback("Erro ao processar QR code", "error");
+    }
+  };
+
+  // Buscar vagas vazias para uma sala específica
+  const fetchEmptySpacesByRoom = async (roomId) => {
+    // Redirecionar para a nova função que busca todas as vagas
+    fetchSpacesByRoom(roomId);
   };
 
   return (
@@ -580,6 +809,13 @@ export default function AlocacaoMobilePage() {
           onClose={() => setIsQrScannerOpen(false)}
         />
       )}
+
+      {isViewQrScannerOpen && (
+        <QrCodeScanner
+          onResult={handleViewQrCodeResult}
+          onClose={() => setIsViewQrScannerOpen(false)}
+        />
+      )}
       
       {isLoading ? (
         <div className="flex justify-center items-center h-40">
@@ -599,7 +835,7 @@ export default function AlocacaoMobilePage() {
                 <Card 
                   key={room.id} 
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  onClick={() => fetchEmptySpacesByRoom(room.id)}
+                  onClick={() => fetchSpacesByRoom(room.id)}
                 >
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -657,11 +893,11 @@ export default function AlocacaoMobilePage() {
               
               <Button 
                 color="info" 
-                onClick={() => setIsOcrScannerOpen(true)}
+                onClick={() => setIsViewQrScannerOpen(true)}
                 className="text-white"
               >
-                <HiCamera className="mr-2 h-5 w-5" />
-                Escanear Etiqueta
+                <HiQrcode className="mr-2 h-5 w-5" />
+                Ler QR Code
               </Button>
             </div>
           </div>
@@ -680,11 +916,20 @@ export default function AlocacaoMobilePage() {
             />
           </div>
           
-          {/* Contador de vagas */}
+          {/* Contador de vagas e controle de visualização */}
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              {filteredSpaces.length} {filteredSpaces.length === 1 ? 'vaga vazia encontrada' : 'vagas vazias encontradas'}
+              {filteredSpaces.length} {filteredSpaces.length === 1 ? 'vaga encontrada' : 'vagas encontradas'}
+              {!showAllSpaces && ' (vazias)'}
             </p>
+            
+            <Button 
+              size="xs"
+              color={showAllSpaces ? "success" : "light"}
+              onClick={toggleSpacesView}
+            >
+              {showAllSpaces ? "Mostrando todas" : "Mostrar todas as vagas"}
+            </Button>
           </div>
           
           {/* Lista de vagas vazias */}
@@ -701,33 +946,77 @@ export default function AlocacaoMobilePage() {
               {filteredSpaces.map(space => (
                 <div 
                   key={space.id} 
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-4"
+                  className={`border rounded-lg shadow p-4 ${
+                    space.status === "occupied" 
+                      ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' 
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                  }`}
                 >
                   <div className="mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {space.name || "—"}
-                    </h3>
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {space.name || "—"}
+                      </h3>
+                      {space.status === "occupied" && (
+                        <Badge color="warning" size="xs">Ocupada</Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Posição: {space.position || "—"}
                     </p>
+                    
+                    {/* Mostrar dados da ocupação se a vaga estiver ocupada */}
+                    {space.status === "occupied" && (
+                      <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-800/30">
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          <span className="font-medium">OP:</span> {space.current_op}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 truncate">
+                          <span className="font-medium">Material:</span> {space.material_name}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => openAllocationModal(space)}
-                    >
-                      <HiPlus className="mr-2 h-5 w-5" />
-                      Alocar Palete
-                    </Button>
-                    
-                    <Button
-                      color="info"
-                      className="text-white"
-                      onClick={() => openScannerForSpace(space)}
-                    >
-                      <HiCamera className="h-5 w-5" />
-                    </Button>
+                    {space.status === "occupied" ? (
+                      <>
+                        <Button
+                          color="failure"
+                          className="flex-1"
+                          onClick={() => {
+                            setSpaceToRemove(space);
+                            setIsRemoveDialogOpen(true);
+                            setContinueWithAllocation(false);
+                          }}
+                        >
+                          <HiTrash className="mr-2 h-5 w-5" />
+                          Remover Palete
+                        </Button>
+                        
+                        <Button
+                          color="success"
+                          className="flex-1"
+                          onClick={() => {
+                            setSpaceToRemove(space);
+                            setIsRemoveDialogOpen(true);
+                            setContinueWithAllocation(true);
+                          }}
+                        >
+                          <HiPlus className="mr-2 h-5 w-5" />
+                          Substituir
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        color="success"
+                        onClick={() => openAllocationModal(space)}
+                      >
+                        <HiPlus className="mr-2 h-5 w-5" />
+                        Alocar Palete
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -935,6 +1224,68 @@ export default function AlocacaoMobilePage() {
               </Button>
             </>
           )}
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de remoção de palete */}
+      <Modal show={isRemoveDialogOpen} onClose={() => {
+        setIsRemoveDialogOpen(false);
+        setRemovalSignature("");
+        setSpaceToRemove(null);
+        setContinueWithAllocation(false);
+      }}>
+        <Modal.Header>
+          Remover Palete
+        </Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {continueWithAllocation 
+                ? "Esta vaga está ocupada. Remova o palete existente para continuar com a alocação."
+                : "Você está removendo o palete desta vaga."}
+            </p>
+            
+            {spaceToRemove && (
+              <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-md space-y-2">
+                <p className="text-amber-800 dark:text-amber-200"><strong>Vaga:</strong> {spaceToRemove.name} ({spaceToRemove.position})</p>
+                <p className="text-amber-800 dark:text-amber-200"><strong>OP:</strong> {spaceToRemove.current_op}</p>
+                <p className="text-amber-800 dark:text-amber-200"><strong>Material:</strong> {spaceToRemove.material_name}</p>
+                <p className="text-amber-800 dark:text-amber-200">
+                  <strong>Data da Pesagem:</strong> {spaceToRemove.weighing_date && new Date(spaceToRemove.weighing_date).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            )}
+            
+            <div>
+              <Label value="Assinatura (ID de 5 dígitos)" className="mb-1 text-gray-700 dark:text-gray-300" />
+              <TextInput
+                placeholder="Ex: 12345"
+                maxLength={5}
+                value={removalSignature}
+                onChange={(e) => setRemovalSignature(e.target.value)}
+              />
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            className="text-black dark:text-white" 
+            color="failure" 
+            onClick={handleRemovePallet}
+          >
+            Confirmar Remoção
+          </Button>
+          <Button 
+            color="gray" 
+            onClick={() => {
+              setIsRemoveDialogOpen(false);
+              setRemovalSignature("");
+              setSpaceToRemove(null);
+              setContinueWithAllocation(false);
+            }}
+          >
+            Cancelar
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>

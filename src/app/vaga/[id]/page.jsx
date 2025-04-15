@@ -28,6 +28,20 @@ export default function VagaDetailPage() {
   const [targetSpaces, setTargetSpaces] = useState([]);
   const [selectedTargetSpace, setSelectedTargetSpace] = useState(null);
   
+  // Verificar se deve mostrar botão de retorno para alocação mobile
+  const [showReturnToAllocation, setShowReturnToAllocation] = useState(false);
+  
+  // Verificar parâmetros da URL
+  useEffect(() => {
+    // Verificar se há parâmetro returnTo=alocacao-mobile na URL
+    const queryParams = new URLSearchParams(window.location.search);
+    const returnTo = queryParams.get('returnTo');
+    
+    if (returnTo === 'alocacao-mobile') {
+      setShowReturnToAllocation(true);
+    }
+  }, []);
+  
   // Carrega os dados da vaga quando a página é montada
   useEffect(() => {
     fetchSpaceData();
@@ -265,6 +279,18 @@ export default function VagaDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md">
+        {/* Botão de retorno para alocação mobile se veio da página de alocação */}
+        {showReturnToAllocation && (
+          <Button 
+            color="blue" 
+            className="w-full mb-4"
+            onClick={() => router.push('/alocacao-mobile')}
+          >
+            <HiArrowLeft className="mr-2 h-5 w-5" />
+            Voltar para Alocação Mobile
+          </Button>
+        )}
+        
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
           {/* Cabeçalho */}
           <div className="bg-blue-600 dark:bg-blue-700 p-4 text-white">
