@@ -828,6 +828,20 @@ export default function AlocacaoMobilePage() {
             Selecione uma Sala
           </h1>
           
+          <div className="mb-6 flex justify-between items-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              ou escaneie o QR code de uma vaga diretamente
+            </p>
+            <Button 
+              color="info" 
+              onClick={() => setIsViewQrScannerOpen(true)}
+              className="text-white"
+            >
+              <HiQrcode className="mr-2 h-5 w-5" />
+              Ler QR Code
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rooms.map(room => {
               const stats = roomsStats[room.id] || { total: 0, empty: 0, percentage: 0 };
