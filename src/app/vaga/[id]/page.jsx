@@ -287,7 +287,7 @@ export default function VagaDetailPage() {
             onClick={() => router.push('/alocacao-mobile')}
           >
             <HiArrowLeft className="mr-2 h-5 w-5" />
-            Voltar para Alocação Mobile
+            Voltar para Alocação
           </Button>
         )}
         

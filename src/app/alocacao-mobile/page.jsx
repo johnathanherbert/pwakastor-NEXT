@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
 import { Button, TextInput, Modal, Label, Spinner, Badge, Card } from "flowbite-react";
-import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera, HiQrcode, HiTrash } from "react-icons/hi";
+import { HiSearch, HiPlus, HiX, HiOutlineRefresh, HiChevronRight, HiCamera, HiQrcode, HiOutlineLocationMarker, HiTrash } from "react-icons/hi";
 import MobileOcrScanner from "@/components/MobileOcrScanner";
 import QrCodeScanner from "@/components/QrCodeScanner";
 
@@ -833,9 +833,9 @@ export default function AlocacaoMobilePage() {
               ou escaneie o QR code de uma vaga diretamente
             </p>
             <Button 
-              color="info" 
+              color="info"
               onClick={() => setIsViewQrScannerOpen(true)}
-              className="text-white"
+              className="text-black dark:text-white"
             >
               <HiQrcode className="mr-2 h-5 w-5" />
               Ler QR Code

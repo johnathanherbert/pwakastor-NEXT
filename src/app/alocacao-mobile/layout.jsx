@@ -2,6 +2,7 @@
 
 import { useTheme } from "@/contexts/ThemeContext";
 import HeaderClock from "@/components/Clock/HeaderClock";
+import { HiLocationMarker } from "react-icons/hi";
 
 export default function AlocacaoMobileLayout({ children }) {
   const { darkMode, toggleDarkMode } = useTheme();
@@ -11,8 +12,9 @@ export default function AlocacaoMobileLayout({ children }) {
       {/* Header simplificado para mobile */}
       <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-            Alocação Mobile
+          <h2 className="text-lg font-semibold text-blue-600 dark:text-blue-400 align-baseline flex items-center">  
+          <HiLocationMarker/>
+          Trackprod
           </h2>
           
           <div className="flex items-center">
