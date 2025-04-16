@@ -144,9 +144,8 @@ const QrCodeScanner = ({ onResult, onClose }) => {
           </p>
           
           <Button
-            color="gray"
             onClick={onClose}
-            className="w-full"
+            className="w-full bg-black/10 hover:bg-black/20 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
           >
             Cancelar
           </Button>

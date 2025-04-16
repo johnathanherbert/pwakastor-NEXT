@@ -1,13 +1,14 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { HiSun, HiMoon } from 'react-icons/hi';
 import { Button } from 'flowbite-react';
 
 export default function ThemeToggle() {
   const { darkMode, toggleDarkMode, mounted } = useTheme();
 
+  // Se o componente não foi montado, retorna null para evitar renderizações inconsistentes
   if (!mounted) return null;
 
   return (

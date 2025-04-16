@@ -782,7 +782,7 @@ export default function AlocacaoMobilePage() {
       )}
       
       {/* Barra de navegação fixa no rodapé */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-20 border-t border-gray-200 dark:border-gray-700">
+      <div className="fixed bottom-0 left-0 right-0 theme-card-bg shadow-md z-20 border-t theme-border-light">
         <div className="flex justify-center">
           <Button
             color="success"
@@ -824,57 +824,87 @@ export default function AlocacaoMobilePage() {
       ) : !selectedRoom ? (
         // Tela de seleção de sala
         <>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-            Selecione uma Sala
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Salas de Armazenamento
           </h1>
           
-          <div className="mb-6 flex justify-between items-center">
+          <div className="mb-5 flex justify-between items-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              ou escaneie o QR code de uma vaga diretamente
+              Selecione uma sala ou escaneie um QR code
             </p>
             <Button 
-              color="info"
+              color="blue" 
               onClick={() => setIsViewQrScannerOpen(true)}
-              className="text-black dark:text-white"
+              className="text-white"
+              size="sm"
             >
-              <HiQrcode className="mr-2 h-5 w-5" />
+              <HiQrcode className="mr-2 h-4 w-4" />
               Ler QR Code
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rooms.map(room => {
+          <div className="shadow-sm overflow-hidden border theme-border-light rounded-xl theme-card-bg">
+            {rooms.map((room, index) => {
               const stats = roomsStats[room.id] || { total: 0, empty: 0, percentage: 0 };
+              const isLast = index === rooms.length - 1;
+              
               return (
-                <Card 
-                  key={room.id} 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                <div 
+                  key={room.id}
+                  className={`cursor-pointer transition-all hover:bg-blue-50/70 dark:hover:bg-blue-900/20 ${
+                    !isLast ? 'border-b theme-border-light' : ''
+                  }`}
                   onClick={() => fetchSpacesByRoom(room.id)}
                 >
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {room.name}
-                    </h3>
-                    <HiChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                  
-                  <div className="flex justify-between pt-2">
-                    <div className="text-sm">
-                      <span className="text-gray-500 dark:text-gray-400">Vagas vazias: </span>
-                      <span className="font-medium text-gray-900 dark:text-white">{stats.empty} de {stats.total}</span>
+                  <div className="px-4 py-3.5 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full mr-3 ${
+                        stats.empty === 0 
+                          ? 'bg-red-500' 
+                          : stats.empty < stats.total * 0.2
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}></div>
+                      <div>
+                        <h3 className="font-medium theme-text-primary flex items-center">
+                          {room.name}
+                          <span className="ml-3 text-xs font-normal theme-text-tertiary">
+                            {stats.empty}/{stats.total} vagas disponíveis
+                          </span>
+                        </h3>
+                        <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500" 
+                            style={{
+                              width: `${Math.round(stats.empty / stats.total * 100) || 0}%`,
+                              backgroundColor: stats.empty === 0 
+                                ? '#EF4444' 
+                                : stats.empty < stats.total * 0.2
+                                  ? '#F59E0B' 
+                                  : '#10B981'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className={`px-2 py-1 rounded-full text-xs ${
-                      stats.empty === 0 
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    }`}>
-                      {stats.empty === 0 
-                        ? 'Sem vagas' 
-                        : `${Math.round(stats.percentage)}% livre`}
+                    <div className="flex items-center">
+                      <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${
+                        stats.empty === 0 
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          : stats.empty < stats.total * 0.2
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      }`}>
+                        {stats.empty === 0 
+                          ? 'Lotado' 
+                          : stats.empty < stats.total * 0.2
+                            ? 'Quase cheio'
+                            : `${Math.round(stats.percentage)}% livre`}
+                      </span>
+                      <HiChevronRight className="h-5 w-5 text-gray-400 ml-3" />
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -885,10 +915,9 @@ export default function AlocacaoMobilePage() {
           <div className="flex flex-col md:flex-row justify-between items-center mb-4">
             <div className="flex items-center mb-4 md:mb-0">
               <Button 
-                color="light" 
                 size="sm" 
                 onClick={handleBackToRooms}
-                className="mr-2"
+                className="mr-2 bg-black/10 text-gray-800 dark:bg-white/10 dark:text-white"
               >
                 <HiX className="mr-1 h-4 w-4" />
                 Voltar
@@ -900,7 +929,9 @@ export default function AlocacaoMobilePage() {
             </div>
             
             <div className="flex gap-2">
-              <Button color="light" onClick={() => fetchEmptySpacesByRoom(selectedRoom)}>
+              <Button
+                className="bg-black/10 text-gray-800 dark:bg-white/10 dark:text-white" 
+                onClick={() => fetchEmptySpacesByRoom(selectedRoom)}>
                 <HiOutlineRefresh className="mr-2 h-5 w-5" />
                 Atualizar
               </Button>
@@ -939,7 +970,7 @@ export default function AlocacaoMobilePage() {
             
             <Button 
               size="xs"
-              color={showAllSpaces ? "success" : "light"}
+              className={showAllSpaces ? "bg-gray-600/10 text-gray-800 dark:bg-white/10 dark:text-white" : "bg-blue-600 text-white"}
               onClick={toggleSpacesView}
             >
               {showAllSpaces ? "Mostrando todas" : "Mostrar todas as vagas"}
@@ -963,7 +994,7 @@ export default function AlocacaoMobilePage() {
                   className={`border rounded-lg shadow p-4 ${
                     space.status === "occupied" 
                       ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' 
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                      : 'theme-card-bg border theme-border-light'
                   }`}
                 >
                   <div className="mb-3">
@@ -1023,7 +1054,7 @@ export default function AlocacaoMobilePage() {
                       </>
                     ) : (
                       <Button
-                        className="w-full"
+                        className="w-full always-visible"
                         color="success"
                         onClick={() => openAllocationModal(space)}
                       >
@@ -1228,6 +1259,7 @@ export default function AlocacaoMobilePage() {
                 Voltar
               </Button>
               <Button 
+                className="always-visible"
                 color="gray" 
                 onClick={() => {
                   setIsAllocateModalOpen(false);
@@ -1283,13 +1315,14 @@ export default function AlocacaoMobilePage() {
         </Modal.Body>
         <Modal.Footer>
           <Button
-            className="text-black dark:text-white" 
+            className="always-visible" 
             color="failure" 
             onClick={handleRemovePallet}
           >
             Confirmar Remoção
           </Button>
           <Button 
+            className="always-visible"
             color="gray" 
             onClick={() => {
               setIsRemoveDialogOpen(false);

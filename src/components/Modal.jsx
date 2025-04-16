@@ -98,22 +98,22 @@ const Modal = ({
     info: {
       header: "bg-blue-500 dark:bg-blue-700",
       headerText: "text-white",
-      closeButton: "text-white/80 hover:text-white hover:bg-blue-600/40",
+      closeButton: "text-white/80 hover:text-white hover:bg-white/10",
     },
     warning: {
       header: "bg-yellow-500 dark:bg-yellow-700",
       headerText: "text-white",
-      closeButton: "text-white/80 hover:text-white hover:bg-yellow-600/40",
+      closeButton: "text-white/80 hover:text-white hover:bg-white/10",
     },
     success: {
       header: "bg-green-500 dark:bg-green-700",
       headerText: "text-white",
-      closeButton: "text-white/80 hover:text-white hover:bg-green-600/40",
+      closeButton: "text-white/80 hover:text-white hover:bg-white/10",
     },
     danger: {
       header: "bg-red-500 dark:bg-red-700",
       headerText: "text-white",
-      closeButton: "text-white/80 hover:text-white hover:bg-red-600/40",
+      closeButton: "text-white/80 hover:text-white hover:bg-white/10",
     },
   };
 

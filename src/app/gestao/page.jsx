@@ -1131,12 +1131,11 @@ export default function GestaoPage() {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Salas de Armazenamento</h2>
                     <Button
-                    className="font-bold text-black dark:text-white" 
                       size="sm" 
                       onClick={() => handlePasswordVerification("room")}
                       disabled={isAddingRoom}
                     >
-                      <HiPlus className="mr-1 h-4 w-4 font-bold text-black dark:text-white" /> Adicionar
+                      <HiPlus className="mr-1 h-4 w-4" /> Adicionar
                     </Button>
                   </div>
                   
@@ -1180,8 +1179,9 @@ export default function GestaoPage() {
                       rooms.map((room) => (
                         <Button
                           key={room.id}
-                          color={selectedRoom === room.id ? "blue" : "light"}
-                          className="w-full justify-start"
+                          //color={selectedRoom === room.id ? "blue" : "light"}
+                          //className="w-full justify-start"
+                          className={`w-full justify-start ${selectedRoom === room.id ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-blue-600 hover:text-white transition-colors`}
                           onClick={() => fetchSpaces(room.id)}
                         >
                           {room.name}
@@ -1309,12 +1309,12 @@ export default function GestaoPage() {
                         </h2>
                         {selectedRoom && (
                           <Button
-                            className="font-bold text-black dark:text-white" 
+                            className="font-bold" 
                             size="sm" 
                             onClick={() => handlePasswordVerification("space")}
                             disabled={isAddingSpace}
                           >
-                            <HiPlus className="mr-1 h-4 w-4 font-bold text-black dark:text-white" /> Adicionar Vaga
+                            <HiPlus className="mr-1 h-4 w-4" /> Adicionar Vaga
                           </Button>
                         )}
                       </div>
@@ -1400,24 +1400,26 @@ export default function GestaoPage() {
                           <div className="flex gap-1">
                             <Button 
                               size="xs"
-                              color={filters.status === "empty" ? "success" : "light"}
+                              //color={filters.status === "empty" ? "success" : "light"}
                               onClick={() => setFilters(prev => ({
                                 ...prev,
                                 status: prev.status === "empty" ? "all" : "empty"
                               }))}
-                              className="whitespace-nowrap"
+                              //className="whitespace-nowrap"
+                              className={`whitespace-nowrap ${filters.status === "empty" ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-green-600 hover:text-white transition-colors`}
                             >
                               <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
                               Vazios
                             </Button>
                             <Button 
                               size="xs"
-                              color={filters.status === "occupied" ? "failure" : "light"}
+                              //color={filters.status === "occupied" ? "failure" : "light"}
                               onClick={() => setFilters(prev => ({
                                 ...prev,
                                 status: prev.status === "occupied" ? "all" : "occupied"
                               }))}
-                              className="whitespace-nowrap"
+                              //className="whitespace-nowrap"
+                              className={`whitespace-nowrap ${filters.status === "occupied" ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-red-600 hover:text-white transition-colors`}
                             >
                               <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>
                               Ocupados
@@ -1427,7 +1429,7 @@ export default function GestaoPage() {
                           {(activeFilterCount > 0 || quickSearch) && (
                             <Button
                               size="xs"
-                              color="light"
+                              //color="light"
                               onClick={() => {
                                 setFilters({
                                   status: "all",
@@ -1439,9 +1441,11 @@ export default function GestaoPage() {
                                 });
                                 setQuickSearch("");
                               }}
-                              className="whitespace-nowrap"
+                              //className="whitespace-nowrap"
+                              className={`whitespace-nowrap ${activeFilterCount > 0 ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors`}
                             >
                               <HiX className="h-3 w-3 mr-1" />
+
                               Limpar {activeFilterCount > 0 && quickSearch ? "tudo" : activeFilterCount > 0 ? "filtros" : "busca"}
                               {activeFilterCount > 0 && ` (${activeFilterCount})`}
                             </Button>
@@ -1617,8 +1621,9 @@ export default function GestaoPage() {
                                     <Table.Cell>
                                       <Button 
                                         size="xs"
-                                        color={space.status === 'empty' ? "light" : "failure"}
-                                        className="py-1 px-2 text-xs"
+                                        //color={space.status === 'empty' ? "light" : "failure"}
+                                        //className="py-1 px-2 text-xs"
+                                        className={`py-1 px-2 text-xs ${space.status === 'empty' ? 'bg-gray-100 dark:bg-gray-700' : 'bg-red-500 text-white'} rounded-lg shadow-sm hover:bg-red-600 hover:text-white transition-colors`}
                                         onClick={() => {
                                           setSelectedSpace(space);
                                           if (space.status === 'empty') {
@@ -1648,7 +1653,7 @@ export default function GestaoPage() {
                               <div className="flex items-center gap-2">
                                 <Button 
                                   size="sm" 
-                                  color="light" 
+                                  className="bg-black/10 hover:bg-black/20 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
                                   disabled={currentPage === 1}
                                   onClick={() => setCurrentPage(prevPage => Math.max(prevPage - 1, 1))}
                                 >
@@ -1679,7 +1684,8 @@ export default function GestaoPage() {
                                     <Button
                                       key={pageNum}
                                       size="sm"
-                                      color={currentPage === pageNum ? "blue" : "light"}
+                                      ///color={currentPage === pageNum ? "blue" : "light"}
+                                      className={`py-1 px-2 text-xs ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-blue-600 hover:text-white transition-colors`}
                                       onClick={() => setCurrentPage(pageNum)}
                                     >
                                       {pageNum}
@@ -1689,7 +1695,7 @@ export default function GestaoPage() {
                                 
                                 <Button 
                                   size="sm" 
-                                  color="light" 
+                                  className="bg-black/10 hover:bg-black/20 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
                                   disabled={currentPage >= Math.ceil(filteredSpaces.length / itemsPerPage)}
                                   onClick={() => setCurrentPage(prevPage => Math.min(prevPage + 1, Math.ceil(filteredSpaces.length / itemsPerPage)))}
                                 >
@@ -1854,9 +1860,9 @@ export default function GestaoPage() {
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtros</h3>
                     <Button 
                       size="xs" 
-                      color="light" 
+                      //color="light" 
                       onClick={resetLogFilters}
-                      className="text-xs py-1"
+                      className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
                       <HiX className="mr-1 h-3 w-3" /> Limpar filtros
                     </Button>
