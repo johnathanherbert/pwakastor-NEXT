@@ -116,32 +116,21 @@ export default function EditItemModal({ isOpen, onClose, onItemUpdated, item, nt
                   type="text"
                   value={formData.quantity}
                   onChange={(e) => handleChange('quantity', e.target.value)}
-                  className="w-full px-3 py-2 
-                    bg-white dark:bg-gray-700
-                    border border-gray-200 dark:border-gray-600 
-                    rounded-lg text-gray-900 dark:text-gray-100
-                    placeholder-gray-400 dark:placeholder-gray-400
-                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
-                    focus:border-transparent transition-colors"
+                  placeholder="Ex: 24"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Lote (opcional)
+                  Lote
                 </label>
                 <input
                   type="text"
                   value={formData.batch}
                   onChange={(e) => handleChange('batch', e.target.value)}
                   placeholder="Ex: L12345"
-                  className="w-full px-3 py-2 
-                    bg-white dark:bg-gray-700
-                    border border-gray-200 dark:border-gray-600 
-                    rounded-lg text-gray-900 dark:text-gray-100
-                    placeholder-gray-400 dark:placeholder-gray-400
-                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
-                    focus:border-transparent transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 />
               </div>
             </div>

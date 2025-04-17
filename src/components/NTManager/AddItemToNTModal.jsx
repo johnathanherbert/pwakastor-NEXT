@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../supabaseClient';
+import { showToast } from '../../components/Toast/ToastContainer';
 
 export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
   const [item, setItem] = useState({
@@ -36,131 +37,199 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
     }));
   };
   
-  // Process a pasted line similar to AddNTModal
   const processBulkText = () => {
-    const line = bulkText.trim();
+    // Melhorado para garantir que linhas em branco sejam corretamente filtradas
+    const lines = bulkText.trim().split('\n').filter(line => line.trim() !== '');
     
-    // Skip empty lines
+    console.log(`Texto recebido para processamento (${lines.length} linhas):`);
+    console.log(bulkText);
+    console.log("Linhas identificadas:", lines);
+    
+    // Se não houver linhas para processar
+    if (lines.length === 0) {
+      setError('Por favor, insira algum texto.');
+      return;
+    }
+    
+    try {
+      // Caso seja apenas uma linha, processar como antes
+      if (lines.length === 1) {
+        processSingleLine(lines[0].trim());
+        return;
+      }
+      
+      // Caso sejam múltiplas linhas
+      console.log(`Processando ${lines.length} linhas:`);
+      
+      // Primeiro item será definido no state, restantes serão adicionados em sequência
+      const firstItem = processItemLine(lines[0].trim());
+      
+      if (firstItem) {
+        console.log("Primeiro item extraído:", firstItem);
+        setItem(firstItem);
+        
+        // Armazenar os itens restantes para adicionar automaticamente
+        const remainingItems = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line) {
+            const nextItem = processItemLine(line);
+            if (nextItem) {
+              remainingItems.push(nextItem);
+              console.log(`Item ${i+1} extraído:`, nextItem);
+            }
+          }
+        }
+        
+        // Armazenar os itens restantes em localStorage para processá-los após adicionar o primeiro
+        if (remainingItems.length > 0) {
+          localStorage.setItem('remaining_items_to_add', JSON.stringify({
+            ntId: nt.id,
+            items: remainingItems
+          }));
+          
+          showToast(`${remainingItems.length + 1} itens serão adicionados em sequência`, 'info');
+        }
+        
+        setShowBulkInput(false);
+        setBulkText('');
+      } else {
+        setError('Não foi possível processar o primeiro item. Verifique o formato.');
+      }
+    } catch (error) {
+      console.error("Error processing lines:", error);
+      setError('Erro ao processar o texto. Verifique o formato.');
+    }
+  };
+  
+  // Nova função para processar uma única linha
+  const processSingleLine = (line) => {
     if (!line) {
       setError('Por favor, insira algum texto.');
       return;
     }
     
     try {
-      // First try with tab separation
-      let parts;
-      if (line.includes('\t')) {
-        parts = line.split('\t');
-        
-        // Format could be: "code description quantity" or "item_number code description quantity"
-        if (parts.length === 3) {
-          const newItem = {
-            codigo: parts[0],
-            descricao: parts[1],
-            quantidade: parts[2],
-            lote: ''
-          };
-          setItem(newItem);
-          setShowBulkInput(false);
-          setBulkText('');
-          return;
-        } else if (parts.length === 4) {
-          // Check if last part might be a batch (lote) or if it's the item number pattern
-          if (/^\d{1,3}$/.test(parts[0])) {
-            // If first part looks like an item number (1-3 digits)
-            const newItem = {
-              codigo: parts[1],
-              descricao: parts[2],
-              quantidade: parts[3],
-              lote: ''
-            };
-            setItem(newItem);
-          } else {
-            // Fourth part is the batch (lote)
-            const newItem = {
-              codigo: parts[0],
-              descricao: parts[1],
-              quantidade: parts[2],
-              lote: parts[3]
-            };
-            setItem(newItem);
-          }
-          setShowBulkInput(false);
-          setBulkText('');
-          return;
-        } else if (parts.length === 5) {
-          // Assume format is: item_number code description quantity lote
-          const newItem = {
-            codigo: parts[1],
-            descricao: parts[2],
-            quantidade: parts[3],
-            lote: parts[4]
-          };
-          setItem(newItem);
-          setShowBulkInput(false);
-          setBulkText('');
-          return;
-        }
+      // Debug: Mostrar a representação dos caracteres para ajudar na depuração
+      console.log("Texto recebido:", line);
+      console.log("Representação:", Array.from(line).map(c => c === '\t' ? '\\t' : c).join(''));
+      
+      const newItem = processItemLine(line);
+      
+      if (newItem) {
+        setItem(newItem);
+        setShowBulkInput(false);
+        setBulkText('');
+      } else {
+        setError('Não foi possível processar o texto. Verifique o formato.');
       }
-      
-      // If no tabs or if tab parsing failed, try space-based parsing
-      const trimmedLine = line.trim();
-      
-      // Try to detect the format by looking at patterns
-      if (/^\d+\s+\S+/.test(trimmedLine)) {
-        // Find the position of the last number in the string
-        const lastNumberMatch = trimmedLine.match(/\s+\d+\s*$/);
-        
-        if (lastNumberMatch) {
-          const lastNumberPos = trimmedLine.lastIndexOf(lastNumberMatch[0]);
-          const beforeLastNumber = trimmedLine.substring(0, lastNumberPos);
-          const quantity = lastNumberMatch[0].trim();
-          
-          // Check if there's text after the quantity which might be a batch (lote)
-          let lote = '';
-          const remainingText = line.substring(lastNumberPos + quantity.length).trim();
-          if (remainingText) {
-            lote = remainingText;
-          }
-          
-          // Now find where the code ends and description begins
-          const parts = beforeLastNumber.trim().split(/\s+/);
-          
-          if (parts.length >= 2) {
-            // Check if first part might be an item number (1-3 digits)
-            let code, description;
-            
-            if (/^\d{1,3}$/.test(parts[0]) && parts.length >= 3) {
-              // First part looks like an item number, so code is the second part
-              code = parts[1];
-              description = parts.slice(2).join(' ');
-            } else {
-              // First part is the code
-              code = parts[0];
-              description = parts.slice(1).join(' ');
-            }
-            
-            const newItem = {
-              codigo: code,
-              descricao: description,
-              quantidade: quantity,
-              lote: lote
-            };
-            
-            setItem(newItem);
-            setShowBulkInput(false);
-            setBulkText('');
-            return;
-          }
-        }
-      }
-      
-      // If we get here, parsing failed
-      setError('Não foi possível processar o texto. Verifique o formato.');
     } catch (error) {
       console.error("Error processing line:", error);
       setError('Erro ao processar o texto. Verifique o formato.');
     }
+  };
+  
+  // Função para extrair dados de uma única linha
+  const processItemLine = (line) => {
+    // First try with tab separation
+    if (line.includes('\t')) {
+      const parts = line.split('\t').filter(part => part !== ''); // Garantir que partes vazias são removidas
+      console.log("Partes divididas por tab:", parts);
+      
+      // Format could be: "code description quantity" or "item_number code description quantity"
+      if (parts.length === 3) {
+        return {
+          codigo: parts[0].trim(),
+          descricao: parts[1].trim(),
+          quantidade: parts[2].trim(),
+          lote: ''
+        };
+      } else if (parts.length === 4) {
+        let newItem;
+        // Verificar se o primeiro item é um número de item (geralmente 1-3 dígitos)
+        if (/^\d{1,3}$/.test(parts[0])) {
+          // Item number, code, description, quantity
+          newItem = {
+            codigo: parts[1].trim(),
+            descricao: parts[2].trim(),
+            quantidade: parts[3].trim(),
+            lote: ''
+          };
+        } else {
+          // code, description, quantity, batch
+          newItem = {
+            codigo: parts[0].trim(),
+            descricao: parts[1].trim(),
+            quantidade: parts[2].trim(),
+            lote: parts[3].trim()
+          };
+        }
+        console.log("Item processado com 4 partes:", newItem);
+        return newItem;
+      } else if (parts.length === 5) {
+        // Assume format is: item_number code description quantity lote
+        const newItem = {
+          codigo: parts[1].trim(),
+          descricao: parts[2].trim(),
+          quantidade: parts[3].trim(),
+          lote: parts[4].trim()
+        };
+        console.log("Item processado com 5 partes:", newItem);
+        return newItem;
+      }
+    }
+    
+    // If no tabs or if tab parsing failed, try space-based parsing
+    const trimmedLine = line.trim();
+    
+    // Try to detect the format by looking at patterns
+    if (/^\d+\s+\S+/.test(trimmedLine)) {
+      // Find the position of the last number in the string
+      const lastNumberMatch = trimmedLine.match(/\s+\d+\s*/);
+      
+      if (lastNumberMatch) {
+        const lastNumberPos = trimmedLine.lastIndexOf(lastNumberMatch[0]);
+        const beforeLastNumber = trimmedLine.substring(0, lastNumberPos);
+        const quantity = lastNumberMatch[0].trim();
+        
+        // Check if there's text after the quantity which might be a batch (lote)
+        let lote = '';
+        const remainingText = trimmedLine.substring(lastNumberPos + quantity.length).trim();
+        if (remainingText) {
+          lote = remainingText;
+        }
+        
+        // Now find where the code ends and description begins
+        const parts = beforeLastNumber.trim().split(/\s+/);
+        
+        if (parts.length >= 2) {
+          // Check if first part might be an item number (1-3 digits)
+          let code, description;
+          
+          if (/^\d{1,3}$/.test(parts[0]) && parts.length >= 3) {
+            // First part looks like an item number, so code is the second part
+            code = parts[1];
+            description = parts.slice(2).join(' ');
+          } else {
+            // First part is the code
+            code = parts[0];
+            description = parts.slice(1).join(' ');
+          }
+          
+          const newItem = {
+            codigo: code.trim(),
+            descricao: description.trim(),
+            quantidade: quantity.trim(),
+            lote: lote.trim()
+          };
+          console.log("Item processado por espaços:", newItem);
+          return newItem;
+        }
+      }
+    }
+    
+    return null;
   };
   
   const handleSubmit = async (e) => {
@@ -176,6 +245,9 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
     }
     
     try {
+      // Log para depuração do lote
+      console.log("Enviando item com lote:", item.lote);
+      
       // Call parent handler - this will handle the UI update
       await onAddItem(item);
       // The modal will be closed by the parent component

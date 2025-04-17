@@ -49,6 +49,7 @@ export default function NTsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
+  const [hideOldNTs, setHideOldNTs] = useState(true); // Estado para ocultar NTs com mais de 3 dias
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentNT, setCurrentNT] = useState(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -186,6 +187,11 @@ export default function NTsPage() {
     const { eventType, new: newRecord, old: oldRecord } = payload;
     
     if (eventType === 'INSERT') {
+      // Debug: Verificar se o item inserido tem o campo batch
+      console.log("Item inserido no banco de dados:", newRecord);
+      console.log("Campo batch presente:", newRecord.hasOwnProperty('batch'));
+      console.log("Valor do batch:", newRecord.batch);
+      
       setNTItems(prev => {
         const ntId = newRecord.nt_id;
         const currentItems = prev[ntId] || [];
@@ -292,6 +298,16 @@ export default function NTsPage() {
         .order('item_number', { ascending: true });
         
       if (itemsError) throw itemsError;
+
+      // Debug: Verificar se algum item tem a propriedade batch
+      const itemsWithBatch = itemsData.filter(item => item.batch !== null && item.batch !== undefined);
+      console.log("Items com lote:", itemsWithBatch.length);
+      if (itemsWithBatch.length > 0) {
+        console.log("Exemplo de item com lote:", itemsWithBatch[0]);
+      }
+      
+      // Debug: Verificar a estrutura de alguns itens
+      console.log("Amostra de itens carregados:", itemsData.slice(0, 3));
 
       const itemsByNT = itemsData.reduce((acc, item) => {
         if (!acc[item.nt_id]) {
@@ -443,6 +459,20 @@ export default function NTsPage() {
           const deadline = calculatePaymentDeadline(item.created_date, item.created_time);
           return item.status === 'Ag. Pagamento' && new Date() > deadline;
         });
+      });
+    }
+    
+    // Filtrar NTs com mais de 3 dias se a opção estiver ativada
+    if (hideOldNTs) {
+      filtered = filtered.filter(nt => {
+        if (!nt.created_at) return true;
+        
+        const creationDate = new Date(nt.created_at);
+        const currentDate = new Date();
+        const diffTime = Math.abs(currentDate - creationDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return diffDays <= 3;
       });
     }
 
@@ -612,7 +642,8 @@ export default function NTsPage() {
 
   const addItemToNT = async (ntId, newItem) => {
     try {
-      console.log("Adding item to NT:", ntId, newItem);
+      console.log("Adding item to NT:", ntId);
+      console.log("Item data:", JSON.stringify(newItem, null, 2));
       
       const now = new Date();
       const formattedDate = now.toLocaleDateString('pt-BR');
@@ -623,21 +654,29 @@ export default function NTsPage() {
         ? Math.max(...ntItemsList.map(item => item.item_number))
         : 0;
       
+      // Corrigir: Garantir que o campo batch receba o valor de lote (mesmo que seja uma string vazia)
       const itemToInsert = {
         nt_id: ntId,
         item_number: highestItemNumber + 1,
         code: newItem.codigo,
         description: newItem.descricao || '-',
         quantity: newItem.quantidade,
+        batch: newItem.lote ? newItem.lote.trim() : null, // Garantir que strings vazias sejam convertidas para null
         created_date: formattedDate,
         created_time: formattedTime,
         status: 'Ag. Pagamento'
       };
       
+      // Verificar se o lote foi corretamente convertido
+      console.log("Verificando conversão de lote:", {
+        loteOriginal: newItem.lote,
+        batchConvertido: itemToInsert.batch
+      });
+      
       // Find the NT number to display in the toast
       const ntNumber = nts.find(nt => nt.id === ntId)?.nt_number || 'desconhecida';
       
-      console.log("Inserting item:", itemToInsert);
+      console.log("Inserting item with data:", JSON.stringify(itemToInsert, null, 2));
       
       const { data, error } = await supabase
         .from('nt_items')
@@ -646,9 +685,20 @@ export default function NTsPage() {
       
       if (error) throw error;
       
+      console.log("Item inserted successfully, response:", data);
+      
+      if (data && data.length > 0) {
+        // Adicionar manualmente o item à lista local para garantir que apareça imediatamente
+        setNTItems(prev => {
+          const currentItems = prev[ntId] || [];
+          return {
+            ...prev,
+            [ntId]: [...currentItems, data[0]]
+          };
+        });
+      }
+      
       showToast(`Item ${newItem.codigo} adicionado à NT ${ntNumber}`, 'success');
-      console.log("Item added successfully:", data);
-      // O listener em tempo real cuidará da atualização
     } catch (error) {
       console.error('Error adding item to NT:', error);
       showToast(`Erro ao adicionar item: ${error.message}`, 'error');
@@ -658,6 +708,11 @@ export default function NTsPage() {
   const editItem = async (itemId, updates, ntId) => {
     try {
       console.log("Editing item:", itemId, "with updates:", updates);
+      
+      // Adicionado suporte ao campo priority
+      if (updates.hasOwnProperty('priority')) {
+        console.log(`${updates.priority ? 'Marcando' : 'Desmarcando'} item como prioritário:`, itemId);
+      }
       
       const { error } = await supabase
         .from('nt_items')
@@ -671,9 +726,17 @@ export default function NTsPage() {
       // Show toast with updated item description
       const itemToUpdate = ntItems[ntId]?.find(item => item.id === itemId);
       if (itemToUpdate) {
-        const newDesc = updates.description || itemToUpdate.description;
-        const itemCode = updates.code || itemToUpdate.code;
-        showToast(`Item ${newDesc} (${itemCode}) atualizado com sucesso`, 'success');
+        // Se a atualização está relacionada à prioridade, mostrar toast específico
+        if (updates.hasOwnProperty('priority')) {
+          const priorityStatus = updates.priority ? 'prioritário' : 'normal';
+          const itemCode = itemToUpdate.code;
+          showToast(`Item ${itemCode} marcado como ${priorityStatus}`, updates.priority ? 'warning' : 'info');
+        } else {
+          // Toast padrão para outras atualizações
+          const newDesc = updates.description || itemToUpdate.description;
+          const itemCode = updates.code || itemToUpdate.code;
+          showToast(`Item ${newDesc} (${itemCode}) atualizado com sucesso`, 'success');
+        }
       }
       
       setNTItems(prev => {
@@ -691,6 +754,56 @@ export default function NTsPage() {
       showToast(`Erro ao atualizar item: ${error.message}`, 'error');
     }
   };
+
+  useEffect(() => {
+    // Verificar se existem itens restantes para adicionar automaticamente
+    const processRemainingItems = () => {
+      const remainingItemsData = localStorage.getItem('remaining_items_to_add');
+      
+      if (remainingItemsData) {
+        try {
+          const data = JSON.parse(remainingItemsData);
+          if (data.ntId && data.items && data.items.length > 0) {
+            // Processar itens em sequência
+            const processNextItem = (index) => {
+              if (index < data.items.length) {
+                const item = data.items[index];
+                console.log(`Processando item restante ${index + 1}/${data.items.length}:`, item);
+                addItemToNT(data.ntId, item)
+                  .then(() => {
+                    // Aguardar um pequeno intervalo antes de processar o próximo item
+                    setTimeout(() => processNextItem(index + 1), 300);
+                  })
+                  .catch(err => {
+                    console.error(`Erro ao adicionar item restante ${index + 1}:`, err);
+                    // Continuar mesmo com erro
+                    setTimeout(() => processNextItem(index + 1), 300);
+                  });
+              } else {
+                // Todos os itens foram processados
+                console.log('Processamento de itens restantes concluído');
+                localStorage.removeItem('remaining_items_to_add');
+              }
+            };
+            
+            // Iniciar processamento do primeiro item restante
+            processNextItem(0);
+          }
+        } catch (error) {
+          console.error('Erro ao processar itens restantes:', error);
+          localStorage.removeItem('remaining_items_to_add');
+        }
+      }
+    };
+    
+    // Verificar a cada 2 segundos se há novos itens a serem processados
+    const intervalId = setInterval(processRemainingItems, 2000);
+    
+    // Executar uma verificação inicial
+    processRemainingItems();
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   if (isLoading && nts.length === 0) {
     return (
@@ -932,6 +1045,18 @@ export default function NTsPage() {
                       className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                     />
                     <span>Mostrar apenas itens com pagamento em atraso</span>
+                  </label>
+                </div>
+
+                <div className="col-span-1 md:col-span-2">
+                  <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={hideOldNTs}
+                      onChange={(e) => setHideOldNTs(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                    <span>Ocultar NTs com mais de 3 dias</span>
                   </label>
                 </div>
               </div>

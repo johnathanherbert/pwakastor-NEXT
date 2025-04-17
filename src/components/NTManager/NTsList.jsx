@@ -215,6 +215,17 @@ export default function NTsList({
     setShowEditItemModal(true);
   };
 
+  const handlePriorityToggle = (item, ntId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    console.log("Alterando prioridade para o item:", item.item_number, "da NT:", ntId);
+    // Inverter o estado atual da prioridade
+    onEditItem(item.id, { priority: !item.priority }, ntId);
+  };
+
   const renderStatusButton = (item, ntId) => {
     const statusOptions = [
       { value: 'Ag. Pagamento', label: 'Ag. Pagamento', color: 'red' },
@@ -406,6 +417,7 @@ export default function NTsList({
           <div key={nt.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all">
             <div 
               className={`p-2 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors border-l-4 cursor-pointer
+                ${ntItemsList.some(item => item.priority && item.status !== 'Pago') ? 'bg-amber-50/40 dark:bg-amber-900/10 shadow-inner' : ''}
                 ${statusColor === 'green' ? 'border-l-green-500 dark:border-l-green-600' : 
                   statusColor === 'yellow' ? 'border-l-yellow-500 dark:border-l-yellow-600' : 
                   statusColor === 'orange' ? 'border-l-orange-500 dark:border-l-orange-600' :
@@ -595,6 +607,9 @@ export default function NTsList({
                         <th className="px-1.5 sm:px-3 py-1 sm:py-2 text-left text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Qtd
                         </th>
+                        <th className="px-1.5 sm:px-3 py-1 sm:py-2 text-left text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Lote
+                        </th>
                         <th className="px-1.5 sm:px-3 py-1 sm:py-2 text-left text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
                           Data
                         </th>
@@ -650,6 +665,13 @@ export default function NTsList({
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap text-[11px] sm:text-sm text-gray-700 dark:text-gray-300">
                               {item.quantity}
                             </td>
+                            <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap text-[11px] sm:text-sm">
+                              {item.batch ? (
+                                <span className="font-medium text-purple-600 dark:text-purple-400">{item.batch}</span>
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-500">-</span>
+                              )}
+                            </td>
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap text-[11px] sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                               {item.created_date}
                             </td>
@@ -677,6 +699,23 @@ export default function NTsList({
                             
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap">
                               <div className="flex items-center justify-center gap-1 sm:gap-2">
+                                <button 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handlePriorityToggle(item, nt.id, e);
+                                  }}
+                                  className={`p-1 sm:p-2 rounded-md ${
+                                    item.priority ? 
+                                    'bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50' : 
+                                    'bg-gray-50 text-gray-400 hover:bg-gray-100 dark:bg-gray-800/30 dark:text-gray-500 dark:hover:bg-gray-700/50'
+                                  } transition-colors`}
+                                  title={item.priority ? "Remover prioridade" : "Marcar como prioridade"}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill={item.priority ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-3 w-3 sm:h-4 sm:w-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                                  </svg>
+                                </button>
                                 <button 
                                   onClick={(e) => {
                                     e.preventDefault();
