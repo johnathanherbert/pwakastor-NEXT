@@ -228,26 +228,55 @@ export default function NTsList({
 
   const renderStatusButton = (item, ntId) => {
     const statusOptions = [
-      { value: 'Ag. Pagamento', label: 'Ag. Pagamento', color: 'red' },
-      { value: 'Pago', label: 'Pago', color: 'green' },
-      { value: 'Pago Parcial', label: 'Pago Parcial', color: 'yellow' }
+      { 
+        value: 'Ag. Pagamento', 
+        label: 'Aguardando', 
+        color: 'red',
+        icon: <ClockIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+      },
+      { 
+        value: 'Pago', 
+        label: 'Pago', 
+        color: 'green',
+        icon: <CheckCircleIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+      },
+      { 
+        value: 'Pago Parcial', 
+        label: 'Parcial', 
+        color: 'yellow',
+        icon: <ExclamationCircleIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+      }
     ];
     
     return (
-      <div className="flex flex-wrap gap-0.5 sm:gap-1">
-        {statusOptions.map(option => (
-          <button
-            key={option.value}
-            onClick={() => updateItemStatus(item.id, option.value, ntId)}
-            className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-[9px] sm:text-xs font-medium transition-all transform hover:scale-105 focus:scale-100
-              ${item.status === option.value 
-                ? `bg-${option.color}-100 dark:bg-${option.color}-900/50 text-${option.color}-700 dark:text-${option.color}-300 border border-${option.color}-200 dark:border-${option.color}-700/50 shadow-sm` 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center p-0.5 bg-gray-100 dark:bg-gray-700/70 rounded-full">
+          {statusOptions.map(option => {
+            const isActive = item.status === option.value;
+            return (
+              <button
+                key={option.value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateItemStatus(item.id, option.value, ntId);
+                }}
+                className={`relative flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[9px] sm:text-xs font-medium transition-all duration-200 
+                  ${isActive 
+                    ? `bg-${option.color}-500 text-white dark:bg-${option.color}-600 shadow-md scale-105` 
+                    : 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-gray-600/80'
+                  }
+                  focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-${option.color}-400 dark:focus:ring-offset-gray-800`}
+                title={option.value}
+              >
+                {option.icon}
+                <span>{option.label}</span>
+                {isActive && (
+                  <span className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-2 h-2 bg-white rounded-full"></span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   };
