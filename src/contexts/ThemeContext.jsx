@@ -23,14 +23,58 @@ export function ThemeProvider({ children }) {
   // Determina se está no modo escuro com base no tema atual
   const isDarkMode = theme === 'dark' || (theme === 'system' && systemTheme === 'dark');
 
-  // Marca o componente como montado após a renderização inicial
+  // Inicializa o tema com base no localStorage durante a montagem do componente
   useEffect(() => {
+    // Tenta obter a preferência do tema do localStorage
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      const savedDarkMode = localStorage.getItem('darkMode');
+      
+      if (savedTheme) {
+        // Se há um tema salvo explicitamente, use-o
+        setTheme(savedTheme);
+      } else if (savedDarkMode !== null) {
+        // Compatibilidade com o formato anterior que usava "darkMode" booleano
+        const isDark = JSON.parse(savedDarkMode);
+        setTheme(isDark ? 'dark' : 'light');
+      }
+      
+      // Aplica a classe 'dark' ao body antes mesmo da hidratação completa
+      if ((savedTheme === 'dark') || 
+          (savedTheme === 'system' && systemTheme === 'dark') ||
+          (savedTheme === undefined && savedDarkMode && JSON.parse(savedDarkMode))) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('bg-gray-900');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('bg-gray-900');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar tema do localStorage:', error);
+    }
+    
     setMounted(true);
   }, []);
 
+  // Efeito para atualizar as classes CSS quando o tema muda
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('bg-gray-900');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('bg-gray-900');
+    }
+  }, [isDarkMode]);
+
   // Função para alternar entre os temas
   const toggleDarkMode = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    
+    // Salva a nova configuração no localStorage de duas formas para compatibilidade
+    localStorage.setItem('theme', newTheme);
+    localStorage.setItem('darkMode', JSON.stringify(newTheme === 'dark'));
   };
 
   // Valor que será disponibilizado pelo contexto
