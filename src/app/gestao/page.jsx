@@ -1055,33 +1055,42 @@ export default function GestaoPage() {
 
   // Render component
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+    <div className="min-h-screen theme-bg-main">
       <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
-      {/* Add ToastContainer to the top level */}
       <ToastContainer />
       
-      <main className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header com topbar unificada */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
+      <main className="p-4 sm:p-6 pb-20">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header com esquema de design aprimorado */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => setDrawerOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                aria-label="Abrir menu lateral"
               >
                 <HiMenu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </button>
-              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Gestão de Armazenamento</h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-300">
+                  Gestão de Armazenamento
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Gerenciamento de salas e vagas de armazenamento
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center">
-              <HeaderClock />
+            <div className="flex items-center space-x-3">
+              <div className="p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <HeaderClock />
+              </div>
               
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
-                title={darkMode ? "Modo claro" : "Modo escuro"}
+                className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200"
+                title={darkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
               >
                 {darkMode ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1096,14 +1105,16 @@ export default function GestaoPage() {
             </div>
           </div>
           
-          {/* Painel de Estatísticas */}
-          <StorageStats 
-            roomStats={roomStats}
-            topMaterials={topMaterials}
-            expiredPallets={expiredPallets}
-            onExpiredPalletClick={handleExpiredPalletClick}
-            onTopMaterialClick={handleTopMaterialClick}
-          />
+          {/* Stats Dashboard com aparência refinada */}
+          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 p-3 animate-fadeIn">
+            <StorageStats 
+              roomStats={roomStats}
+              topMaterials={topMaterials}
+              expiredPallets={expiredPallets}
+              onExpiredPalletClick={handleExpiredPalletClick}
+              onTopMaterialClick={handleTopMaterialClick}
+            />
+          </div>
           
           <Tabs theme={{
             base: "flex flex-col gap-2",
@@ -1282,7 +1293,7 @@ export default function GestaoPage() {
                                       <Button 
                                         size="xs"
                                         color="failure"
-                                        className="py-1 px-2 text-xs"
+                                        className="py-1 px-2 text-xs text-white dark:text-white"
                                         onClick={() => {
                                           setSelectedSpace(pallet);
                                           setRemoveDialogOpen(true);
@@ -1400,28 +1411,28 @@ export default function GestaoPage() {
                           <div className="flex gap-1">
                             <Button 
                               size="xs"
-                              //color={filters.status === "empty" ? "success" : "light"}
+                              color={filters.status === "empty" ? "success" : "light"}
+                              className={filters.status === "empty" 
+                                ? "text-white dark:text-white" 
+                                : "text-gray-800 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"}
                               onClick={() => setFilters(prev => ({
                                 ...prev,
                                 status: prev.status === "empty" ? "all" : "empty"
                               }))}
-                              //className="whitespace-nowrap"
-                              className={`whitespace-nowrap ${filters.status === "empty" ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-green-600 hover:text-white transition-colors`}
                             >
-                              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
                               Vazios
                             </Button>
                             <Button 
                               size="xs"
-                              //color={filters.status === "occupied" ? "failure" : "light"}
+                              color={filters.status === "occupied" ? "success" : "light"}
+                              className={filters.status === "occupied" 
+                                ? "text-white dark:text-white" 
+                                : "text-gray-800 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"}
                               onClick={() => setFilters(prev => ({
                                 ...prev,
                                 status: prev.status === "occupied" ? "all" : "occupied"
                               }))}
-                              //className="whitespace-nowrap"
-                              className={`whitespace-nowrap ${filters.status === "occupied" ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-red-600 hover:text-white transition-colors`}
                             >
-                              <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>
                               Ocupados
                             </Button>
                           </div>
@@ -1621,9 +1632,12 @@ export default function GestaoPage() {
                                     <Table.Cell>
                                       <Button 
                                         size="xs"
-                                        //color={space.status === 'empty' ? "light" : "failure"}
-                                        //className="py-1 px-2 text-xs"
-                                        className={`py-1 px-2 text-xs ${space.status === 'empty' ? 'bg-gray-100 dark:bg-gray-700' : 'bg-red-500 text-white'} rounded-lg shadow-sm hover:bg-red-600 hover:text-white transition-colors`}
+                                        color={space.status === 'empty' ? "light" : "failure"}
+                                        className={`py-1 px-2 text-xs ${
+                                          space.status === 'empty' 
+                                            ? 'text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600' 
+                                            : 'text-white dark:text-white'
+                                        }`}
                                         onClick={() => {
                                           setSelectedSpace(space);
                                           if (space.status === 'empty') {
@@ -1684,8 +1698,12 @@ export default function GestaoPage() {
                                     <Button
                                       key={pageNum}
                                       size="sm"
-                                      ///color={currentPage === pageNum ? "blue" : "light"}
-                                      className={`py-1 px-2 text-xs ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700'} rounded-lg shadow-sm hover:bg-blue-600 hover:text-white transition-colors`}
+                                      color={currentPage === pageNum ? "blue" : "light"}
+                                      className={`py-1 px-2 text-xs ${
+                                        currentPage === pageNum 
+                                          ? 'text-white dark:text-white' 
+                                          : 'text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700'
+                                      }`}
                                       onClick={() => setCurrentPage(pageNum)}
                                     >
                                       {pageNum}
@@ -1820,7 +1838,7 @@ export default function GestaoPage() {
                                 <Button 
                                   size="xs"
                                   color="failure"
-                                  className="py-1 px-2 text-xs"
+                                  className="py-1 px-2 text-xs text-white dark:text-white"
                                   onClick={() => {
                                     setSelectedSpace(result);
                                     setRemoveDialogOpen(true);
@@ -1860,9 +1878,8 @@ export default function GestaoPage() {
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtros</h3>
                     <Button 
                       size="xs" 
-                      //color="light" 
+                      className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
                       onClick={resetLogFilters}
-                      className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
                       <HiX className="mr-1 h-3 w-3" /> Limpar filtros
                     </Button>
@@ -2250,8 +2267,8 @@ export default function GestaoPage() {
             <Modal.Footer theme={{
               base: "flex items-center space-x-2 rounded-b border-t border-gray-200 p-6 dark:border-gray-700"
             }}>
-              <Button className="text-black dark:text-white" onClick={allocatePallet} color="success">Confirmar</Button>
-              <Button color="gray" onClick={() => setAllocateDialogOpen(false)}>
+              <Button className="text-white dark:text-white" onClick={allocatePallet} color="success">Confirmar</Button>
+              <Button color="gray" className="text-gray-800 dark:text-gray-200" onClick={() => setAllocateDialogOpen(false)}>
                 Cancelar
               </Button>
             </Modal.Footer>

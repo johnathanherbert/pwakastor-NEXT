@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Button, TextInput, Select, Label } from 'flowbite-react';
-import { HiOutlineFilter, HiX, HiChevronDown, HiCheck } from 'react-icons/hi';
+import { useState, useEffect, useRef } from 'react';
+import { HiChevronDown, HiX, HiCheck, HiOutlineFilter } from 'react-icons/hi';
+import { Button, Label, TextInput, Select } from 'flowbite-react';
 
 /**
  * Componente de filtro avançado reutilizável para tabelas
@@ -13,102 +13,82 @@ import { HiOutlineFilter, HiX, HiChevronDown, HiCheck } from 'react-icons/hi';
  * @param {Function} props.onResetFilters - Função chamada quando os filtros são resetados
  * @param {string} props.className - Classes CSS adicionais
  */
-const TableFilter = ({ 
-  filters, 
-  setFilters, 
-  filterOptions, 
-  onApplyFilters, 
-  onResetFilters,
-  className = "" 
-}) => {
+export default function TableFilter({ filters, setFilters, filterOptions = [] }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempFilters, setTempFilters] = useState(filters);
-  const [isDirty, setIsDirty] = useState(false);
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const dropdownRef = useRef(null);
   
-  const handleToggleFilters = () => {
-    setIsOpen(!isOpen);
-    setTempFilters(filters); // Reset temp filters quando abrir
-    setIsDirty(false);
-  };
-  
-  const handleApplyFilters = () => {
-    setFilters(tempFilters);
-    if (onApplyFilters) onApplyFilters(tempFilters);
-    setIsOpen(false);
-    setIsDirty(false);
-  };
-  
-  const handleResetFilters = () => {
-    const defaultFilters = filterOptions.reduce((acc, option) => {
-      acc[option.id] = option.defaultValue || '';
-      return acc;
-    }, {});
-    
-    setTempFilters(defaultFilters);
-    setFilters(defaultFilters);
-    if (onResetFilters) onResetFilters();
-    setIsOpen(false);
-    setIsDirty(false);
-  };
-  
-  const handleFilterChange = (id, value) => {
-    setTempFilters(prev => ({
-      ...prev,
-      [id]: value
-    }));
-    setIsDirty(true);
-  };
-  
-  // Detecta cliques fora do componente para fechar o dropdown
+  // Determine if any filters are active
+  const hasActiveFilters = Object.values(filters).some(
+    (value) => value !== '' && value !== 'all'
+  );
+
+  // Count active filters
+  const activeFilterCount = Object.values(filters).filter(
+    (value) => value !== '' && value !== 'all'
+  ).length;
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      const filterElement = document.getElementById('table-filter-dropdown');
-      if (filterElement && !filterElement.contains(event.target)) {
-        // Se houve mudanças, aplicar os filtros antes de fechar
-        if (isDirty) {
-          setFilters(tempFilters);
-          if (onApplyFilters) onApplyFilters(tempFilters);
-        }
+    // Update tempFilters when the parent filters change
+    setTempFilters({ ...filters });
+  }, [filters]);
+
+  useEffect(() => {
+    // Handle clicks outside the dropdown
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
-    };
-    
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
     }
-    
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, isDirty, tempFilters, setFilters, onApplyFilters]);
-  
-  // Verificar se há filtros ativos
-  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
-    // Verificar se é diferente do valor padrão
-    const option = filterOptions.find(opt => opt.id === key);
-    if (option?.type === 'select' && value !== 'all') return true;
-    return value !== '' && value !== (option?.defaultValue || '');
-  });
-  
-  // Contagem de filtros ativos
-  const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    const option = filterOptions.find(opt => opt.id === key);
-    if (option?.type === 'select' && value !== 'all') return true;
-    return value !== '' && value !== (option?.defaultValue || '');
-  }).length;
-  
+  }, []);
+
+  // Apply filters
+  const applyFilters = () => {
+    setFilters({ ...tempFilters });
+    setIsOpen(false);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    const resetFilters = {};
+    
+    // Reset each filter to its default value
+    filterOptions.forEach((option) => {
+      resetFilters[option.id] = option.defaultValue;
+    });
+    
+    setTempFilters(resetFilters);
+    setFilters(resetFilters);
+    setIsOpen(false);
+  };
+
+  // Cancelar e retornar aos filtros originais
+  const cancelChanges = () => {
+    setTempFilters({ ...filters });
+    setIsOpen(false);
+  };
+
   return (
-    <div id="table-filter-dropdown" className={`relative ${className}`}>
+    <div className="relative" ref={dropdownRef}>
       <Button
-        size="sm"
-        color={hasActiveFilters ? "info" : "light"}
-        onClick={handleToggleFilters}
-        className={`flex items-center text-black dark:text-white ${hasActiveFilters ? "ring-2 ring-blue-300 dark:ring-blue-700" : ""}`}
+        onClick={() => setIsOpen(!isOpen)}
+        size="xs"
+        className={`flex items-center gap-1 ${
+          hasActiveFilters 
+            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50' 
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+        }`}
       >
-        <HiOutlineFilter className="mr-2 h-4 w-4" />
+        <HiOutlineFilter className="mr-1 h-4 w-4" />
         Filtros
         {hasActiveFilters && (
-          <span className="ml-1.5 flex items-center justify-center bg-blue-600 text-white rounded-full w-5 h-5 text-xs">
+          <span className="ml-1.5 flex items-center justify-center bg-blue-600 dark:bg-blue-500 text-white rounded-full w-5 h-5 text-xs">
             {activeFilterCount}
           </span>
         )}
@@ -127,27 +107,19 @@ const TableFilter = ({
             </button>
           </div>
           
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             {filterOptions.map((option) => (
-              <div key={option.id}>
-                <Label 
-                  htmlFor={`filter-${option.id}`} 
-                  value={option.label} 
-                  className="text-xs text-gray-600 dark:text-gray-400 mb-1"
-                />
+              <div key={option.id} className="space-y-1">
+                <Label htmlFor={`filter-${option.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {option.label}
+                </Label>
                 
-                {option.type === 'select' ? (
+                {option.type === 'select' && (
                   <Select
                     id={`filter-${option.id}`}
-                    value={tempFilters[option.id] || ''}
-                    onChange={(e) => handleFilterChange(option.id, e.target.value)}
-                    theme={{
-                      field: {
-                        select: {
-                          base: "block w-full rounded-lg border disabled:cursor-not-allowed disabled:opacity-50 text-sm border-gray-300 bg-gray-50 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500 p-2.5"
-                        }
-                      }
-                    }}
+                    value={tempFilters[option.id] || option.defaultValue}
+                    onChange={(e) => setTempFilters({ ...tempFilters, [option.id]: e.target.value })}
+                    className="w-full text-sm"
                   >
                     {option.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -155,66 +127,55 @@ const TableFilter = ({
                       </option>
                     ))}
                   </Select>
-                ) : option.type === 'date' ? (
+                )}
+                
+                {option.type === 'text' && (
+                  <TextInput
+                    id={`filter-${option.id}`}
+                    type="text"
+                    value={tempFilters[option.id] || ''}
+                    onChange={(e) => setTempFilters({ ...tempFilters, [option.id]: e.target.value })}
+                    placeholder={option.placeholder || ''}
+                    className="w-full text-sm"
+                  />
+                )}
+                
+                {option.type === 'date' && (
                   <TextInput
                     id={`filter-${option.id}`}
                     type="date"
                     value={tempFilters[option.id] || ''}
-                    onChange={(e) => handleFilterChange(option.id, e.target.value)}
-                    theme={{
-                      field: {
-                        input: {
-                          base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
-                        }
-                      }
-                    }}
-                  />
-                ) : option.type === 'number' ? (
-                  <TextInput
-                    id={`filter-${option.id}`}
-                    type="number"
-                    value={tempFilters[option.id] || ''}
-                    onChange={(e) => handleFilterChange(option.id, e.target.value)}
-                    theme={{
-                      field: {
-                        input: {
-                          base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
-                        }
-                      }
-                    }}
-                  />
-                ) : (
-                  <TextInput
-                    id={`filter-${option.id}`}
-                    placeholder={option.placeholder || `Filtrar por ${option.label.toLowerCase()}...`}
-                    value={tempFilters[option.id] || ''}
-                    onChange={(e) => handleFilterChange(option.id, e.target.value)}
-                    theme={{
-                      field: {
-                        input: {
-                          base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500"
-                        }
-                      }
-                    }}
+                    onChange={(e) => setTempFilters({ ...tempFilters, [option.id]: e.target.value })}
+                    className="w-full text-sm"
                   />
                 )}
               </div>
             ))}
           </div>
           
-          <div className="flex justify-end space-x-2 mt-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <Button size="xs" color="light" onClick={handleResetFilters}>
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={clearFilters}
+              className="px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            >
               Limpar
-            </Button>
-            <Button size="xs" color="blue" onClick={handleApplyFilters}>
-              <HiCheck className="mr-1 h-3 w-3" />
-              Aplicar
-            </Button>
+            </button>
+            <button
+              onClick={cancelChanges}
+              className="px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={applyFilters}
+              className="px-3 py-1.5 text-xs text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 rounded transition-colors"
+            >
+              <HiCheck className="inline-block mr-1 h-3 w-3" />
+              Aplicar Filtros
+            </button>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default TableFilter;
+}

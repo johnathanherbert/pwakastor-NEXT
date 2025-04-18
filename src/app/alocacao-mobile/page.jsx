@@ -785,7 +785,7 @@ export default function AlocacaoMobilePage() {
       <div className="fixed bottom-0 left-0 right-0 theme-card-bg shadow-md z-20 border-t theme-border-light">
         <div className="flex justify-center">
           <Button
-            color="success"
+            color="success" // Agora será consistente no modo escuro
             className="p-3 rounded-none w-full flex items-center justify-center"
             onClick={() => openAllocationModal(null)}
           >
@@ -917,7 +917,7 @@ export default function AlocacaoMobilePage() {
               <Button 
                 size="sm" 
                 onClick={handleBackToRooms}
-                className="mr-2 bg-black/10 text-gray-800 dark:bg-white/10 dark:text-white"
+                className="mr-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
               >
                 <HiX className="mr-1 h-4 w-4" />
                 Voltar
@@ -930,7 +930,7 @@ export default function AlocacaoMobilePage() {
             
             <div className="flex gap-2">
               <Button
-                className="bg-black/10 text-gray-800 dark:bg-white/10 dark:text-white" 
+                className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-600" 
                 onClick={() => fetchEmptySpacesByRoom(selectedRoom)}>
                 <HiOutlineRefresh className="mr-2 h-5 w-5" />
                 Atualizar
@@ -939,7 +939,6 @@ export default function AlocacaoMobilePage() {
               <Button 
                 color="info" 
                 onClick={() => setIsViewQrScannerOpen(true)}
-                className="text-white"
               >
                 <HiQrcode className="mr-2 h-5 w-5" />
                 Ler QR Code
@@ -1027,7 +1026,7 @@ export default function AlocacaoMobilePage() {
                     {space.status === "occupied" ? (
                       <>
                         <Button
-                          color="failure"
+                          color="failure" // Agora será consistente no modo escuro
                           className="flex-1"
                           onClick={() => {
                             setSpaceToRemove(space);
@@ -1040,7 +1039,7 @@ export default function AlocacaoMobilePage() {
                         </Button>
                         
                         <Button
-                          color="success"
+                          color="success" // Agora será consistente no modo escuro
                           className="flex-1"
                           onClick={() => {
                             setSpaceToRemove(space);
@@ -1054,8 +1053,8 @@ export default function AlocacaoMobilePage() {
                       </>
                     ) : (
                       <Button
+                        color="success" // Agora será consistente no modo escuro
                         className="w-full always-visible"
-                        color="success"
                         onClick={() => openAllocationModal(space)}
                       >
                         <HiPlus className="mr-2 h-5 w-5" />
@@ -1246,7 +1245,6 @@ export default function AlocacaoMobilePage() {
                 <Button
                   onClick={openQrScanner}
                   color="info"
-                  className="text-white"
                 >
                   <HiQrcode className="mr-2 h-5 w-5" />
                   Escanear QR Code
@@ -1255,11 +1253,12 @@ export default function AlocacaoMobilePage() {
               <Button 
                 color="light" 
                 onClick={() => setAllocationStep(1)}
+                className="text-gray-800 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"
               >
                 Voltar
               </Button>
               <Button 
-                className="always-visible"
+                className="always-visible text-gray-800 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"
                 color="gray" 
                 onClick={() => {
                   setIsAllocateModalOpen(false);

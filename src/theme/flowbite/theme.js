@@ -4,14 +4,14 @@
 export const flowbiteTheme = {
   button: {
     color: {
-      primary: "bg-primary-500 hover:bg-primary-600 text-white dark:text-white focus:ring-primary-300",
-      success: "bg-green-500 hover:bg-green-600 text-white dark:text-white focus:ring-green-300",
-      failure: "bg-red-500 hover:bg-red-600 text-white dark:text-white focus:ring-red-300",
-      warning: "bg-yellow-500 hover:bg-yellow-600 text-black dark:text-white focus:ring-yellow-300",
-      info: "bg-blue-500 hover:bg-blue-600 text-white dark:text-white focus:ring-blue-300",
-      light: "bg-gray-200 hover:bg-gray-300 text-gray-900 dark:text-white focus:ring-gray-100",
-      dark: "bg-gray-800 hover:bg-gray-900 text-white dark:text-white focus:ring-gray-300",
-      gray: "bg-gray-100 hover:bg-gray-200 text-gray-800 dark:text-white focus:ring-gray-50",
+      primary: "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white focus:ring-blue-300 dark:focus:ring-blue-800/50",
+      success: "bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700 dark:text-white focus:ring-green-300 dark:focus:ring-green-800/50",
+      failure: "bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 dark:text-white focus:ring-red-300 dark:focus:ring-red-800/50",
+      warning: "bg-yellow-500 hover:bg-yellow-600 text-gray-900 dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:text-white focus:ring-yellow-300 dark:focus:ring-yellow-800/50",
+      info: "bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white focus:ring-blue-300 dark:focus:ring-blue-800/50",
+      light: "bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white focus:ring-gray-200 dark:focus:ring-gray-700",
+      dark: "bg-gray-800 hover:bg-gray-900 text-white dark:bg-gray-700 dark:hover:bg-gray-800 dark:text-white focus:ring-gray-300 dark:focus:ring-gray-800/50",
+      gray: "bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-800 dark:text-gray-300 focus:ring-gray-200 dark:focus:ring-gray-800/50",
     },
   },
   modal: {
