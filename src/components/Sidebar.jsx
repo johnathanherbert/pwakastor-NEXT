@@ -30,7 +30,7 @@ export default function Sidebar({ open, onClose }) {
       icon: BuildingStorefrontIcon,
       description: "Gestão de inventário e notas técnicas"
     },
-    { name: "Alocação", href: "/alocacao-mobile", icon: BeakerIcon, description: "Alocação de materiais em vagas" },
+    //{ name: "Alocação", href: "/alocacao-mobile", icon: BeakerIcon, description: "Alocação de materiais em vagas" },
     { name: "Inventário", href: "", icon: ArchiveBoxIcon, description: "Controle e balanço de inventário" },
     { name: "Usuários", href: "", icon: UserGroupIcon, description: "Gerenciamento de usuários" },
     { name: "Administração", href: "", icon: ShieldCheckIcon, description: "Configurações administrativas" },
