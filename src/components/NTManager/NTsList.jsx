@@ -680,7 +680,7 @@ export default function NTsList({
                               item.status === 'Pago' ? 'bg-green-50/50 dark:bg-green-900/10' :
                               item.status === 'Pago Parcial' ? 'bg-yellow-50/50 dark:bg-yellow-900/10' :
                               timeStatusClass
-                            }`}
+                            } ${item.priority && item.status !== 'Pago' ? 'bg-amber-50/70 dark:bg-amber-900/20 border-l-4 border-l-amber-500 dark:border-l-amber-600' : ''}`}
                           >
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap text-[11px] sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                               {item.item_number}
@@ -689,7 +689,14 @@ export default function NTsList({
                               {item.code}
                             </td>
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 max-w-[120px] sm:max-w-[250px] truncate text-[11px] sm:text-sm text-gray-700 dark:text-gray-300">
-                              <span title={item.description}>{item.description}</span>
+                              <div className="flex items-center gap-1">
+                                <span title={item.description}>{item.description}</span>
+                                {item.priority && item.status !== 'Pago' && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                    Prioritário
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap text-[11px] sm:text-sm text-gray-700 dark:text-gray-300">
                               {item.quantity}
@@ -736,7 +743,7 @@ export default function NTsList({
                                   }}
                                   className={`p-1 sm:p-2 rounded-md ${
                                     item.priority ? 
-                                    'bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50' : 
+                                    'bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 animate-pulse' : 
                                     'bg-gray-50 text-gray-400 hover:bg-gray-100 dark:bg-gray-800/30 dark:text-gray-500 dark:hover:bg-gray-700/50'
                                   } transition-colors`}
                                   title={item.priority ? "Remover prioridade" : "Marcar como prioridade"}
