@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { XMarkIcon, ChartBarIcon, ClockIcon, CurrencyDollarIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ChartBarIcon, ClockIcon, CurrencyDollarIcon, ExclamationTriangleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,6 +37,7 @@ export default function AnalyticsModal({ isOpen, onClose }) {
   const [ntData, setNtData] = useState([]);
   const [ntItemsData, setNtItemsData] = useState([]);
   const [robotData, setRobotData] = useState([]);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
@@ -253,6 +256,431 @@ export default function AnalyticsModal({ isOpen, onClose }) {
     
     return { groups, sortedKeys };
   }
+
+  const periodName = () => {
+    switch (period) {
+      case 'day': return 'dia';
+      case 'month': return 'mês';
+      case 'year': return 'ano';
+      default: return 'período';
+    }
+  };
+
+  // Função para gerar relatório em Excel
+  const generateExcelReport = async () => {
+    try {
+      setGeneratingReport(true);
+      
+      // Criar novo workbook
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'PWA Kastor';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+      
+      // Adicionar metadados
+      workbook.properties.date1904 = true;
+      workbook.properties.title = 'Relatório de Análise de Desempenho';
+      workbook.properties.subject = 'Dados de Desempenho Operacional';
+      workbook.properties.keywords = 'relatório, desempenho, robôs, pagamentos';
+      workbook.properties.company = 'PWA Kastor';
+      
+      // Definir as cores da planilha
+      const headerFill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '4472C4' }
+      };
+      
+      const subHeaderFill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '8EA9DB' }
+      };
+      
+      const headerFont = {
+        name: 'Calibri',
+        size: 12,
+        bold: true,
+        color: { argb: 'FFFFFF' }
+      };
+      
+      const titleFont = {
+        name: 'Calibri',
+        size: 16,
+        bold: true,
+        color: { argb: '000000' }
+      };
+      
+      const subtitleFont = {
+        name: 'Calibri',
+        size: 12,
+        italic: true,
+        color: { argb: '404040' }
+      };
+      
+      const versionInfo = {
+        softwareName: 'PWA Kastor',
+        version: 'v1.2.5',
+        authorGithub: 'github.com/johnathanherbert',
+        generatedDate: new Date().toLocaleString('pt-BR')
+      };
+      
+      // Função auxiliar para adicionar cabeçalho master nas planilhas
+      const addMasterHeader = (sheet, title) => {
+        // Configurações de estilo aprimoradas
+        const borderStyle = {
+          top: { style: 'thin', color: { argb: 'D0D0D0' } },
+          left: { style: 'thin', color: { argb: 'D0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+          right: { style: 'thin', color: { argb: 'D0D0D0' } }
+        };
+        
+        const headerBorderStyle = {
+          top: { style: 'medium', color: { argb: '4472C4' } },
+          left: { style: 'medium', color: { argb: '4472C4' } },
+          bottom: { style: 'medium', color: { argb: '4472C4' } },
+          right: { style: 'medium', color: { argb: '4472C4' } }
+        };
+        
+        // Configurar cabeçalho elegante
+        sheet.getRow(1).height = 30; // Altura da linha de título
+        sheet.mergeCells('A1:F1');
+        const titleCell = sheet.getCell('A1');
+        titleCell.value = title;
+        titleCell.font = titleFont;
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        titleCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'F2F2F2' }
+        };
+        titleCell.border = headerBorderStyle;
+        
+        // Data do relatório com formatação elegante
+        sheet.getRow(2).height = 20;
+        sheet.mergeCells('A2:F2');
+        const periodCell = sheet.getCell('A2');
+        periodCell.value = `Período: ${new Date(dateRange.start).toLocaleDateString('pt-BR')} a ${new Date(dateRange.end).toLocaleDateString('pt-BR')}`;
+        periodCell.font = subtitleFont;
+        periodCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        periodCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'F8F8F8' }
+        };
+        periodCell.border = {
+          bottom: { style: 'thin', color: { argb: '4472C4' } }
+        };
+        
+        // Informações do software - linha de créditos discreta e elegante
+        sheet.mergeCells('A3:F3');
+        const infoCell = sheet.getCell('A3');
+        infoCell.value = {
+          richText: [
+            { text: `${versionInfo.softwareName} `, font: { name: 'Calibri', size: 8, bold: true, color: { argb: '595959' } } },
+            { text: versionInfo.version, font: { name: 'Calibri', size: 8, color: { argb: '595959' } } },
+            { text: ' | ', font: { name: 'Calibri', size: 8, color: { argb: '595959' } } },
+            { text: 'Gerado em: ', font: { name: 'Calibri', size: 8, color: { argb: '595959' } } },
+            { text: versionInfo.generatedDate, font: { name: 'Calibri', size: 8, italic: true, color: { argb: '595959' } } },
+            { text: ' | ', font: { name: 'Calibri', size: 8, color: { argb: '595959' } } },
+            { text: versionInfo.authorGithub, font: { name: 'Calibri', size: 8, underline: true, color: { argb: '0563C1' } } }
+          ]
+        };
+        infoCell.alignment = { horizontal: 'right', vertical: 'middle' };
+        infoCell.border = {
+          bottom: { style: 'dotted', color: { argb: 'D0D0D0' } }
+        };
+        sheet.getRow(3).height = 18;
+        
+        // Adicionar linha de espaçamento
+        sheet.addRow([]);
+        
+        // Adicionar logotipo "PWA Kastor" como texto estilizado
+        sheet.mergeCells('A5:C5');
+        const logoCell = sheet.getCell('A5');
+        logoCell.value = {
+          richText: [
+            { text: 'PWA ', font: { name: 'Arial', size: 12, bold: true, color: { argb: '4472C4' } } },
+            { text: 'KASTOR', font: { name: 'Arial', size: 12, bold: true, color: { argb: '333333' } } }
+          ]
+        };
+        logoCell.alignment = { vertical: 'middle' };
+        
+        // Adicionar data de geração na mesma linha
+        sheet.mergeCells('D5:F5');
+        const dateCell = sheet.getCell('D5');
+        const hoje = new Date().toLocaleDateString('pt-BR', {
+          weekday: 'long', 
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric'
+        });
+        dateCell.value = `${hoje.charAt(0).toUpperCase() + hoje.slice(1)}`;
+        dateCell.font = { name: 'Calibri', size: 9, italic: true, color: { argb: '595959' } };
+        dateCell.alignment = { horizontal: 'right', vertical: 'middle' };
+        
+        // Adicionar linha separadora mais elegante
+        sheet.addRow([]);
+        sheet.mergeCells('A6:F6');
+        const separatorCell = sheet.getCell('A6');
+        separatorCell.border = {
+          top: { style: 'thin', color: { argb: 'E0E0E0' } }
+        };
+        
+        // Adicionar mais espaço antes do conteúdo
+        sheet.addRow([]);
+      };
+      
+      // Aba de Visão Geral
+      const overviewSheet = workbook.addWorksheet('Visão Geral');
+      addMasterHeader(overviewSheet, 'Relatório de Análise de Desempenho');
+      
+      // Adicionar estatísticas principais
+      overviewSheet.addRow(['Indicadores Principais', 'Valor']);
+      const headerRow = overviewSheet.getRow(8);
+      headerRow.font = headerFont;
+      headerRow.getCell(1).fill = headerFill;
+      headerRow.getCell(2).fill = headerFill;
+      
+      // Adicionar dados
+      overviewSheet.addRow(['Total de NTs', stats.totalNTs]);
+      overviewSheet.addRow(['Total de Itens', stats.totalItems]);
+      overviewSheet.addRow(['Itens Pagos', stats.paidItems]);
+      overviewSheet.addRow(['Itens Pendentes', stats.pendingItems]);
+      overviewSheet.addRow(['Itens com Pagamento Parcial', stats.partialItems]);
+      overviewSheet.addRow(['Média de Itens por NT', stats.avgItemsPerNT]);
+      overviewSheet.addRow(['Tempo Médio de Pagamento (min)', stats.avgPaymentTime]);
+      overviewSheet.addRow(['Total de Paradas de Robôs', stats.totalRobotStops]);
+      overviewSheet.addRow(['Paradas de Robôs Ativas', stats.totalActiveAlerts]);
+      overviewSheet.addRow(['Itens em Atraso', stats.overdueItems]);
+      
+      // Ajustar largura das colunas
+      overviewSheet.getColumn(1).width = 30;
+      overviewSheet.getColumn(2).width = 15;
+      
+      // Adicionar gráfico de status dos itens
+      overviewSheet.addRow([]);
+      overviewSheet.addRow(['Status dos Itens', 'Quantidade']);
+      const chartHeaderRow = overviewSheet.getRow(15);
+      chartHeaderRow.font = headerFont;
+      chartHeaderRow.getCell(1).fill = headerFill;
+      chartHeaderRow.getCell(2).fill = headerFill;
+      
+      overviewSheet.addRow(['Pagos', stats.paidItems]);
+      overviewSheet.addRow(['Pendentes', stats.pendingItems]);
+      overviewSheet.addRow(['Pagamento Parcial', stats.partialItems]);
+      
+      // Aba de Pagamentos
+      const paymentsSheet = workbook.addWorksheet('Análise de Pagamentos');
+      addMasterHeader(paymentsSheet, 'Análise de Pagamentos');
+      
+      // Estatísticas de pagamento
+      paymentsSheet.addRow([]);
+      paymentsSheet.addRow(['Indicador', 'Valor']);
+      const paymentsHeaderRow = paymentsSheet.getRow(3);
+      paymentsHeaderRow.font = headerFont;
+      paymentsHeaderRow.getCell(1).fill = headerFill;
+      paymentsHeaderRow.getCell(2).fill = headerFill;
+      
+      const totalPaid = stats.paidItems + stats.partialItems;
+      const onTimePaid = ntItemsData.filter(item => {
+        if ((item.status !== 'Pago' && item.status !== 'Pago Parcial') || !item.payment_time) return false;
+        try {
+          const paymentTime = calculateTimeDifferenceInMinutes(
+            item.created_date, item.created_time, item.created_date, item.payment_time
+          );
+          return paymentTime <= 120; // 2 hours deadline
+        } catch (e) {
+          return false;
+        }
+      }).length;
+      
+      const overduePayments = totalPaid - onTimePaid;
+      const onTimeRate = totalPaid > 0 ? Math.round((onTimePaid / totalPaid) * 100) : 100;
+      
+      paymentsSheet.addRow(['Total de Itens Pagos', totalPaid]);
+      paymentsSheet.addRow(['Pagos no Prazo', onTimePaid]);
+      paymentsSheet.addRow(['Pagos com Atraso', overduePayments]);
+      paymentsSheet.addRow(['Taxa de Pagamento no Prazo (%)', onTimeRate]);
+      paymentsSheet.addRow(['Tempo Médio de Pagamento (min)', stats.avgPaymentTime]);
+      
+      // Ajustar largura das colunas
+      paymentsSheet.getColumn(1).width = 30;
+      paymentsSheet.getColumn(2).width = 15;
+      
+      // Adicionar dados por período
+      const { groups: itemGroups, sortedKeys: itemKeys } = groupDataByPeriod(ntItemsData);
+      
+      paymentsSheet.addRow([]);
+      paymentsSheet.addRow(['Pagamentos por Período']);
+      const periodHeaderCell = paymentsSheet.getCell('A10');
+      periodHeaderCell.font = { name: 'Calibri', size: 14, bold: true };
+      
+      // Adicionar cabeçalho de tabela
+      paymentsSheet.addRow(['Período', 'Total de Itens', 'Pagos', 'Pendentes', 'Parciais', 'Tempo Médio (min)']);
+      const tableHeaderRow = paymentsSheet.getRow(11);
+      tableHeaderRow.font = headerFont;
+      for (let i = 1; i <= 6; i++) {
+        tableHeaderRow.getCell(i).fill = headerFill;
+      }
+      
+      // Preencher dados por período
+      itemKeys.forEach(key => {
+        const periodItems = itemGroups[key];
+        const paidItems = periodItems.filter(item => item.status === 'Pago').length;
+        const pendingItems = periodItems.filter(item => item.status === 'Ag. Pagamento').length;
+        const partialItems = periodItems.filter(item => item.status === 'Pago Parcial').length;
+        
+        // Calcular tempo médio
+        let totalMinutes = 0;
+        let validItems = 0;
+        
+        periodItems.forEach(item => {
+          if ((item.status === 'Pago' || item.status === 'Pago Parcial') && item.payment_time) {
+            try {
+              const minutes = calculateTimeDifferenceInMinutes(
+                item.created_date, item.created_time, item.created_date, item.payment_time
+              );
+              
+              if (!isNaN(minutes) && minutes >= 0) {
+                totalMinutes += minutes;
+                validItems++;
+              }
+            } catch (e) {
+              console.error("Error calculating time difference for Excel:", e);
+            }
+          }
+        });
+        
+        const avgTime = validItems > 0 ? Math.round(totalMinutes / validItems) : 0;
+        
+        paymentsSheet.addRow([key, periodItems.length, paidItems, pendingItems, partialItems, avgTime]);
+      });
+      
+      // Ajustar largura para a tabela
+      for (let i = 1; i <= 6; i++) {
+        if (i === 1) paymentsSheet.getColumn(i).width = 15;
+        else paymentsSheet.getColumn(i).width = 18;
+      }
+      
+      // Aba de Paradas de Robôs
+      const robotsSheet = workbook.addWorksheet('Paradas de Robôs');
+      addMasterHeader(robotsSheet, 'Análise de Paradas de Robôs');
+      
+      // Estatísticas de robôs
+      robotsSheet.addRow([]);
+      robotsSheet.addRow(['Indicador', 'Valor']);
+      const robotsHeaderRow = robotsSheet.getRow(3);
+      robotsHeaderRow.font = headerFont;
+      robotsHeaderRow.getCell(1).fill = headerFill;
+      robotsHeaderRow.getCell(2).fill = headerFill;
+      
+      robotsSheet.addRow(['Total de Paradas', stats.totalRobotStops]);
+      robotsSheet.addRow(['Alertas Ativos', stats.totalActiveAlerts]);
+      
+      // Adicionar paradas por robô
+      robotsSheet.addRow([]);
+      robotsSheet.addRow(['Paradas por Robô']);
+      const robotsSubtitleCell = robotsSheet.getCell('A6');
+      robotsSubtitleCell.font = { name: 'Calibri', size: 14, bold: true };
+      
+      // Cabeçalho tabela
+      robotsSheet.addRow(['Robô', 'Número de Paradas', 'Duração Média (min)']);
+      const robotsTableHeaderRow = robotsSheet.getRow(7);
+      robotsTableHeaderRow.font = headerFont;
+      for (let i = 1; i <= 3; i++) {
+        robotsTableHeaderRow.getCell(i).fill = headerFill;
+      }
+      
+      // Dados por robô
+      const robotNumbers = [...new Set(robotData.map(alert => alert.robot_number))];
+      
+      robotNumbers.forEach(robotNumber => {
+        const robotAlerts = robotData.filter(alert => alert.robot_number === robotNumber);
+        
+        let totalMinutes = 0;
+        let validAlerts = 0;
+        
+        robotAlerts.forEach(alert => {
+          if (alert.resolved_at) {
+            const startTime = new Date(alert.created_at);
+            const endTime = new Date(alert.resolved_at);
+            const minutes = Math.round((endTime - startTime) / (1000 * 60));
+            
+            if (!isNaN(minutes) && minutes >= 0) {
+              totalMinutes += minutes;
+              validAlerts++;
+            }
+          }
+        });
+        
+        const avgDowntime = validAlerts > 0 ? Math.round(totalMinutes / validAlerts) : 0;
+        
+        robotsSheet.addRow([`Robô ${robotNumber}`, robotAlerts.length, avgDowntime]);
+      });
+      
+      // Ajustar largura para as colunas
+      robotsSheet.getColumn(1).width = 15;
+      robotsSheet.getColumn(2).width = 20;
+      robotsSheet.getColumn(3).width = 25;
+      
+      // Impacto das paradas
+      robotsSheet.addRow([]);
+      robotsSheet.addRow(['Impacto das Paradas de Robôs']);
+      const impactSubtitleCell = robotsSheet.getCell(`A${10 + robotNumbers.length}`);
+      impactSubtitleCell.font = { name: 'Calibri', size: 14, bold: true };
+      
+      // Adicionar dados de impacto
+      const robodAffectedCount = ntItemsData.filter(item => {
+        if ((item.status !== 'Pago' && item.status !== 'Pago Parcial') || !item.payment_time) return false;
+        
+        try {
+          const itemCreationTime = new Date(item.created_at);
+          const twoHoursBefore = new Date(itemCreationTime.getTime() - 2 * 60 * 60 * 1000);
+          
+          return robotData.some(alert => {
+            const alertTime = new Date(alert.created_at);
+            return alertTime >= twoHoursBefore && alertTime <= itemCreationTime;
+          });
+        } catch (e) {
+          return false;
+        }
+      }).length;
+      
+      const robotsNotAffectedCount = (stats.paidItems + stats.partialItems) - robodAffectedCount;
+      
+      // Cabeçalho tabela impacto
+      robotsSheet.addRow(['Tipo de Impacto', 'Quantidade de Itens']);
+      const impactHeaderRow = robotsSheet.getRow(11 + robotNumbers.length);
+      impactHeaderRow.font = headerFont;
+      impactHeaderRow.getCell(1).fill = headerFill;
+      impactHeaderRow.getCell(2).fill = headerFill;
+      
+      robotsSheet.addRow(['Itens impactados por paradas', robodAffectedCount]);
+      robotsSheet.addRow(['Itens sem impacto', robotsNotAffectedCount]);
+      
+      // Gerar o arquivo e fazer o download
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Criar blob a partir do buffer
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Nome do arquivo
+      const startDate = new Date(dateRange.start).toLocaleDateString('pt-BR').replaceAll('/', '-');
+      const endDate = new Date(dateRange.end).toLocaleDateString('pt-BR').replaceAll('/', '-');
+      const fileName = `Relatorio_Desempenho_${startDate}_a_${endDate}.xlsx`;
+      
+      // Executar o download
+      saveAs(blob, fileName);
+      
+      setGeneratingReport(false);
+      
+    } catch (error) {
+      console.error("Erro ao gerar relatório Excel:", error);
+      setGeneratingReport(false);
+      alert("Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.");
+    }
+  };
 
   const renderOverviewTab = () => {
     // Group data by selected period
@@ -1251,15 +1679,6 @@ export default function AnalyticsModal({ isOpen, onClose }) {
     );
   };
 
-  const periodName = () => {
-    switch (period) {
-      case 'day': return 'dia';
-      case 'month': return 'mês';
-      case 'year': return 'ano';
-      default: return 'período';
-    }
-  };
-
   const DocumentIcon = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -1354,6 +1773,14 @@ export default function AnalyticsModal({ isOpen, onClose }) {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               >
                 Atualizar Dados
+              </button>
+
+              <button
+                onClick={generateExcelReport}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 dark:bg-green-500 rounded-md hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                disabled={generatingReport}
+              >
+                {generatingReport ? 'Gerando...' : 'Gerar Relatório Excel'}
               </button>
             </div>
 
