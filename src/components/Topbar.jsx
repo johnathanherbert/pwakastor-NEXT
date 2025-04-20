@@ -37,12 +37,12 @@ export default function Topbar({
     <>
       {/* Navbar Superior Fixo com efeito de vidro aprimorado */}
       <nav className="fixed top-0 left-0 right-0 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/70 dark:border-gray-700/30 shadow-sm z-50 transition-all duration-300">
-        <div className="h-16 px-4 md:px-6 flex items-center justify-between">
-          {/* Logo e Título com design moderno */}
+        <div className="max-w-screen-2xl mx-auto h-16 px-4 md:px-6 flex items-center justify-between">
+          {/* Logo e Título com design moderno - extrema esquerda */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="btn-icon-light"
+              className="btn-icon-light mr-1"
               aria-label="Menu principal"
             >
               <Bars3Icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -64,7 +64,10 @@ export default function Topbar({
             </div>
           </div>
 
-          {/* Botões de Ação com design aprimorado */}
+          {/* Espaço flexível para empurrar os elementos para as extremidades */}
+          <div className="flex-grow"></div>
+
+          {/* Botões de Ação com design aprimorado - extrema direita */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
               {setOpenDialog && ( 
@@ -98,7 +101,7 @@ export default function Topbar({
               )}
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-4">
               <div className="glassmorphism-light p-1 rounded-lg">
                 <ThemeToggle />
               </div>

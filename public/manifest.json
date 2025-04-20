@@ -1,7 +1,8 @@
 {
-  "name": "PWA Kastor - Sistema de Gestão Hospitalar",
+  "name": "PWA Kastor - Sistema de Gestão e Produção",
   "short_name": "PWA Kastor",
-  "description": "Sistema integrado para gestão de materiais e processos hospitalares",
+  "description": "Sistema integrado para gestão de materiais e processos de produção.",
+  "version": "0.1.2",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

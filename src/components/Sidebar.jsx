@@ -21,7 +21,8 @@ export default function Sidebar({ open, onClose }) {
   const pathname = usePathname();
   
   const navigation = [
-    { name: "Pesagem", href: "/", icon: HomeIcon, description: "Gestão de ordens de produção e materiais" },
+    { name: "Dashboard", href: "/", icon: HomeIcon, description: "Visão geral do sistema" },
+    { name: "Solicitações", href: "/solicitacoes", icon: BeakerIcon, description: "Gestão de ordens de produção e pesagem" },
     { name: "Devolução", href: "/devolucao", icon: TruckIcon, description: "Gerenciar devoluções de materiais" },
     { name: "Gestão", href: "/gestao", icon: ClipboardDocumentListIcon, description: "Controle de armazenamento" },
     { name: "Aging", href: "/aging", icon: ChartBarIcon, description: "Acompanhamento de envelhecimento" },

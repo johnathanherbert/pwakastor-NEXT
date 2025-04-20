@@ -281,8 +281,8 @@ const TabelaPrincipal = ({
     // Se showCompletedItems é false, removemos excipientes totalmente pesados
     if (!showCompletedItems) {
       filtered = filtered.filter(([excipient, { ordens }]) => {
-        // Verifica se ainda existem ordens não pesadas
-        return ordens.some(ordem => !ordem.pesado);
+        // Verifica se ordens é um array e se ainda existem ordens não pesadas
+        return Array.isArray(ordens) && ordens.some(ordem => !ordem.pesado);
       });
     }
 

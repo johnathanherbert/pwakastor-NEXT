@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
+import { useRouter } from 'next/navigation';
 import NTsList from './NTsList';
 import Clock from '../Clock/Clock';
 import { 
@@ -16,6 +17,9 @@ import { showToast } from '../Toast/ToastContainer';
 import { motion } from 'framer-motion';
 
 export default function NTManager() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [nts, setNTs] = useState([]);
   const [ntItems, setNTItems] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +38,26 @@ export default function NTManager() {
     overdue: 0,
     itemCount: 0
   });
+
+  // Verificar autenticação do usuário
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login');
+          return;
+        }
+        setUser(user);
+        setAuthChecked(true);
+      } catch (error) {
+        console.error('Erro ao verificar usuário:', error);
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   // Separate function for fetching data
   const fetchData = useCallback(async (showLoadingEffect = false) => {
@@ -139,16 +163,18 @@ export default function NTManager() {
   
   // Initial data load
   useEffect(() => {
-    fetchData(true);
-    
-    // Set up interval to fetch data every 5 seconds without visual indication
-    const intervalId = setInterval(() => {
-      fetchData(false); // Don't show loading effect when auto-refreshing
-    }, 5000);
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [fetchData]);
+    if (authChecked) {
+      fetchData(true);
+      
+      // Set up interval to fetch data every 5 seconds without visual indication
+      const intervalId = setInterval(() => {
+        fetchData(false); // Don't show loading effect when auto-refreshing
+      }, 5000);
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(intervalId);
+    }
+  }, [fetchData, authChecked]);
   
   // Manual refresh handler - shows loading effect
   const handleRefresh = () => {
@@ -157,6 +183,8 @@ export default function NTManager() {
   
   // Real-time subscription setup
   useEffect(() => {
+    if (!authChecked) return;
+
     // Subscribe to NT changes
     const ntsSubscription = supabase
       .channel('nts-changes')
@@ -186,8 +214,20 @@ export default function NTManager() {
       supabase.removeChannel(ntsSubscription);
       supabase.removeChannel(itemsSubscription);
     };
-  }, [fetchData]);
+  }, [fetchData, authChecked]);
   
+  // Se ainda estiver verificando autenticação ou não estiver autenticado, mostra indicador de carregamento
+  if (!authChecked) {
+    return (
+      <div className="container mx-auto px-4 py-6 flex items-center justify-center h-screen">
+        <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-md p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <h2 className="text-xl font-medium text-gray-700 dark:text-gray-300">Verificando autenticação...</h2>
+        </div>
+      </div>
+    );
+  }
+
   const toggleOverdueWarnings = () => {
     setShowOverdueWarnings(!showOverdueWarnings);
     showToast(

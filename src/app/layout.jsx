@@ -28,14 +28,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <title>PWA Kastor - Sistema de Gestão Hospitalar</title>
-        <meta name="description" content="Sistema integrado para gestão de materiais e processos hospitalares" />
+        <title>PWA Kastor - Sistema de Gestão e Produção</title>
+        <meta name="description" content="Sistema integrado para gestão de materiais e processos de produção" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         
         {/* SEO e compartilhamento */}
         <meta name="author" content="Johnathan Herbert" />
-        <meta property="og:title" content="PWA Kastor - Sistema de Gestão Hospitalar" />
-        <meta property="og:description" content="Sistema integrado para gestão de materiais e processos hospitalares" />
+        <meta property="og:title" content="PWA Kastor - Sistema de Gestão e Produção" />
+        <meta property="og:description" content="Sistema integrado para gestão de materiais e processos de produção" />
         <meta property="og:type" content="website" />
         
         {/* PWA */}

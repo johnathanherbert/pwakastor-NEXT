@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
+import { useRouter } from 'next/navigation'; // Adicionar importação do router
 import Sidebar from '../../../components/Sidebar';
 import HeaderClock from '../../../components/Clock/HeaderClock'; // Adicione esta importação
 import { 
@@ -35,6 +36,7 @@ import { showToast } from '../../../components/Toast/ToastContainer';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function NTsPage() {
+  const router = useRouter(); // Adicionar router para redirecionamento
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [nts, setNTs] = useState([]);
@@ -63,19 +65,25 @@ export default function NTsPage() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false); // Add this state
 
   useEffect(() => {
-    // Remover manipulação direta do localStorage aqui
-    // Agora vamos apenas checar o usuário e carregar os dados necessários
-
     const checkUser = async () => {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // Usuário não está autenticado, redirecionar para página de login
+          router.push('/login');
+          return;
+        }
         setUser(user);
         await fetchNTs();
         setupRealtimeListeners();
         fetchRobotAlerts();
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        router.push('/login');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     
     checkUser();
@@ -83,7 +91,7 @@ export default function NTsPage() {
     return () => {
       removeMultipleSubscriptions(subscriptions);
     };
-  }, []);
+  }, [router]); // Adicionar router como dependência
 
   const setupRealtimeListeners = () => {
     console.log("Setting up realtime listeners for NT updates");
