@@ -278,7 +278,7 @@ export default function Login() {
         {/* Rodapé */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} PWA Kastor • v0.1.0 • Todos os direitos reservados
+            &copy; {new Date().getFullYear()} PWA Kastor • v0.1.2 • Todos os direitos reservados
           </p>
         </div>
       </div>

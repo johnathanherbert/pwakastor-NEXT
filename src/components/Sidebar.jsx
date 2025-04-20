@@ -150,7 +150,7 @@ export default function Sidebar({ open, onClose }) {
                 <div className="status-online"></div>
                 Sistema Ativo
               </div>
-              <p className="text-gray-600 dark:text-gray-400">v0.1.0 • {new Date().getFullYear()}</p>
+              <p className="text-gray-600 dark:text-gray-400">v0.1.2 • {new Date().getFullYear()}</p>
               <p className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">Desenvolvido por Johnathan Herbert</p>
             </div>
             <button
