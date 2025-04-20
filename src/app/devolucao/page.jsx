@@ -238,7 +238,8 @@ const Devolucao = () => {
             // Recalcula os lotes restantes com os dados atualizados
             const newLotesRestantes = {};
             response.data.forEach((lote) => {
-              newLotesRestantes[lote.lote] = {
+              const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+              newLotesRestantes[loteKey] = {
                 total: parseFloat(lote.qtd_materia_prima),
                 restante: parseFloat(lote.qtd_materia_prima)
               };
@@ -246,8 +247,8 @@ const Devolucao = () => {
 
             // Atualiza as quantidades restantes baseado nos itens de devolução
             devolucaoItems.forEach((item) => {
-              if (newLotesRestantes[item.lote]) {
-                newLotesRestantes[item.lote].restante -= parseFloat(item.quantidade);
+              if (newLotesRestantes[item.loteKey]) {
+                newLotesRestantes[item.loteKey].restante -= parseFloat(item.quantidade);
               }
             });
 
@@ -279,7 +280,8 @@ const Devolucao = () => {
               // Recalcula os lotes restantes
               const newLotesRestantes = {};
               response.data.forEach((lote) => {
-                newLotesRestantes[lote.lote] = {
+                const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+                newLotesRestantes[loteKey] = {
                   total: parseFloat(lote.qtd_materia_prima),
                   restante: parseFloat(lote.qtd_materia_prima)
                 };
@@ -287,8 +289,8 @@ const Devolucao = () => {
 
               // Atualiza as quantidades restantes
               parsedState.devolucaoItems.forEach((item) => {
-                if (newLotesRestantes[item.lote]) {
-                  newLotesRestantes[item.lote].restante -= parseFloat(item.quantidade);
+                if (newLotesRestantes[item.loteKey]) {
+                  newLotesRestantes[item.loteKey].restante -= parseFloat(item.quantidade);
                 }
               });
 
@@ -501,7 +503,10 @@ const Devolucao = () => {
       return;
     }
 
-    const valorDisponivel = lotesRestantes[loteData.lote]?.restante ?? loteData.qtd_materia_prima;
+    // Criar chave única que inclui o lote e o tipo_estoque para diferenciar lotes com o mesmo nome
+    const loteKey = `${loteData.lote}${loteData.tipo_estoque ? `_${loteData.tipo_estoque}` : ''}`;
+    
+    const valorDisponivel = lotesRestantes[loteKey]?.restante ?? loteData.qtd_materia_prima;
     const quantidadeDevolver = quantidade || valorDisponivel;
     const volumeInicial = "1";
     
@@ -515,9 +520,9 @@ const Devolucao = () => {
     // Calculate remaining value for this lot
     setLotesRestantes(prev => ({
       ...prev,
-      [loteData.lote]: {
+      [loteKey]: {
         original: loteData.qtd_materia_prima,
-        restante: (prev[loteData.lote]?.restante ?? loteData.qtd_materia_prima) - quantidadeTotal
+        restante: (prev[loteKey]?.restante ?? loteData.qtd_materia_prima) - quantidadeTotal
       }
     }));
 
@@ -525,6 +530,8 @@ const Devolucao = () => {
       id: Date.now(),
       material: loteData.codigo_materia_prima,
       lote: loteData.lote,
+      tipo_estoque: loteData.tipo_estoque || '',  // Armazenamos o tipo_estoque para diferenciar lotes
+      loteKey: loteKey,  // Armazena a chave composta como referência
       quantidade: quantidadeDevolver,
       volume: volumeInicial,
       pallet: "1"
@@ -533,7 +540,7 @@ const Devolucao = () => {
     setDevolucaoItems([...devolucaoItems, newItem]);
     setShowQuantidadeModal(false);
     setQuantidadeDevolver("");
-    showToast(`Item ${loteData.lote} adicionado à devolução.`, "success");
+    showToast(`Item ${loteData.lote} ${loteData.tipo_estoque ? `(${loteData.tipo_estoque})` : ''} adicionado à devolução.`, "success");
   };
 
   // Function to update remaining values
@@ -542,17 +549,22 @@ const Devolucao = () => {
     
     // Inicializa com os valores originais do materialData
     materialData?.forEach(lote => {
-      newLotesRestantes[lote.lote] = {
+      // Criar chave única que inclui lote e tipo_estoque
+      const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+      newLotesRestantes[loteKey] = {
         total: parseFloat(lote.qtd_materia_prima),
-        restante: lote.qtd_materia_prima
+        restante: parseFloat(lote.qtd_materia_prima)
       };
     });
 
     // Subtrai as quantidades dos itens de devolução considerando o volume
     items.forEach(item => {
-      if (newLotesRestantes[item.lote]) {
+      // Usar loteKey existente ou criar novo formato compatível
+      const loteKey = item.loteKey || `${item.lote}${item.tipo_estoque ? `_${item.tipo_estoque}` : ''}`;
+      
+      if (newLotesRestantes[loteKey]) {
         const quantidadeTotal = parseFloat(item.quantidade) * parseFloat(item.volume || 1);
-        newLotesRestantes[item.lote].restante -= quantidadeTotal;
+        newLotesRestantes[loteKey].restante -= quantidadeTotal;
       }
     });
 
@@ -564,10 +576,12 @@ const Devolucao = () => {
     const itemToRemove = devolucaoItems.find(item => item.id === id);
     const newItems = devolucaoItems.filter(item => item.id !== id);
     setDevolucaoItems(newItems);
-    updateLotesRestantes(newItems);
     
+    // Atualiza os lotes restantes
     if (itemToRemove) {
-      showToast(`Item ${itemToRemove.lote} removido da devolução.`, "info");
+      // Usar a loteKey correta para atualizar os valores corretamente
+      updateLotesRestantes(newItems);
+      showToast(`Item ${itemToRemove.lote} ${itemToRemove.tipo_estoque ? `(${itemToRemove.tipo_estoque})` : ''} removido da devolução.`, "info");
     }
   };
 
@@ -678,7 +692,8 @@ const Devolucao = () => {
         // Recalcular os lotes restantes com os dados atualizados
         const newLotesRestantes = {};
         sapData.forEach((lote) => {
-          newLotesRestantes[lote.lote] = {
+          const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+          newLotesRestantes[loteKey] = {
             total: parseFloat(lote.qtd_materia_prima),
             restante: parseFloat(lote.qtd_materia_prima)
           };
@@ -686,9 +701,9 @@ const Devolucao = () => {
 
         // Atualizar as quantidades restantes baseado nos itens de devolução
         devolucaoItems.forEach((item) => {
-          if (newLotesRestantes[item.lote]) {
+          if (newLotesRestantes[item.loteKey]) {
             const quantidadeTotal = parseFloat(item.quantidade) * parseFloat(item.volume || 1);
-            newLotesRestantes[item.lote].restante -= quantidadeTotal;
+            newLotesRestantes[item.loteKey].restante -= quantidadeTotal;
           }
         });
 
@@ -794,10 +809,11 @@ const Devolucao = () => {
 
   // Function to calculate return percentage for a lot
   const calculateReturnPercentage = useCallback((lote) => {
-    if (!lotesRestantes[lote.lote]) return 0;
+    const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+    if (!lotesRestantes[loteKey]) return 0;
     
     const total = parseFloat(lote.qtd_materia_prima);
-    const restante = parseFloat(lotesRestantes[lote.lote].restante);
+    const restante = parseFloat(lotesRestantes[loteKey].restante);
     
     if (total <= 0) return 0;
     
@@ -819,6 +835,13 @@ const Devolucao = () => {
     if (percentage >= 25) return 'text-amber-600 dark:text-amber-400';
     if (percentage > 0) return 'text-blue-600 dark:text-blue-400';
     return 'text-gray-500 dark:text-gray-400';
+  };
+
+  // Função auxiliar para obter a quantidade restante de um lote
+  const getLoteRestante = (lote) => {
+    if (!lote) return 0;
+    const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+    return lotesRestantes[loteKey]?.restante ?? lote.qtd_materia_prima;
   };
 
   if (isLoading) {
@@ -870,7 +893,7 @@ const Devolucao = () => {
               >
                 {darkMode ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1286,7 +1309,8 @@ const Devolucao = () => {
                             );
                           })
                           .map((lote) => {
-                            const restante = lotesRestantes[lote.lote]?.restante ?? lote.qtd_materia_prima;
+                            const loteKey = `${lote.lote}${lote.tipo_estoque ? `_${lote.tipo_estoque}` : ''}`;
+                            const restante = lotesRestantes[loteKey]?.restante ?? lote.qtd_materia_prima;
                             const isZero = restante <= 0;
                             const originalValue = parseFloat(lote.qtd_materia_prima);
                             const returnedValue = originalValue - restante;
@@ -1382,8 +1406,12 @@ const Devolucao = () => {
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Lote: {contextMenu.lote.lote}</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumberBR(lotesRestantes[contextMenu.lote.lote]?.restante ?? contextMenu.lote.qtd_materia_prima)} {contextMenu.lote.unidade_medida || 'KG'}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Lote: {contextMenu.lote?.lote} {contextMenu.lote?.tipo_estoque ? `(${contextMenu.lote.tipo_estoque})` : ''}
+            </p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              {contextMenu.lote && formatNumberBR(getLoteRestante(contextMenu.lote))} {contextMenu.lote?.unidade_medida || 'KG'}
+            </p>
           </div>
           <button
             onClick={() => {
@@ -1393,7 +1421,7 @@ const Devolucao = () => {
               setContextMenu({ ...contextMenu, visible: false });
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 flex items-center"
-            disabled={!contextMenu.lote || (lotesRestantes[contextMenu.lote.lote]?.restante || contextMenu.lote.qtd_materia_prima) <= 0}
+            disabled={!contextMenu.lote || getLoteRestante(contextMenu.lote) <= 0}
           >
             <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
             Devolver Parcial
@@ -1402,12 +1430,12 @@ const Devolucao = () => {
             onClick={() => {
               if (contextMenu.lote) {
                 // Use max available quantity
-                handleAddDevolucaoItem(contextMenu.lote, lotesRestantes[contextMenu.lote.lote]?.restante || contextMenu.lote.qtd_materia_prima);
+                handleAddDevolucaoItem(contextMenu.lote, getLoteRestante(contextMenu.lote));
               }
               setContextMenu({ ...contextMenu, visible: false });
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 flex items-center"
-            disabled={!contextMenu.lote || (lotesRestantes[contextMenu.lote.lote]?.restante || contextMenu.lote.qtd_materia_prima) <= 0}
+            disabled={!contextMenu.lote || getLoteRestante(contextMenu.lote) <= 0}
           >
             <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
             Devolver Tudo
@@ -1447,7 +1475,7 @@ const Devolucao = () => {
                 
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    Quantidade Disponível: <span className="font-medium">{formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)} {selectedLote.unidade_medida || 'KG'}</span>
+                    Quantidade Disponível: <span className="font-medium">{formatNumberBR(lotesRestantes[`${selectedLote.lote}${selectedLote.tipo_estoque ? `_${selectedLote.tipo_estoque}` : ''}`]?.restante ?? selectedLote.qtd_materia_prima)} {selectedLote.unidade_medida || 'KG'}</span>
                   </p>
                 </div>
                 
@@ -1463,7 +1491,7 @@ const Devolucao = () => {
                       setQuantidadeDevolver(e.target.value);
                     }}
                     onKeyDown={handleQuantidadeKeyPress}
-                    placeholder={`Ex: ${formatNumberBR(lotesRestantes[selectedLote.lote]?.restante ?? selectedLote.qtd_materia_prima)}`}
+                    placeholder={`Ex: ${formatNumberBR(lotesRestantes[`${selectedLote.lote}${selectedLote.tipo_estoque ? `_${selectedLote.tipo_estoque}` : ''}`]?.restante ?? selectedLote.qtd_materia_prima)}`}
                     className="w-full px-3 py-2 
                       bg-white dark:bg-gray-700
                       border border-gray-200 dark:border-gray-600 
