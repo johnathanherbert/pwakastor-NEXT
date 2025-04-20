@@ -116,37 +116,70 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      {/* Círculos decorativos */}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+      {/* Elementos decorativos modernos */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[10%] left-[15%] w-64 h-64 bg-blue-400/10 dark:bg-blue-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[20%] right-[10%] w-80 h-80 bg-indigo-400/10 dark:bg-indigo-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-[10%] left-[15%] w-72 h-72 bg-brand-400/10 dark:bg-brand-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-[20%] right-[10%] w-80 h-80 bg-brand-500/10 dark:bg-brand-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-[40%] right-[25%] w-64 h-64 bg-jade-400/10 dark:bg-jade-500/10 rounded-full blur-3xl"></div>
+        
+        {/* Grade sutil de fundo */}
+        <div className="absolute inset-0 bg-grid-gray-300/20 dark:bg-grid-gray-700/20 bg-[size:20px_20px]"></div>
       </div>
       
       <div className="w-full max-w-md z-10">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-gray-200/50 dark:border-gray-700/30">
+        {/* Alert Toast */}
+        {alert.open && (
+          <div className={`mb-6 animate-fadeIn ${
+            alert.type === "success" ? "bg-jade-50 dark:bg-jade-900/30 border-jade-200 dark:border-jade-800" : 
+            alert.type === "error" ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800" : 
+            alert.type === "warning" ? "bg-sunset-50 dark:bg-sunset-900/30 border-sunset-200 dark:border-sunset-800" : 
+            "bg-brand-50 dark:bg-brand-900/30 border-brand-200 dark:border-brand-800"
+          } rounded-xl p-4 border shadow-md`}>
+            <div className="flex">
+              <div className="flex-shrink-0">
+                {alert.type === "success" && <CheckCircleIcon className="h-5 w-5 text-jade-500" />}
+                {alert.type === "error" && <XCircleIcon className="h-5 w-5 text-red-500" />}
+                {alert.type === "warning" && <ExclamationCircleIcon className="h-5 w-5 text-sunset-500" />}
+                {alert.type === "info" && <ExclamationCircleIcon className="h-5 w-5 text-brand-500" />}
+              </div>
+              <div className="ml-3">
+                <p className={`text-sm ${
+                  alert.type === "success" ? "text-jade-800 dark:text-jade-300" : 
+                  alert.type === "error" ? "text-red-800 dark:text-red-300" : 
+                  alert.type === "warning" ? "text-sunset-800 dark:text-sunset-300" : 
+                  "text-brand-800 dark:text-brand-300"
+                }`}>
+                  {alert.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="glassmorphism p-8 border border-gray-200/50 dark:border-gray-700/30">
           {/* Logo e cabeçalho */}
           <div className="flex flex-col items-center">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-3 rounded-xl shadow-lg shadow-blue-600/20 dark:shadow-blue-500/10 mb-6">
+            <div className="bg-gradient-to-br from-brand-500 to-brand-700 p-3 rounded-xl shadow-lg shadow-brand-500/20 dark:shadow-brand-500/10 mb-6">
               <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 7h-9m9 10h-9m9-5h-9M7 7v10l-2-2" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 mb-1 text-center">
+            <h1 className="heading-lg bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-800 dark:from-brand-400 dark:to-brand-200 mb-1 text-center">
               PWA Kastor
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Sistema Integrado de Gestão Hospitalar
+              Sistema Integrado de Gestão e Produção
             </p>
-            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
+            <h2 className="heading-sm mb-6 text-gray-900 dark:text-gray-100">
               {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
             </h2>
 
             <form onSubmit={handleAuth} className="w-full space-y-5">
-              <div>
+              <div className="input-group">
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="input-label"
                 >
                   Email
                 </label>
@@ -163,22 +196,16 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 mt-1 block w-full px-3 py-2.5
-                      bg-white/60 dark:bg-gray-700/60
-                      border border-gray-200 dark:border-gray-600 
-                      rounded-lg text-gray-900 dark:text-gray-100
-                      placeholder-gray-400 dark:placeholder-gray-400
-                      focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-400/50 
-                      focus:border-transparent transition-colors"
+                    className="input-primary !pl-10"
                     placeholder="seu@email.com"
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="input-group">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="input-label"
                 >
                   Senha
                 </label>
@@ -195,13 +222,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 mt-1 block w-full px-3 py-2.5
-                      bg-white/60 dark:bg-gray-700/60
-                      border border-gray-200 dark:border-gray-600 
-                      rounded-lg text-gray-900 dark:text-gray-100
-                      placeholder-gray-400 dark:placeholder-gray-400
-                      focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-400/50 
-                      focus:border-transparent transition-colors"
+                    className="input-primary !pl-10"
                     placeholder="••••••••"
                   />
                 </div>
@@ -210,12 +231,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 
-                  hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600
-                  text-white dark:text-white
-                  rounded-lg font-medium shadow-md shadow-blue-500/20 dark:shadow-blue-500/10
-                  transition-all duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full py-2.5 !bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 dark:from-brand-600 dark:to-brand-700 dark:hover:from-brand-700 dark:hover:to-brand-800"
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
@@ -238,7 +254,7 @@ export default function Login() {
                     setIsLogin(!isLogin);
                     resetFields();
                   }}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
                 >
                   {isLogin
                     ? "Não tem uma conta? Registre-se"
@@ -249,7 +265,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowResetModal(true)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
                   >
                     Esqueceu a senha?
                   </button>
@@ -267,10 +283,10 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Password Reset Modal aprimorado */}
+      {/* Password Reset Modal refinado */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300">
-          <div className="relative w-full max-w-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl p-6 border border-gray-200/50 dark:border-gray-700/30 animate-fadeIn" style={{ animationDuration: '0.3s' }}>
+          <div className="glassmorphism w-full max-w-md p-6 animate-modalEntry">
             <button
               onClick={() => setShowResetModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
@@ -279,12 +295,12 @@ export default function Login() {
             </button>
             
             <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-3">
-                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="p-2 bg-brand-100 dark:bg-brand-900/30 rounded-lg mr-3">
+                <svg className="h-5 w-5 text-brand-600 dark:text-brand-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h3 className="heading-sm text-gray-900 dark:text-white">
                 Recuperar Senha
               </h3>
             </div>
@@ -294,10 +310,10 @@ export default function Login() {
             </p>
             
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
+              <div className="input-group">
                 <label
                   htmlFor="reset-email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="input-label"
                 >
                   Email
                 </label>
@@ -313,13 +329,7 @@ export default function Login() {
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     required
-                    className="pl-10 block w-full px-3 py-2.5 
-                      bg-white/60 dark:bg-gray-700/60
-                      border border-gray-200 dark:border-gray-600 
-                      rounded-lg text-gray-900 dark:text-gray-100
-                      placeholder-gray-400 dark:placeholder-gray-400
-                      focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-400/50 
-                      focus:border-transparent transition-colors"
+                    className="input-primary !pl-10"
                     placeholder="seu@email.com"
                   />
                 </div>
@@ -328,12 +338,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={resetLoading}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 
-                  hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 
-                  text-white dark:text-white
-                  rounded-lg font-medium shadow-md shadow-blue-500/10 dark:shadow-blue-500/5
-                  transition-all duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full py-2.5 !bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800"
               >
                 {resetLoading ? (
                   <div className="flex items-center justify-center">

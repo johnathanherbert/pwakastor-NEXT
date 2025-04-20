@@ -36,24 +36,24 @@ export default function Topbar({
   return (
     <>
       {/* Navbar Superior Fixo com efeito de vidro aprimorado */}
-      <nav className="fixed top-0 left-0 right-0 backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-200/70 dark:border-gray-700/30 shadow-sm z-50 transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/70 dark:border-gray-700/30 shadow-sm z-50 transition-all duration-300">
         <div className="h-16 px-4 md:px-6 flex items-center justify-between">
-          {/* Logo e Título com design atualizado */}
+          {/* Logo e Título com design moderno */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-blue-500/30"
+              className="btn-icon-light"
               aria-label="Menu principal"
             >
-              <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <Bars3Icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
             <div>
-              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-300">
+              <h1 className="heading-sm bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-brand-500 dark:from-brand-400 dark:to-brand-300">
                 {title}
               </h1>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+              <div className="flex items-center gap-1.5">
+                <div className="status-online"></div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">
                   {new Date().toLocaleDateString('pt-BR', { 
                     year: 'numeric', 
                     month: 'long', 
@@ -70,40 +70,36 @@ export default function Topbar({
               {setOpenDialog && ( 
                 <button
                   onClick={() => setOpenDialog(true)}
-                  className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium
-                     text-purple-600 dark:text-purple-400 
-                     bg-purple-50 dark:bg-purple-900/30 
-                     hover:bg-purple-100 dark:hover:bg-purple-900/50 
-                     border border-purple-200 dark:border-purple-700/50
-                     rounded-lg transition-all duration-200
-                     hover:shadow-md dark:hover:shadow-purple-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-purple-500/30"
+                  className="btn-action bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 
+                           border border-brand-200 dark:border-brand-800/50
+                           hover:bg-brand-100 dark:hover:bg-brand-800/50 
+                           shadow-sm hover:shadow active:scale-[0.98]
+                           focus:outline-none focus:ring-2 focus:ring-brand-500/40 dark:focus:ring-brand-500/30"
                   title="Upload Excel"
                 >
-                  <CloudArrowUpIcon className="w-3.5 h-3.5 mr-1.5" />
-                  <span>Upload</span>
+                  <CloudArrowUpIcon className="w-4 h-4 mr-1.5" />
+                  <span className="text-sm">Upload</span>
                 </button>
               )}
               
               {onUploadClick && (
                 <button
                   onClick={onUploadClick}
-                  className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium
-                     text-blue-600 dark:text-blue-400 
-                     bg-blue-50 dark:bg-blue-900/30 
-                     hover:bg-blue-100 dark:hover:bg-blue-900/50 
-                     border border-blue-200 dark:border-blue-700/50
-                     rounded-lg transition-all duration-200
-                     hover:shadow-md dark:hover:shadow-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-blue-500/30"
+                  className="btn-action bg-jade-50 dark:bg-jade-900/30 text-jade-700 dark:text-jade-300 
+                           border border-jade-200 dark:border-jade-800/50
+                           hover:bg-jade-100 dark:hover:bg-jade-800/50 
+                           shadow-sm hover:shadow active:scale-[0.98]
+                           focus:outline-none focus:ring-2 focus:ring-jade-500/40 dark:focus:ring-jade-500/30"
                   title="Upload XLS"
                 >
-                  <HiOutlineUpload className="w-3.5 h-3.5 mr-1.5" />
-                  <span>Upload XLS</span>
+                  <HiOutlineUpload className="w-4 h-4 mr-1.5" />
+                  <span className="text-sm">Upload XLS</span>
                 </button>
               )}
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-1 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-sm">
+              <div className="glassmorphism-light p-1 rounded-lg">
                 <ThemeToggle />
               </div>
               
@@ -116,6 +112,9 @@ export default function Topbar({
           </div>
         </div>
       </nav>
+
+      {/* Espaçador para compensar a navbar fixa */}
+      <div className="h-16"></div>
 
       {openDialog && setOpenDialog && (
         <ExcelUploader
