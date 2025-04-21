@@ -23,6 +23,7 @@ import {
 // Components
 import UserMenu from "@/components/UserMenu";
 import Sidebar from "@/components/Sidebar";
+import HeaderClock from "@/components/Clock/HeaderClock";
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
@@ -72,11 +73,10 @@ export default function HomePage() {
         .select("id")
         .eq("status", "occupied");
 
-      // Consulta para contar materiais únicos
-      const { data: materiaisData, error: materiaisError } = await supabase
-        .from("DataBase_ems")
-        .select("Ativo")
-        .limit(1);
+      // Consulta para contar materiais únicos - CORRIGIDO
+      const { count: materiaisCount, error: materiaisError } = await supabase
+        .from("materials_database")
+        .select("id", { count: "exact", head: true });
 
       // Consulta para contar devoluções
       const { data: devolucoesData, error: devolucoesError } = await supabase
@@ -89,7 +89,7 @@ export default function HomePage() {
         ordens: appStateData?.[0]?.state?.ordens?.length || 0,
         paletes: paletesData?.length || 0,
         devolucoes: devolucoesData?.length || 0,
-        materiais: materiaisData?.length || 0
+        materiais: materiaisCount || 0
       });
     } catch (error) {
       console.error("Erro ao buscar estatísticas:", error);
@@ -178,26 +178,26 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 sm:px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <button
                 onClick={() => setDrawerOpen(!drawerOpen)}
-                className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                className="p-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 aria-label="Toggle sidebar"
               >
-                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div className="ml-4 flex items-center">
+              <div className="ml-2 sm:ml-3 flex items-center">
                 <svg width="24" height="24" viewBox="0 0 24 24" className="text-blue-600 dark:text-blue-400" fill="currentColor">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                 </svg>
-                <h1 className="ml-2 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-400">
+                <h1 className="ml-1.5 sm:ml-2 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-400">
                   PWA Kastor
                 </h1>
-                <div className="ml-3 flex items-center">
+                <div className="ml-2 sm:ml-3 flex items-center">
                   <span className="flex h-2 w-2 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -207,10 +207,11 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <HeaderClock variant="glass" />
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                className="p-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 aria-label="Toggle dark mode"
               >
                 {darkMode ? (
@@ -465,7 +466,7 @@ export default function HomePage() {
                     </div>
                     <div className="ml-3 flex-1">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Versão</p>
-                      <p className="text-base text-gray-900 dark:text-white">1.0.0</p>
+                      <p className="text-base text-gray-900 dark:text-white">0.1.2</p>
                     </div>
                   </div>
                   

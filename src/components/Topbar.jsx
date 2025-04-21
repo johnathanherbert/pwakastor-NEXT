@@ -8,6 +8,7 @@ import { Bars3Icon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import ExcelUploader from "./ExcelUploader";
 import { HiOutlineUpload } from 'react-icons/hi';
 import ThemeToggle from "./ThemeToggle";
+import HeaderClock from "./Clock/HeaderClock";
 
 export default function Topbar({ 
   user, 
@@ -37,7 +38,7 @@ export default function Topbar({
     <>
       {/* Navbar Superior Fixo com efeito de vidro aprimorado */}
       <nav className="fixed top-0 left-0 right-0 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/70 dark:border-gray-700/30 shadow-sm z-50 transition-all duration-300">
-        <div className="max-w-screen-2xl mx-auto h-16 px-4 md:px-6 flex items-center justify-between">
+        <div className="w-full h-16 px-4 md:px-6 flex items-center justify-between">
           {/* Logo e Título com design moderno - extrema esquerda */}
           <div className="flex items-center gap-3">
             <button
@@ -69,6 +70,11 @@ export default function Topbar({
 
           {/* Botões de Ação com design aprimorado - extrema direita */}
           <div className="flex items-center gap-3">
+            {/* Relógio elegante */}
+            <div className="hidden md:block animate-fadeIn">
+              <HeaderClock variant="elegant" showDate={false} />
+            </div>
+            
             <div className="hidden sm:flex items-center gap-2">
               {setOpenDialog && ( 
                 <button
