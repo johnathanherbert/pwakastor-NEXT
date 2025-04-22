@@ -647,12 +647,6 @@ const Devolucao = () => {
       />
       
       <ToastContainer />
-
-      <ExcelUploader 
-        onDataUpdated={handleDataUpdated}
-        openUploadDialog={openDialog}
-        handleCloseUploadDialog={() => setOpenDialog(false)}
-      />
       
       <main className="p-6 pt-20">
         <div className="max-w-7xl mx-auto">
