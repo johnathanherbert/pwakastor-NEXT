@@ -25,6 +25,10 @@ export default function RootLayout({ children }) {
         document.documentElement.classList.add('dark');
         document.documentElement.style.backgroundColor = '#111827';
         document.body.style.backgroundColor = '#111827';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.backgroundColor = '';
+        document.body.style.backgroundColor = '';
       }
     } catch (e) {
       console.error('Error in dark mode initialization script:', e);

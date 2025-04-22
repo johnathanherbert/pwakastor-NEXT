@@ -815,7 +815,7 @@ export default function NTsPage() {
 
   if (isLoading && nts.length === 0) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
         </div>
@@ -824,7 +824,7 @@ export default function NTsPage() {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
       {/* Add ToastContainer to the top level */}
@@ -850,10 +850,7 @@ export default function NTsPage() {
               <HeaderClock />
               
               <button
-                onClick={() => {
-                  toggleDarkMode();
-                  localStorage.setItem('darkMode', JSON.stringify(!darkMode));
-                }}
+                onClick={toggleDarkMode}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
               >
                 {darkMode ? (
