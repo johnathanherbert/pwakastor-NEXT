@@ -1,10 +1,23 @@
+import { useState } from 'react';
 import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import Loading from '../ui/Loading';
 
 export default function DeleteConfirmationModal({ isOpen, onClose, onConfirm, type, item, nt }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   if (!isOpen) return null;
   
   const isNT = type === 'nt';
   
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -18,6 +31,7 @@ export default function DeleteConfirmationModal({ isOpen, onClose, onConfirm, ty
             <button 
               onClick={onClose}
               className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              disabled={isDeleting}
             >
               <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
             </button>
@@ -46,15 +60,29 @@ export default function DeleteConfirmationModal({ isOpen, onClose, onConfirm, ty
                 type="button"
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                disabled={isDeleting}
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={onConfirm}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-500 rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+                onClick={handleConfirm}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-500 rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Excluir
+                {isDeleting ? (
+                  <div className="flex items-center">
+                    <Loading 
+                      size="small" 
+                      message="" 
+                      logoVisible={false} 
+                      className="min-h-0 bg-transparent"
+                    />
+                    <span className="ml-2">Excluindo...</span>
+                  </div>
+                ) : (
+                  'Excluir'
+                )}
               </button>
             </div>
           </div>

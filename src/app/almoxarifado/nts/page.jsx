@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { useRouter } from 'next/navigation'; // Adicionar importação do router
 import Sidebar from '../../../components/Sidebar';
+import Topbar from '../../../components/Topbar'; // Adicionando o componente Topbar
 import HeaderClock from '../../../components/Clock/HeaderClock'; // Adicione esta importação
 import { 
   PlusIcon, 
@@ -815,57 +816,30 @@ export default function NTsPage() {
 
   if (isLoading && nts.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="flex justify-center items-center h-screen w-screen bg-white dark:bg-gray-900">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
+          <p className="mt-4 text-gray-700 dark:text-gray-300">
+            Carregando notas técnicas...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      <Topbar 
+        user={user}
+        drawerOpen={drawerOpen}
+        setDrawerOpen={setDrawerOpen}
+        title="Gerenciamento de NTs"
+      />
       
-      {/* Add ToastContainer to the top level */}
       <ToastContainer />
       
-      <main className="p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setDrawerOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </button>
-              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Gerenciamento de NTs</h1>
-            </div>
-            
-            <div className="flex items-center">
-              {/* Add clock component here, before the dark mode button */}
-              <HeaderClock />
-              
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
-              >
-                {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-          
+      <main className="pt-20 px-6 max-w-7xl mx-auto">
+        <div className="mx-auto">
           <RobotAlertBanner />
           
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -1069,103 +1043,134 @@ export default function NTsPage() {
           )}
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 shadow-md rounded-xl border border-gray-200/80 dark:border-gray-700/50 p-4 hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     Total de NTs
                     {selectedShift !== 0 && <span className="block text-xs text-gray-400 dark:text-gray-500">{formatShiftName(selectedShift)}</span>}
                   </p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                     {selectedShift === 0 ? nts.length : filteredNTs.length}
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">NT</span>
+                <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">NT</span>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 shadow-md rounded-xl border border-gray-200/80 dark:border-gray-700/50 p-4 hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     Itens aguardando
                     {selectedShift !== 0 && <span className="block text-xs text-gray-400 dark:text-gray-500">{formatShiftName(selectedShift)}</span>}
                   </p>
-                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-                    {pendingItemsByShift.length}
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    <span className="text-red-600 dark:text-red-400">{pendingItemsByShift.length}</span>
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-red-600 dark:text-red-400">!</span>
+                <div className="h-12 w-12 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-lg shadow-lg shadow-red-500/20 dark:shadow-red-500/10 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">!</span>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 shadow-md rounded-xl border border-gray-200/80 dark:border-gray-700/50 p-4 hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     Itens pagos hoje
                     {selectedShift !== 0 && <span className="block text-xs text-gray-400 dark:text-gray-500">{formatShiftName(selectedShift)}</span>}
                   </p>
-                  <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
-                    {paidTodayItems.length}
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    <span className="text-green-600 dark:text-green-400">{paidTodayItems.length}</span>
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-green-600 dark:text-green-400">✓</span>
+                <div className="h-12 w-12 bg-gradient-to-br from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-lg shadow-lg shadow-green-500/20 dark:shadow-green-500/10 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">✓</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 shadow-md rounded-xl border border-gray-200/80 dark:border-gray-700/50 p-4 hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     Itens em atraso
                     {selectedShift !== 0 && <span className="block text-xs text-gray-400 dark:text-gray-500">{formatShiftName(selectedShift)}</span>}
                   </p>
-                  <p className="text-2xl font-semibold text-orange-600 dark:text-orange-400">
-                    {overdueItems.length}
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    <span className="text-orange-600 dark:text-orange-400">{overdueItems.length}</span>
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-orange-600 dark:text-orange-400">⏱</span>
+                <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-lg shadow-lg shadow-orange-500/20 dark:shadow-orange-500/10 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">⏱</span>
                 </div>
               </div>
             </div>
           </div>
 
           {filteredNTs.length === 0 && !isLoading && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400">
-                {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0
-                  ? 'Nenhuma NT encontrada com os filtros aplicados.'
-                  : 'Nenhuma NT encontrada. Clique em "Adicionar NT" para começar.'}
-              </p>
-              {(searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0) && (
-                <button 
-                  onClick={clearFilters}
-                  className="mt-4 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800/30"
-                >
-                  Limpar filtros
-                </button>
-              )}
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/90 dark:to-gray-900/90 rounded-xl shadow-md border border-gray-200/80 dark:border-gray-700/50 p-8 text-center">
+              <div className="flex flex-col items-center justify-center py-6">
+                {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0 ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                )}
+                <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0
+                    ? 'Nenhuma NT encontrada'
+                    : 'Nenhuma NT disponível'}
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
+                  {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0
+                    ? 'Tente ajustar os filtros de pesquisa ou use termos diferentes para encontrar o que procura.'
+                    : 'Comece criando uma nova nota técnica para gerenciar seus itens.'}
+                </p>
+                {(searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0) && (
+                  <button 
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                    Limpar filtros
+                  </button>
+                )}
+                {!searchTerm && !itemSearchTerm && filterStatus === 'all' && !showOverdueOnly && selectedShift === 0 && (
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Adicionar NT
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
           {(searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0) && filteredNTs.length > 0 && (
-            <div className="mb-4 flex justify-between items-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Exibindo {filteredNTs.length} {filteredNTs.length === 1 ? 'resultado' : 'resultados'}
-              </p>
+            <div className="mb-4 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl flex justify-between items-center">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  Exibindo {filteredNTs.length} {filteredNTs.length === 1 ? 'resultado' : 'resultados'} com os filtros aplicados
+                </p>
+              </div>
               <button 
                 onClick={clearFilters}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                className="text-xs bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700/50 transition-colors flex items-center gap-1"
               >
-                <XMarkIcon className="h-3 w-3" /> Limpar filtros
+                <XMarkIcon className="h-3.5 w-3.5" /> Limpar
               </button>
             </div>
           )}

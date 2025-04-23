@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, PencilIcon, TagIcon, DocumentIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
+import Loading from '../ui/Loading';
 
 export default function EditItemModal({ isOpen, onClose, onItemUpdated, item, nt }) {
   const [formData, setFormData] = useState({
@@ -254,8 +255,13 @@ export default function EditItemModal({ isOpen, onClose, onItemUpdated, item, nt
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-white"></div>
-                  Salvando...
+                  <Loading 
+                    size="small" 
+                    message="" 
+                    logoVisible={false} 
+                    className="min-h-0 bg-transparent"
+                  />
+                  <span className="ml-2">Salvando...</span>
                 </>
               ) : (
                 <>

@@ -24,6 +24,7 @@ import {
 import UserMenu from "@/components/UserMenu";
 import Sidebar from "@/components/Sidebar";
 import HeaderClock from "@/components/Clock/HeaderClock";
+import Loading from "@/components/ui/Loading";
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
@@ -107,19 +108,10 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-            PWA Kastor
-          </h1>
-        </div>
-        <div className="relative h-12 w-12">
-          <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin"></div>
-          <div className="absolute inset-1 rounded-full border-r-2 border-indigo-600 animate-spin animation-delay-150"></div>
-          <div className="absolute inset-2 rounded-full border-b-2 border-purple-500 animate-spin animation-delay-300"></div>
-        </div>
-        <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">Carregando...</p>
-      </div>
+      <Loading
+        fullScreen={true}
+        message="Carregando..."
+      />
     );
   }
 

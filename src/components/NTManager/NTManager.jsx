@@ -15,6 +15,7 @@ import EditNTModal from './EditNTModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { showToast } from '../Toast/ToastContainer';
 import { motion } from 'framer-motion';
+import Loading from '../ui/Loading';
 
 export default function NTManager() {
   const router = useRouter();
@@ -219,12 +220,10 @@ export default function NTManager() {
   // Se ainda estiver verificando autenticação ou não estiver autenticado, mostra indicador de carregamento
   if (!authChecked) {
     return (
-      <div className="container mx-auto px-4 py-6 flex items-center justify-center h-screen">
-        <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-md p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
-          <h2 className="text-xl font-medium text-gray-700 dark:text-gray-300">Verificando autenticação...</h2>
-        </div>
-      </div>
+      <Loading 
+        fullScreen={true}
+        message="Carregando notas técnicas..." 
+      />
     );
   }
 
@@ -446,29 +445,29 @@ export default function NTManager() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl shadow-sm shadow-blue-500/20 dark:shadow-blue-500/10">
-              <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="p-2.5 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl shadow-md">
+              <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-violet-600 dark:from-purple-500 dark:to-violet-400">
                 Gerenciamento de NTs
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Controle e acompanhamento de notas técnicas
               </p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <Clock className="z-10 border border-gray-200 dark:border-gray-700/50 shadow-sm rounded-lg" />
+            <Clock className="z-10 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg" />
             
             <button
               onClick={handleRefresh}
-              className="px-3 py-2 hover-lift bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 
-                        border border-gray-200 dark:border-gray-700/50 rounded-lg flex items-center gap-1.5 
-                        shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 
+                        border border-gray-200 dark:border-gray-700 rounded-lg flex items-center gap-1.5 
+                        shadow-sm hover:shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
               disabled={isLoading}
               aria-label="Atualizar dados"
             >
@@ -478,23 +477,25 @@ export default function NTManager() {
             
             <button
               onClick={toggleOverdueWarnings}
-              className={`px-3 py-2 hover-lift ${
+              className={`px-3 py-2 ${
                 showOverdueWarnings 
-                ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-700/50' 
-                : 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
-              } border rounded-lg flex items-center gap-1.5 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40`}
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-700/50' 
+                : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+              } border rounded-lg flex items-center gap-1.5 shadow-sm hover:shadow transition-all duration-200`}
               aria-label={showOverdueWarnings ? "Desativar alertas de atraso" : "Ativar alertas de atraso"}
             >
               <BellIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Alertas</span>
-              <span className={`inline-flex h-2 w-2 rounded-full ${showOverdueWarnings ? 'bg-amber-500' : 'bg-gray-400'}`}></span>
+              <span className={`inline-flex h-2 w-2 rounded-full ${showOverdueWarnings ? 'bg-amber-500 animate-pulse' : 'bg-gray-400'}`}></span>
             </button>
             
             <button
               onClick={() => setStatsVisible(!statsVisible)}
-              className="px-3 py-2 hover-lift bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 
-                        border border-gray-200 dark:border-gray-700/50 rounded-lg flex items-center gap-1.5 
-                        shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className={`px-3 py-2 ${
+                statsVisible
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700/50'
+                : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+              } border rounded-lg flex items-center gap-1.5 shadow-sm hover:shadow transition-all duration-200`}
               aria-label={statsVisible ? "Ocultar estatísticas" : "Mostrar estatísticas"}
             >
               <ChartBarIcon className="h-4 w-4" />
@@ -503,9 +504,9 @@ export default function NTManager() {
             
             <button
               onClick={handleAddNT}
-              className="px-3 py-2 hover-lift bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
+              className="px-3 py-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white 
                         rounded-lg flex items-center gap-1.5 shadow-sm hover:shadow 
-                        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        transition-all duration-200 transform hover:-translate-y-0.5"
               aria-label="Adicionar nova NT"
             >
               <PlusCircleIcon className="h-4 w-4" />
@@ -520,53 +521,82 @@ export default function NTManager() {
             initial={{ opacity: 0, height: 0 }} 
             animate={{ opacity: 1, height: 'auto' }} 
             exit={{ opacity: 0, height: 0 }}
-            className="bg-white dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/30 mb-4"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 mb-6"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex flex-col hover-lift">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total de NTs</span>
-                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</span>
-                <span className="mt-2 text-xs text-gray-500 dark:text-gray-400">{stats.itemCount} itens</span>
-              </div>
-              
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 flex flex-col hover-lift">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Itens Pendentes</span>
-                <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.pending}</span>
-                <div className="mt-2 flex items-center gap-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
-                  <span className="text-xs text-blue-600 dark:text-blue-400">Aguardando pagamento</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+              <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-4 flex flex-col hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-700/50 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 mt-4 mr-4 text-gray-500 dark:text-gray-400 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
                 </div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total de NTs</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">{stats.total}</p>
+                <div className="h-1 w-16 bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 rounded mt-3 group-hover:w-20 transition-all"></div>
+                <span className="mt-3 text-sm text-gray-600 dark:text-gray-400">{stats.itemCount} itens no total</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-500 to-gray-600 opacity-0 group-hover:opacity-5 transition-opacity rounded-xl"></div>
               </div>
               
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 flex flex-col hover-lift">
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">Itens Finalizados</span>
-                <span className="text-2xl font-bold text-green-700 dark:text-green-300">{stats.completed}</span>
-                <div className="mt-2 flex items-center gap-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                  <span className="text-xs text-green-600 dark:text-green-400">Pagos</span>
+              <div className="bg-blue-50/80 dark:bg-blue-900/20 rounded-xl p-4 flex flex-col hover:shadow-md transition-all duration-300 border border-blue-100 dark:border-blue-800/30 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 mt-4 mr-4 text-blue-500 dark:text-blue-400 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Itens Pendentes</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 mt-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{stats.pending}</p>
+                <div className="h-1 w-16 bg-gradient-to-r from-blue-400 to-blue-600 rounded mt-3 group-hover:w-20 transition-all"></div>
+                <span className="mt-3 text-sm text-blue-600 dark:text-blue-400">Aguardando pagamento</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-5 transition-opacity rounded-xl"></div>
               </div>
               
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 flex flex-col hover-lift">
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Itens em Atraso</span>
-                <span className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats.overdue}</span>
-                <div className="mt-2 flex items-center gap-1">
+              <div className="bg-green-50/80 dark:bg-green-900/20 rounded-xl p-4 flex flex-col hover:shadow-md transition-all duration-300 border border-green-100 dark:border-green-800/30 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 mt-4 mr-4 text-green-500 dark:text-green-400 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Itens Finalizados</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300 mt-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{stats.completed}</p>
+                <div className="h-1 w-16 bg-gradient-to-r from-green-400 to-green-600 rounded mt-3 group-hover:w-20 transition-all"></div>
+                <span className="mt-3 text-sm text-green-600 dark:text-green-400">Pagos com sucesso</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-5 transition-opacity rounded-xl"></div>
+              </div>
+              
+              <div className="bg-amber-50/80 dark:bg-amber-900/20 rounded-xl p-4 flex flex-col hover:shadow-md transition-all duration-300 border border-amber-100 dark:border-amber-800/30 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 mt-4 mr-4 text-amber-500 dark:text-amber-400 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Itens em Atraso</p>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-300 mt-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{stats.overdue}</p>
+                <div className="h-1 w-16 bg-gradient-to-r from-amber-400 to-amber-600 rounded mt-3 group-hover:w-20 transition-all"></div>
+                <div className="mt-3 flex items-center gap-1.5">
                   <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-                  <span className="text-xs text-amber-600 dark:text-amber-400">Mais de 2h de espera</span>
+                  <span className="text-sm text-amber-600 dark:text-amber-400">Mais de 2h de espera</span>
                 </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 opacity-0 group-hover:opacity-5 transition-opacity rounded-xl"></div>
               </div>
               
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex flex-col hover-lift">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Taxa de Conclusão</span>
-                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-xl p-4 flex flex-col hover:shadow-md transition-all duration-300 border border-purple-100 dark:border-purple-800/30 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 mt-4 mr-4 text-purple-500 dark:text-purple-400 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Taxa de Conclusão</p>
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300 mt-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                   {stats.itemCount > 0 ? Math.round((stats.completed / stats.itemCount) * 100) : 0}%
-                </span>
-                <div className="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                </p>
+                <div className="h-1 w-16 bg-gradient-to-r from-purple-400 to-purple-600 rounded mt-3 group-hover:w-20 transition-all"></div>
+                <div className="mt-3 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
                   <div 
-                    className="bg-gradient-to-r from-blue-500 to-green-500 h-1.5 rounded-full" 
+                    className="bg-gradient-to-r from-purple-500 to-violet-600 h-1.5 rounded-full transition-all duration-1000" 
                     style={{ width: `${stats.itemCount > 0 ? (stats.completed / stats.itemCount) * 100 : 0}%` }}
                   ></div>
                 </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-5 transition-opacity rounded-xl"></div>
               </div>
             </div>
           </motion.div>

@@ -21,6 +21,7 @@ import {
   getElapsedMinutes,
   formatElapsedTime
 } from '../../utils/ntHelpers';
+import Loading from '../ui/Loading';
 
 export default function NTsList({ 
   nts, 
@@ -364,15 +365,15 @@ export default function NTsList({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm p-4 border border-gray-200/50 dark:border-gray-700/30 backdrop-blur-md">
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700 backdrop-blur-md">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <select 
-                className="appearance-none pl-3 pr-8 py-2 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 
-                        rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 
-                        focus:ring-blue-500/40 text-sm"
+                className="appearance-none pl-3 pr-8 py-2 bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 
+                        rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 
+                        focus:ring-blue-500/40 text-sm shadow-sm"
                 defaultValue="all"
               >
                 <option value="all">Todas as NTs</option>
@@ -389,9 +390,9 @@ export default function NTsList({
             
             <div className="relative">
               <select 
-                className="appearance-none pl-3 pr-8 py-2 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 
-                        rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 
-                        focus:ring-blue-500/40 text-sm"
+                className="appearance-none pl-3 pr-8 py-2 bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 
+                        rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 
+                        focus:ring-blue-500/40 text-sm shadow-sm"
                 defaultValue="desc"
               >
                 <option value="desc">Mais recentes</option>
@@ -408,9 +409,9 @@ export default function NTsList({
               <input 
                 type="text" 
                 placeholder="Buscar NT ou código..." 
-                className="pl-9 pr-3 py-2 w-full sm:w-44 md:w-64 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 
-                        rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 
-                        focus:ring-blue-500/40 text-sm"
+                className="pl-9 pr-3 py-2 w-full sm:w-48 md:w-64 bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 
+                        rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 
+                        focus:ring-blue-500/40 text-sm shadow-sm"
               />
               <div className="absolute left-0 pl-3 pointer-events-none">
                 <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -422,10 +423,10 @@ export default function NTsList({
           
           <button 
             onClick={() => setShowTodayOnly(!showTodayOnly)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm
               ${showTodayOnly 
-                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50 shadow-sm' 
-                : 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'}`}
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50' 
+                : 'bg-gray-50 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600/60'}`}
           >
             <CalendarIcon className="h-4 w-4" />
             {showTodayOnly ? 'Mostrar todas' : 'Apenas hoje'}
@@ -433,19 +434,49 @@ export default function NTsList({
         </div>
       </div>
 
-      {filteredNTs.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800/90 rounded-xl p-10 border border-gray-200/50 dark:border-gray-700/30 flex flex-col items-center justify-center">
-          <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-700/50 mb-3">
-            <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      {filteredNTs.length === 0 && isLoading ? (
+        <Loading
+          size="default"
+          message="Carregando notas técnicas..."
+          logoVisible={true}
+          className="py-16"
+        />
+      ) : filteredNTs.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-12 border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center text-center">
+          <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4 shadow-sm">
+            <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Nenhuma NT encontrada</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Nenhuma NT encontrada</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
             {showTodayOnly 
               ? 'Não existem notas técnicas registradas para hoje. Ajuste os filtros ou adicione uma nova NT.' 
               : 'Não foram encontradas notas técnicas com os filtros atuais. Tente ajustar os critérios de busca.'}
           </p>
+          <button 
+            onClick={() => setShowTodayOnly(false)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm
+              ${showTodayOnly 
+                ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                : 'border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+          >
+            {showTodayOnly ? (
+              <>
+                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+                Ver todas as NTs
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Adicionar nova NT
+              </>
+            )}
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -460,10 +491,10 @@ export default function NTsList({
             return (
               <div 
                 key={nt.id} 
-                className={`bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border 
-                  ${hasOverdueItems ? 'border-amber-200 dark:border-amber-700/50' : 'border-gray-200/50 dark:border-gray-700/30'}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border 
+                  ${hasOverdueItems ? 'border-amber-200 dark:border-amber-700/50' : 'border-gray-200 dark:border-gray-700'}
                   ${hasPriorityItems ? 'ring-1 ring-amber-300 dark:ring-amber-700/70' : ''}
-                  overflow-hidden hover:shadow-md transition-all duration-300 backdrop-blur-sm
+                  overflow-hidden hover:shadow-md transition-all duration-300 transform-gpu hover:-translate-y-0.5
                   ${statusColor === 'green' ? 'border-l-4 border-l-green-500 dark:border-l-green-600' : 
                     statusColor === 'yellow' ? 'border-l-4 border-l-yellow-500 dark:border-l-yellow-600' : 
                     statusColor === 'orange' ? 'border-l-4 border-l-orange-500 dark:border-l-orange-600' :
@@ -670,47 +701,47 @@ export default function NTsList({
                   >
                     <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent">
                       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10">
+                        <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Item
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Código
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Descrição
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Qtd
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Lote
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
                               Data
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Hora
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Pag.
                             </th>
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Status
                             </th>
                             {showOverdueWarnings && (
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
                                 Tempo
                               </th>
                             )}
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Ações
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-transparent divide-y divide-gray-100 dark:divide-gray-800">
-                          {ntItemsList.map((item) => {
+                          {ntItemsList.map((item, idx) => {
                             const elapsedMinutes = getElapsedMinutes(item);
                             const isOverdue = elapsedMinutes > 120;
                             
@@ -724,11 +755,13 @@ export default function NTsList({
                             return (
                               <tr 
                                 key={item.id} 
-                                className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                                  item.status === 'Pago' ? 'bg-green-50/50 dark:bg-green-900/10' :
+                                className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 
+                                  ${item.status === 'Pago' ? 'bg-green-50/50 dark:bg-green-900/10' :
                                   item.status === 'Pago Parcial' ? 'bg-yellow-50/50 dark:bg-yellow-900/10' :
                                   timeStatusClass
-                                } ${item.priority && item.status !== 'Pago' ? 'border-l-4 border-l-amber-500 dark:border-l-amber-600' : ''}`}
+                                } ${item.priority && item.status !== 'Pago' ? 'border-l-4 border-l-amber-500 dark:border-l-amber-600' : ''}
+                                animate-fade-in-up`}
+                                style={{ animationDelay: `${idx * 30}ms` }}
                               >
                                 <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {item.item_number}
@@ -868,9 +901,16 @@ export default function NTsList({
       )}
       
       {isLoading && nts.length > 0 && (
-        <div className="fixed bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-full shadow-lg px-4 py-2 flex items-center gap-2 border border-gray-200/70 dark:border-gray-700/50 z-50 animate-pulse hover-lift">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-blue-600 dark:border-blue-400"></div>
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Atualizando...</span>
+        <div className="fixed bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-full shadow-lg px-4 py-2.5 flex items-center gap-3 border border-gray-200/70 dark:border-gray-700/50 z-50 hover:-translate-y-0.5 transition-transform">
+          <div className="flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 p-1 h-6 w-6">
+            <Loading 
+              size="small" 
+              message="" 
+              logoVisible={false} 
+              className="min-h-0 bg-transparent"
+            />
+          </div>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Atualizando dados...</span>
         </div>
       )}
       

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import Loading from '../ui/Loading';
 
 export default function EditNTModal({ isOpen, onClose, onNTEdited, nt, ntItems }) {
   const [ntNumber, setNtNumber] = useState('');
@@ -116,8 +117,13 @@ export default function EditNTModal({ isOpen, onClose, onNTEdited, nt, ntItems }
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                    Salvando...
+                    <Loading 
+                      size="small" 
+                      message="" 
+                      logoVisible={false} 
+                      className="min-h-0 bg-transparent"
+                    />
+                    <span className="ml-2">Salvando...</span>
                   </div>
                 ) : (
                   'Salvar Alterações'

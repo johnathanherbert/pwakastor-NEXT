@@ -28,6 +28,7 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
     status: 'warning',
     description: '',
     estimated_resolution: '',
+    common_problem: '' // Adicionando campo para problemas recorrentes
   });
 
   const handleInputChange = useCallback((e) => {
@@ -92,6 +93,7 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
         status: 'warning',
         description: '',
         estimated_resolution: '',
+        common_problem: '' // Resetando campo de problemas recorrentes
       });
       setIsAddingAlert(false);
       onRefresh();
@@ -186,7 +188,7 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Robô
+              Equipamento
             </label>
             <select
               name="robot_number"
@@ -198,23 +200,34 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
             >
               <option value="1">Robô 1</option>
               <option value="2">Robô 2</option>
+              <option value="3">Lançadeira 1</option>
+              <option value="4">Lançadeira 2</option>
             </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Número OS
             </label>
-            <input
-              type="text"
-              name="os_number"
-              value={newAlert.os_number}
-              onChange={handleInputChange}
-              placeholder="25789"
-              className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm"
-              required
-              autoComplete="off"
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                type="text"
+                name="os_number"
+                value={newAlert.os_number}
+                onChange={handleInputChange}
+                placeholder="25789"
+                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm"
+                required
+                autoComplete="off"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setNewAlert(prev => ({ ...prev, os_number: 'N/A' }))}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500"
+              >
+                N/A
+              </button>
+            </div>
           </div>
         </div>
 
@@ -265,6 +278,24 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
 
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Problema Recorrente
+          </label>
+          <select
+            name="common_problem"
+            value={newAlert.common_problem}
+            onChange={handleInputChange}
+            className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm"
+            autoComplete="off"
+          >
+            <option value="">Selecione um problema</option>
+            <option value="Palete empurrado">Palete empurrado</option>
+            <option value="Pani elétrica">Pani elétrica</option>
+            <option value="Pani mecânica">Pani mecânica</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
             Descrição do Problema
           </label>
           <textarea
@@ -291,7 +322,12 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
             disabled={loading}
             className="px-3 py-1.5 text-xs bg-blue-600 dark:bg-blue-500 text-white rounded disabled:opacity-50"
           >
-            {loading ? 'Salvando...' : 'Salvar'}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                Salvando...
+              </span>
+            ) : 'Salvar'}
           </button>
         </div>
       </form>
@@ -460,8 +496,13 @@ export default function RobotStatusModal({ isOpen, onClose, alerts = [], selecte
               ) : (
                 <>
                   {loading ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-300 dark:border-gray-600"></div>
+                    <div className="flex flex-col justify-center items-center py-6">
+                      <div className="relative h-12 w-12">
+                        <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin"></div>
+                        <div className="absolute inset-1 rounded-full border-r-2 border-indigo-600 animate-spin animation-delay-150"></div>
+                        <div className="absolute inset-2 rounded-full border-b-2 border-purple-500 animate-spin animation-delay-300"></div>
+                      </div>
+                      <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">Carregando...</p>
                     </div>
                   ) : resolvedAlerts.length === 0 ? (
                     <div className="text-center py-8">

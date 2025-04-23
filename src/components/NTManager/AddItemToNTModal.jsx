@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../supabaseClient';
 import { showToast } from '../../components/Toast/ToastContainer';
+import Loading from '../ui/Loading';
 
 export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
   const [item, setItem] = useState({
@@ -450,8 +451,13 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                    Adicionando...
+                    <Loading 
+                      size="small" 
+                      message="" 
+                      logoVisible={false} 
+                      className="min-h-0 bg-transparent"
+                    />
+                    <span className="ml-2">Adicionando...</span>
                   </div>
                 ) : (
                   'Adicionar'

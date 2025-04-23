@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { XMarkIcon, PlusIcon, TrashIcon, ClipboardDocumentIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { showToast } from '../../components/Toast/ToastContainer';
+import Loading from '../ui/Loading';
 
 export default function AddNTModal({ isOpen, onClose, onNTAdded }) {
   const [ntNumber, setNtNumber] = useState('');
@@ -483,8 +484,13 @@ export default function AddNTModal({ isOpen, onClose, onNTAdded }) {
             >
               {isSubmitting ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-white mr-2"></div>
-                  Salvando...
+                  <Loading 
+                    size="small" 
+                    message="" 
+                    logoVisible={false} 
+                    className="min-h-0 bg-transparent"
+                  />
+                  <span className="ml-2">Salvando...</span>
                 </div>
               ) : (
                 'Salvar NT'
