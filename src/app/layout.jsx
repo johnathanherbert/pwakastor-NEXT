@@ -3,12 +3,6 @@
 import './globals.css';
 import { Providers } from './providers';
 import { useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
-// Importando o ChatSystem de forma dinâmica para evitar problemas de SSR
-const ChatSystem = dynamic(() => import('@/components/Chat/ChatSystem'), { 
-  ssr: false 
-});
 
 export default function RootLayout({ children }) {
   // Script para dark mode executado no lado do cliente para evitar problemas de hidratação
@@ -65,7 +59,6 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen antialiased font-inter">
         <Providers>
           {children}
-          <ChatSystem />
         </Providers>
       </body>
     </html>
