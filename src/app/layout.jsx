@@ -3,8 +3,13 @@
 import './globals.css';
 import { Providers } from './providers';
 import { useEffect } from 'react';
+import { useState } from 'react';
+import UpdateNotification from '../components/UpdateNotification';
+import useAppUpdate from '../hooks/useAppUpdate';
 
 export default function RootLayout({ children }) {
+  const { hasUpdate } = useAppUpdate(5); // Verifica atualizações a cada 5 minutos
+  
   // Script para dark mode executado no lado do cliente para evitar problemas de hidratação
   useEffect(() => {
     try {
@@ -59,6 +64,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen antialiased font-inter">
         <Providers>
           {children}
+          <UpdateNotification hasUpdate={hasUpdate} />
         </Providers>
       </body>
     </html>

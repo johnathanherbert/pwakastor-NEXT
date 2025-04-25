@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Pre-commit hook que atualiza automaticamente a versão da aplicação
+# a cada novo commit.
+
+echo "🔄 Executando hook pre-commit para atualização de versão..."
+
+# Executa o script de atualização de versão
+node update-version.js
+
+# Verifica se o script foi executado com sucesso
+if [ $? -ne 0 ]; then
+  echo "❌ Erro ao atualizar a versão da aplicação"
+  exit 1
+fi
+
+# Adiciona os arquivos atualizados ao commit
+git add public/api/version.json public/manifest.json
+
+echo "✅ Versão atualizada com sucesso e adicionada ao commit"
+exit 0
