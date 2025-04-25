@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../supabaseClient';
 import Sidebar from '../../components/Sidebar';
-import ToastContainer from '../../components/Toast/ToastContainer';
+// Keep using showToast but remove ToastContainer import
 import { showToast } from '../../components/Toast/ToastContainer';
 import ExcelUploader from '../../components/ExcelUploader';
 import { 
@@ -645,8 +645,6 @@ const Devolucao = () => {
         handleDataUpdated={handleDataUpdated}
         title="Devolução de Materiais"
       />
-      
-      <ToastContainer />
       
       <main className="p-6 pt-20">
         <div className="max-w-7xl mx-auto">

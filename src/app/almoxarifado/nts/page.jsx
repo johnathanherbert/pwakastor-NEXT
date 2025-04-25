@@ -32,7 +32,7 @@ import {
   formatShiftName
 } from '../../../utils/ntHelpers';
 import { setupRealtimeSubscription, removeSubscription, setupMultipleSubscriptions, removeMultipleSubscriptions } from '../../../utils/supabaseRealtime';
-import ToastContainer from '../../../components/Toast/ToastContainer';
+// Keep using showToast but remove ToastContainer import
 import { showToast } from '../../../components/Toast/ToastContainer';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -836,8 +836,6 @@ export default function NTsPage() {
         title="Gerenciamento de NTs"
       />
       
-      <ToastContainer />
-      
       <main className="pt-20 px-6 max-w-7xl mx-auto">
         <div className="mx-auto">
           <RobotAlertBanner />
@@ -968,7 +966,7 @@ export default function NTsPage() {
                 )}
               </div>
             </div>
-          </div>
+          </div> {/* Add closing div tag for flex container */}
           
           {showFilters && (
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4 animate-fadeIn">

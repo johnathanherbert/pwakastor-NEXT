@@ -20,7 +20,8 @@ import {
   HiAdjustments
 } from "react-icons/hi";
 import { Toast } from "@/components/Toast/Toast";
-import ToastContainer, { showToast } from "@/components/Toast/ToastContainer";
+// Remove ToastContainer import, keep showToast function import
+import { showToast } from "@/components/Toast/ToastContainer";
 import { StorageStats } from "@/components/PaleteSystem/StorageStats";
 import Sidebar from "@/components/Sidebar";
 import HeaderClock from "@/components/Clock/HeaderClock";
@@ -430,7 +431,7 @@ export default function GestaoPage() {
       setSpaces(data || []);
       setSelectedRoom(roomId);
       
-      // Refresh all spaces for statistics whenever we fetch spaces
+      // Refresh all spaces for statistics
       fetchAllSpaces();
     } catch (error) {
       console.error("Error fetching spaces:", error);
@@ -1057,8 +1058,6 @@ export default function GestaoPage() {
   return (
     <div className="min-h-screen theme-bg-main">
       <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-      
-      <ToastContainer />
       
       <main className="p-4 sm:p-6 pb-20">
         <div className="max-w-7xl mx-auto space-y-6">

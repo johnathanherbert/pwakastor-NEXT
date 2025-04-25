@@ -1,11 +1,17 @@
 'use client';
 
 import './globals.css';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import UpdateNotification from '../components/UpdateNotification';
 import useAppUpdate from '../hooks/useAppUpdate';
+import ToastContainer from '../components/Toast/ToastContainer';
+
+const inter = Inter({ subsets: ['latin'] });
+
+// Removed metadata export as it can't be used with 'use client'
 
 export default function RootLayout({ children }) {
   const { hasUpdate } = useAppUpdate(5); // Verifica atualizações a cada 5 minutos
@@ -35,37 +41,14 @@ export default function RootLayout({ children }) {
   }, []);
 
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <title>PWA Kastor - Sistema de Gestão e Produção</title>
-        <meta name="description" content="Sistema integrado para gestão de materiais e processos de produção" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        
-        {/* SEO e compartilhamento */}
-        <meta name="author" content="Johnathan Herbert" />
-        <meta property="og:title" content="PWA Kastor - Sistema de Gestão e Produção" />
-        <meta property="og:description" content="Sistema integrado para gestão de materiais e processos de produção" />
-        <meta property="og:type" content="website" />
-        
-        {/* PWA */}
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3b82f6" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        
-        {/* Fontes otimizadas */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="min-h-screen antialiased font-inter">
+    <html lang="en" suppressHydrationWarning className={`h-full ${inter.className}`}>
+      <body className="h-full">
         <Providers>
           {children}
           <UpdateNotification hasUpdate={hasUpdate} />
         </Providers>
+        {/* Global ToastContainer that will be used by all pages */}
+        <ToastContainer />
       </body>
     </html>
   );
