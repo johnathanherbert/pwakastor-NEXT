@@ -30,7 +30,9 @@ const nextConfig = {
             test: /[\\/]node_modules[\\/]/,
             priority: 30,
             name(module) {
-              const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
+              // Fix: Add null check to handle cases where module.context might be null or undefined
+              const packageNameMatch = module.context && module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/);
+              const packageName = packageNameMatch ? packageNameMatch[1] : 'unknown';
               return `lib.${packageName.replace('@', '')}`;
             },
           },
@@ -53,10 +55,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Comprimir distros HTML
   compress: true,
-  // Habilitar suporte para PWA e arquivos de manifesto
-  experimental: {
-    appDir: true
-  },
+  
   // Permitir CORS e aumentar o buffer para uploads
   serverRuntimeConfig: {
     maxBodySize: '10mb', // Para uploads maiores
