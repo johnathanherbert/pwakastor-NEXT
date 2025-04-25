@@ -301,24 +301,47 @@ export default function NTsPage() {
 
       if (ntsError) throw ntsError;
       
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('nt_items')
-        .select('*')
-        .order('item_number', { ascending: true });
+      // Modificado para garantir que todos os itens sejam carregados (sem limite implícito)
+      // Usando caminho alternativo para evitar limite de itens 
+      const allItems = [];
+      let itemsPage = 0;
+      let hasMoreItems = true;
+      
+      while (hasMoreItems) {
+        console.log(`Carregando página ${itemsPage + 1} de itens...`);
         
-      if (itemsError) throw itemsError;
+        const { data: pagedItems, error: itemsError, count } = await supabase
+          .from('nt_items')
+          .select('*', { count: 'exact' })
+          .order('item_number', { ascending: true })
+          .range(itemsPage * 1000, (itemsPage + 1) * 1000 - 1);
+          
+        if (itemsError) throw itemsError;
+        
+        if (pagedItems && pagedItems.length > 0) {
+          allItems.push(...pagedItems);
+          itemsPage++;
+        }
+        
+        // Se retornou menos de 1000 itens, significa que não há mais páginas
+        if (!pagedItems || pagedItems.length < 1000) {
+          hasMoreItems = false;
+        }
+      }
+      
+      console.log(`Total de itens carregados: ${allItems.length}`);
 
-      // Debug: Verificar se algum item tem a propriedade batch
-      const itemsWithBatch = itemsData.filter(item => item.batch !== null && item.batch !== undefined);
+      // Verificar se algum item tem a propriedade batch
+      const itemsWithBatch = allItems.filter(item => item.batch !== null && item.batch !== undefined);
       console.log("Items com lote:", itemsWithBatch.length);
       if (itemsWithBatch.length > 0) {
         console.log("Exemplo de item com lote:", itemsWithBatch[0]);
       }
       
       // Debug: Verificar a estrutura de alguns itens
-      console.log("Amostra de itens carregados:", itemsData.slice(0, 3));
+      console.log("Amostra de itens carregados:", allItems.slice(0, 3));
 
-      const itemsByNT = itemsData.reduce((acc, item) => {
+      const itemsByNT = allItems.reduce((acc, item) => {
         if (!acc[item.nt_id]) {
           acc[item.nt_id] = [];
         }

@@ -42,8 +42,13 @@ export default function TabSection({
   // Ensure ajusteData is valid to prevent errors
   const safeAjusteData = Array.isArray(ajusteData) ? ajusteData : [];
 
+  // Handle tab change using flowbite-react API
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs activeTab={activeTab} onActiveTabChange={handleTabChange}>
       <Tabs.Item 
         title="Visão Geral" 
         icon={HiOutlineChartPie}
