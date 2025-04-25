@@ -6,6 +6,7 @@ import { Providers } from './providers';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import UpdateNotification from '../components/UpdateNotification';
+import AdminMessages from '../components/AdminMessages';
 import useAppUpdate from '../hooks/useAppUpdate';
 import ToastContainer from '../components/Toast/ToastContainer';
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }) {
         <Providers>
           {children}
           <UpdateNotification hasUpdate={hasUpdate} />
+          <AdminMessages />
         </Providers>
         {/* Global ToastContainer that will be used by all pages */}
         <ToastContainer />
