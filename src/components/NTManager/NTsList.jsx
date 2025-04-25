@@ -494,7 +494,7 @@ export default function NTsList({
                 className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border 
                   ${hasOverdueItems ? 'border-amber-200 dark:border-amber-700/50' : 'border-gray-200 dark:border-gray-700'}
                   ${hasPriorityItems ? 'ring-1 ring-amber-300 dark:ring-amber-700/70' : ''}
-                  overflow-hidden hover:shadow-md transition-all duration-300 transform-gpu hover:-translate-y-0.5
+                  overflow-hidden transition-shadow duration-200 hover:shadow-md
                   ${statusColor === 'green' ? 'border-l-4 border-l-green-500 dark:border-l-green-600' : 
                     statusColor === 'yellow' ? 'border-l-4 border-l-yellow-500 dark:border-l-yellow-600' : 
                     statusColor === 'orange' ? 'border-l-4 border-l-orange-500 dark:border-l-orange-600' :
