@@ -7,7 +7,8 @@ import {
   ExclamationTriangleIcon,
   PaperAirplaneIcon,
   TrashIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/outline';
 
 export default function AdminPage() {
@@ -19,6 +20,9 @@ export default function AdminPage() {
   const [duration, setDuration] = useState(5000);
   const [messages, setMessages] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCommandsSection, setShowCommandsSection] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -139,6 +143,44 @@ export default function AdminPage() {
   const testMessage = (msg) => {
     showToast(msg.message, msg.type, msg.duration);
   };
+  
+  // Funções para comandos administrativos
+  
+  // Abrir modal de confirmação com a ação específica
+  const openConfirmModal = (action) => {
+    setConfirmAction(action);
+    setIsConfirmModalOpen(true);
+  };
+  
+  // Enviar comando para forçar recarregamento em todos os clientes
+  const sendForceReloadCommand = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase
+        .from('admin_messages')
+        .insert([{ 
+          message: 'Atualizando o sistema para a versão mais recente. A página será recarregada automaticamente.', 
+          type: 'info', 
+          duration: 5000,
+          command: 'reload',
+          delay: 3000,
+          active: true,
+          created_by: user.email 
+        }]);
+      
+      if (error) throw error;
+      
+      showToast('Comando de recarregamento enviado com sucesso!', 'success');
+      fetchMessages();
+      setIsConfirmModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao enviar comando de recarregamento:', error);
+      showToast('Erro ao enviar comando', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading && !user) {
     return (
@@ -232,7 +274,58 @@ export default function AdminPage() {
             </div>
           </form>
         </div>
+        
+        {/* Seção de Comandos Administrativos */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => setShowCommandsSection(!showCommandsSection)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <CommandLineIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Comandos Administrativos</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Envie comandos para controlar o comportamento do aplicativo
+                </p>
+              </div>
+            </div>
+            <svg 
+              className={`h-6 w-6 text-gray-400 transform transition-transform ${showCommandsSection ? 'rotate-180' : ''}`} 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          
+          {showCommandsSection && (
+            <div className="mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
+                  <h3 className="text-md font-medium text-orange-800 dark:text-orange-300 mb-2">Forçar Recarregamento</h3>
+                  <p className="text-sm text-orange-600 dark:text-orange-400 mb-4">
+                    Este comando força o recarregamento de todas as instâncias do aplicativo em todos os dispositivos.
+                  </p>
+                  <button
+                    onClick={() => openConfirmModal('reload')}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                  >
+                    <ArrowPathIcon className="h-4 w-4" />
+                    Forçar Recarregamento
+                  </button>
+                </div>
+                
+                {/* Espaço para futuros comandos administrativos */}
+              </div>
+            </div>
+          )}
+        </div>
 
+        {/* Lista de mensagens enviadas */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Mensagens Enviadas</h2>
@@ -258,6 +351,7 @@ export default function AdminPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duração</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Comando</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
@@ -292,6 +386,15 @@ export default function AdminPage() {
                         }`}>
                           {msg.active ? 'Ativo' : 'Inativo'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {msg.command ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            {msg.command}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -340,6 +443,50 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+      
+      {/* Modal de Confirmação */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full animate-modalEntry">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Confirmação</h3>
+            
+            {confirmAction === 'reload' && (
+              <>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                  Esta ação forçará o recarregamento da página em todos os dispositivos que estão 
+                  usando o aplicativo. Os usuários poderão perder dados não salvos.
+                </p>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-md p-3 mb-6">
+                  <p className="text-orange-800 dark:text-orange-300 text-sm flex items-start">
+                    <svg className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Certifique-se de que esta ação é necessária e avise os usuários com antecedência quando possível.</span>
+                  </p>
+                </div>
+              </>
+            )}
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancelar
+              </button>
+              
+              {confirmAction === 'reload' && (
+                <button
+                  onClick={sendForceReloadCommand}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  Forçar Recarregamento
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

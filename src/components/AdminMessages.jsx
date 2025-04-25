@@ -6,9 +6,40 @@ import { showToast } from './Toast/ToastContainer';
 /**
  * Componente que verifica e exibe mensagens de administrador para todos os usuários
  * Este componente deve ser adicionado ao layout principal para funcionar em todas as páginas
+ * Também processa comandos especiais como forçar o recarregamento da página
  */
 export default function AdminMessages() {
   const [lastMessageId, setLastMessageId] = useState(null);
+  
+  // Processar mensagem ou comando do administrador
+  const processAdminMessage = (message) => {
+    // Verificar se é uma mensagem de comando
+    if (message.command) {
+      switch (message.command) {
+        case 'reload':
+          // Mostrar uma mensagem toast informando sobre o recarregamento
+          showToast(
+            message.message || 'Atualizando aplicação...',
+            'info',
+            message.duration || 3000
+          );
+          
+          // Aguardar um pouco para que o usuário possa ver a mensagem antes do recarregamento
+          setTimeout(() => {
+            window.location.reload();
+          }, message.delay || 2000);
+          break;
+          
+        // Outros comandos podem ser adicionados aqui no futuro
+        default:
+          // Se for um comando desconhecido, tratar como mensagem normal
+          showToast(message.message, message.type, message.duration);
+      }
+    } else {
+      // Mensagem normal
+      showToast(message.message, message.type, message.duration);
+    }
+  };
   
   // Verificar mensagens ativas periodicamente
   useEffect(() => {
@@ -32,8 +63,8 @@ export default function AdminMessages() {
         if (data && data.length > 0 && data[0].id !== lastMessageId) {
           const message = data[0];
           
-          // Mostrar a mensagem
-          showToast(message.message, message.type, message.duration);
+          // Processar a mensagem (pode ser uma mensagem normal ou um comando)
+          processAdminMessage(message);
           
           // Atualizar o ID da última mensagem exibida
           setLastMessageId(message.id);
@@ -56,8 +87,8 @@ export default function AdminMessages() {
     // Verificar mensagens ao montar o componente
     checkAdminMessages();
     
-    // Configurar um intervalo para verificar novas mensagens a cada 60 segundos
-    const interval = setInterval(checkAdminMessages, 60000);
+    // Configurar um intervalo para verificar novas mensagens a cada 30 segundos
+    const interval = setInterval(checkAdminMessages, 30000);
     
     // Configurar um listener em tempo real para novas mensagens
     const subscription = supabase
@@ -65,10 +96,10 @@ export default function AdminMessages() {
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'admin_messages' }, 
         (payload) => {
-          // Se uma nova mensagem for inserida e estiver ativa, exibi-la
+          // Se uma nova mensagem for inserida e estiver ativa, processá-la
           const newMessage = payload.new;
           if (newMessage && newMessage.active) {
-            showToast(newMessage.message, newMessage.type, newMessage.duration);
+            processAdminMessage(newMessage);
             setLastMessageId(newMessage.id);
             localStorage.setItem('lastAdminMessageId', newMessage.id);
             localStorage.setItem('lastAdminMessageTime', new Date().toISOString());
