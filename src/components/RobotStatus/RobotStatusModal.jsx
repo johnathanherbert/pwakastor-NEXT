@@ -500,7 +500,7 @@ Descrição: ${alert.description || ''}
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 {equipmentStat.alertCount > 0 && (
                   <div className="flex items-center justify-end">
-                    <span className="text-xs mr-1">Total:</span>
+                    <span className="text-xs mr-1 ml-2">Total:</span>
                     <span className="font-semibold">{equipmentStat.alertCount}</span>
                   </div>
                 )}

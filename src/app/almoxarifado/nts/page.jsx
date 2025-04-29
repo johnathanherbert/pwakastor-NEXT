@@ -64,6 +64,10 @@ export default function NTsPage() {
   const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false); // Add this state
+  const [isSearching, setIsSearching] = useState(false); // Estado para indicar que busca está em andamento
+  const [startDate, setStartDate] = useState(''); // Filtro de data inicial
+  const [endDate, setEndDate] = useState(''); // Filtro de data final
+  const [activeFilterCount, setActiveFilterCount] = useState(0); // Contador de filtros ativos
 
   useEffect(() => {
     const checkUser = async () => {
@@ -288,7 +292,7 @@ export default function NTsPage() {
   // Make sure we're watching for ntItems changes in the useEffect
   useEffect(() => {
     filterNTs();
-  }, [searchTerm, filterStatus, itemSearchTerm, showOverdueOnly, selectedShift, nts, ntItems]);
+  }, [searchTerm, filterStatus, itemSearchTerm, showOverdueOnly, selectedShift, nts, ntItems, startDate, endDate]);
 
   const fetchNTs = async () => {
     try {
@@ -450,11 +454,15 @@ export default function NTsPage() {
 
   const filterNTs = () => {
     let filtered = [...nts];
+    let activeFilters = 0;
+    
+    setIsSearching(true);
     
     if (searchTerm) {
       filtered = filtered.filter(nt => 
         nt.nt_number.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      activeFilters++;
     }
     
     if (itemSearchTerm) {
@@ -465,6 +473,7 @@ export default function NTsPage() {
           item.code.toLowerCase().includes(itemSearchTerm.toLowerCase())
         );
       });
+      activeFilters++;
     }
     
     if (filterStatus !== 'all') {
@@ -482,6 +491,7 @@ export default function NTsPage() {
         }
         return true;
       });
+      activeFilters++;
     }
 
     if (showOverdueOnly) {
@@ -492,6 +502,7 @@ export default function NTsPage() {
           return item.status === 'Ag. Pagamento' && new Date() > deadline;
         });
       });
+      activeFilters++;
     }
     
     // Filtrar NTs com mais de 3 dias se a opção estiver ativada
@@ -506,6 +517,33 @@ export default function NTsPage() {
         
         return diffDays <= 3;
       });
+      activeFilters++;
+    }
+
+    // Filtro por data inicial
+    if (startDate) {
+      const startDateObj = new Date(startDate);
+      startDateObj.setHours(0, 0, 0, 0); // Início do dia
+      
+      filtered = filtered.filter(nt => {
+        if (!nt.created_at) return false;
+        const ntDate = new Date(nt.created_at);
+        return ntDate >= startDateObj;
+      });
+      activeFilters++;
+    }
+    
+    // Filtro por data final
+    if (endDate) {
+      const endDateObj = new Date(endDate);
+      endDateObj.setHours(23, 59, 59, 999); // Final do dia
+      
+      filtered = filtered.filter(nt => {
+        if (!nt.created_at) return false;
+        const ntDate = new Date(nt.created_at);
+        return ntDate <= endDateObj;
+      });
+      activeFilters++;
     }
 
     if (selectedShift !== 0) {
@@ -520,9 +558,16 @@ export default function NTsPage() {
           }
         });
       });
+      activeFilters++;
     }
     
     setFilteredNTs(filtered);
+    setActiveFilterCount(activeFilters);
+    
+    // Simular um pequeno atraso para feedback visual
+    setTimeout(() => {
+      setIsSearching(false);
+    }, 300);
   };
 
   const refreshData = () => {
@@ -603,6 +648,9 @@ export default function NTsPage() {
     setShowOverdueOnly(false);
     setShowFilters(false);
     setSelectedShift(0);
+    setStartDate(''); // Limpar a data inicial
+    setEndDate(''); // Limpar a data final
+    setActiveFilterCount(0); // Resetar contador de filtros ativos
   };
 
   const handleEditNT = (nt) => {
@@ -874,13 +922,27 @@ export default function NTsPage() {
                        rounded-md text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400
                        focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               /> 
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              {isSearching ? (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                </div>
+              ) : (
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              )}
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              )}
             </div>
             
             <div className="flex gap-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 rounded-lg border transition-colors
+                className={`p-2 rounded-lg border transition-colors relative
                   ${showFilters 
                     ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
@@ -888,6 +950,11 @@ export default function NTsPage() {
                 title="Filtros"
               >
                 <FunnelIcon className="h-5 w-5" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 bg-blue-600 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
 
               {/* Add Analytics Button */}
@@ -1035,6 +1102,35 @@ export default function NTsPage() {
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   </div>
                 </div>
+                
+                {/* Filtros de Data */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Data Inicial
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                           rounded-md text-sm text-gray-900 dark:text-gray-100
+                           focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Data Final
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                           rounded-md text-sm text-gray-900 dark:text-gray-100
+                           focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                </div>
 
                 <div className="col-span-1 md:col-span-2">
                   <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
@@ -1138,7 +1234,7 @@ export default function NTsPage() {
               <div className="flex flex-col items-center justify-center py-6">
                 {searchTerm || itemSearchTerm || filterStatus !== 'all' || showOverdueOnly || selectedShift !== 0 ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
