@@ -81,10 +81,33 @@ export default function RobotAlertBanner() {
     }
   };
   
+  // Função para determinar o tipo de equipamento com base no número
+  const getEquipmentType = (robotNumber) => {
+    // Converte para número para garantir a comparação correta
+    const number = parseInt(robotNumber, 10);
+    
+    if (number === 3 || number === 4) {
+      // Para 3 = Lançadeira 1, 4 = Lançadeira 2
+      return {
+        type: 'Lançadeira',
+        number: number - 2, // Converte 3->1 e 4->2
+        gender: 'feminino'  // Para concordância gramatical em português
+      };
+    } else {
+      // Para 1 = Robô 1, 2 = Robô 2
+      return {
+        type: 'Robô',
+        number: number,
+        gender: 'masculino'
+      };
+    }
+  };
+  
   if (!isVisible || alerts.length === 0) return null;
   
   // Display the most recent alert
   const alert = alerts[0];
+  const equipment = getEquipmentType(alert.robot_number);
   
   return (
     <div className="mb-6 animate-fadeIn">
@@ -96,7 +119,7 @@ export default function RobotAlertBanner() {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                Robô {alert.robot_number} parado!
+                {equipment.type} {equipment.number} {equipment.gender === 'feminino' ? 'parada!' : 'parado!'}
               </h3>
               <div className="mt-1 text-sm text-orange-700 dark:text-orange-300">
                 {alert.description || "Sem descrição disponível"}
@@ -128,7 +151,7 @@ export default function RobotAlertBanner() {
         
         {alerts.length > 1 && (
           <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-800/50 text-xs text-orange-700 dark:text-orange-300">
-            {alerts.length - 1} {alerts.length - 1 === 1 ? 'outro robô está' : 'outros robôs estão'} parados
+            {alerts.length - 1} {alerts.length - 1 === 1 ? 'outro equipamento está' : 'outros equipamentos estão'} parados
           </div>
         )}
       </div>
