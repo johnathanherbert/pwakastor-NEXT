@@ -111,6 +111,7 @@ export default function OEECabine2() {
           description,
           quantity,
           batch,
+          weight,
           created_date,
           created_time,
           status,
@@ -484,9 +485,8 @@ export default function OEECabine2() {
           observacoes: 'Amostragem finalizada com sucesso'
         });
       
-      if (resultadoError && resultadoError.code !== '42P01') { // Ignora erro se a tabela não existir
+      if (resultadoError && resultadoError.code !== '42P01') // Ignora erro se a tabela não existir
         console.error('Erro ao registrar resultado:', resultadoError);
-      }
       
       // Mostrar feedback visual
       showToast("Amostragem finalizada com sucesso. NT movida para área de baixa.", "success");
@@ -633,6 +633,9 @@ export default function OEECabine2() {
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Lote
                         </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Peso
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -649,6 +652,9 @@ export default function OEECabine2() {
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                             {item.batch}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                            {item.weight ? `${item.weight}kg` : '-'}
                           </td>
                         </tr>
                       ))}
@@ -911,6 +917,7 @@ export default function OEECabine2() {
                                 <th className="text-left py-1">Código</th>
                                 <th className="text-left py-1">Descrição</th>
                                 <th className="text-left py-1">Lote</th>
+                                <th className="text-left py-1">Peso</th>
                               </tr>
                             </thead>
                             <tbody className="text-xs">
@@ -923,6 +930,9 @@ export default function OEECabine2() {
                                       item.description}
                                   </td>
                                   <td className="py-1 text-gray-700 dark:text-gray-300">{item.batch}</td>
+                                  <td className="py-1 text-gray-700 dark:text-gray-300">
+                                    {item.weight ? `${item.weight}kg` : '-'}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>

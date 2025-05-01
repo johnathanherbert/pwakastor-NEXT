@@ -171,6 +171,7 @@ export default function FluxoDeAmostragem() {
           description, 
           quantity, 
           batch, 
+          weight,
           cabine, 
           status, 
           sample_operator_id,
@@ -192,6 +193,7 @@ export default function FluxoDeAmostragem() {
           description, 
           quantity, 
           batch, 
+          weight,
           cabine, 
           status, 
           sample_operator_id,
@@ -254,7 +256,8 @@ export default function FluxoDeAmostragem() {
           code, 
           description, 
           quantity, 
-          batch, 
+          batch,
+          weight, 
           cabine, 
           status, 
           sample_operator_id,
@@ -414,26 +417,44 @@ export default function FluxoDeAmostragem() {
       
       if (updateError) throw updateError;
       
-      // 2. Registrar histórico da NT
-      const { error: historicoError } = await supabase
-        .from('nts_amostragem_historico')
-        .insert({
-          nt_id,
-          tipo_amostragem: tipoAmostragem,  // 'AVR' ou 'Convencional'
-          data_baixa: formattedDate,
-          hora_baixa: formattedTime,
-          observacoes: `Baixa realizada - ${tipoAmostragem}`
-        });
-      
-      if (historicoError && historicoError.code !== '42P01') { 
-        // Tratando o caso em que a tabela não existe, esse erro será ignorado
-        console.error("Erro ao registrar histórico:", historicoError);
-        showToast("Aviso: histórico não registrado. Tabela pode não existir.", "warning");
+      // 2. Registrar histórico da NT - Com tratamento de erro melhorado
+      try {
+        // Tenta inserir no histórico
+        const { error: historicoError } = await supabase
+          .from('nts_amostragem_historico')
+          .insert({
+            nt_id,
+            tipo_amostragem: tipoAmostragem,  // 'AVR' ou 'Convencional'
+            data_baixa: formattedDate,
+            hora_baixa: formattedTime,
+            observacoes: `Baixa realizada - ${tipoAmostragem}`
+          });
+        
+        if (historicoError) {
+          console.error("Erro detalhado ao registrar histórico:", JSON.stringify(historicoError));
+          
+          // Se for erro de tabela não existente, mostra mensagem específica
+          if (historicoError.code === '42P01') {
+            showToast("A tabela de histórico não existe. Execute o SQL para criar a tabela.", "warning");
+          } 
+          // Se for erro de tipo incompatível, mostra mensagem específica
+          else if (historicoError.code === '42804') {
+            showToast("Erro de compatibilidade de tipos. Verifique se a tabela foi criada corretamente.", "error");
+          }
+          // Para outros erros
+          else {
+            showToast(`Erro ao registrar histórico: ${historicoError.message || historicoError.code}`, "warning");
+          }
+        } else {
+          // Sucesso ao inserir no histórico
+          showToast(`NT baixada com sucesso como ${tipoAmostragem}`, "success");
+        }
+      } catch (historicoExcep) {
+        console.error("Exceção ao acessar tabela de histórico:", historicoExcep);
+        showToast("Erro ao registrar histórico, mas a baixa foi realizada nos itens.", "warning");
       }
       
-      showToast(`NT baixada com sucesso como ${tipoAmostragem}`, "success");
-      
-      // Fechar modal
+      // Fechar modal - independentemente do resultado do histórico
       setShowBaixaModal(false);
       setCurrentNTForBaixa(null);
       
@@ -442,7 +463,7 @@ export default function FluxoDeAmostragem() {
       
     } catch (error) {
       console.error("Erro ao dar baixa na NT:", error);
-      showToast("Erro ao dar baixa na NT", "error");
+      showToast("Erro ao dar baixa na NT: " + (error.message || error.code || "Erro desconhecido"), "error");
     } finally {
       setIsActionLoading(false);
     }
@@ -781,7 +802,7 @@ export default function FluxoDeAmostragem() {
         
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <Loading message="Carregando dados..." />
+            <Loading message="Carregando dados..." className="min-h-0 bg-transparent" />
           </div>
         ) : showHistoricoView ? (
           // Visualização do Histórico
@@ -975,8 +996,10 @@ export default function FluxoDeAmostragem() {
                               <ul className="space-y-1">
                                 {(ntItems[nt.id] || []).slice(0, 3).map(item => (
                                   <li key={item.id} className="text-xs text-gray-600 dark:text-gray-300 flex justify-between">
-                                    <span>{item.code} - {item.description}</span>
-                                    <span>{item.quantity}</span>
+                                    <span className="truncate max-w-[65%]">{item.code} - {item.description}</span>
+                                    <span className="flex gap-1.5">
+                                      <span className="text-gray-500 dark:text-gray-400">Qtd: {item.quantity}</span>
+                                    </span>
                                   </li>
                                 ))}
                                 
@@ -986,6 +1009,11 @@ export default function FluxoDeAmostragem() {
                                   </li>
                                 )}
                               </ul>
+                              
+                              {/* Resumo da quantidade total */}
+                              <div className="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 text-right">
+                                Quantidade total: {(ntItems[nt.id] || []).reduce((total, item) => total + (parseInt(item.quantity) || 0), 0)}
+                              </div>
                             </div>
                           )}
                           
@@ -1081,7 +1109,10 @@ export default function FluxoDeAmostragem() {
                               <div key={item.id} className="text-xs border-b border-gray-100 dark:border-gray-700 pb-1 last:border-b-0">
                                 <div className="flex justify-between">
                                   <span className="font-medium text-gray-700 dark:text-gray-300">{item.code}</span>
-                                  <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                  <div className="flex gap-2">
+                                    <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400">Qtd: {item.quantity}</span>
+                                  </div>
                                 </div>
                                 <p className="text-gray-600 dark:text-gray-400 truncate pr-2">
                                   {item.description}
@@ -1097,24 +1128,7 @@ export default function FluxoDeAmostragem() {
                           </div>
                         </div>
                         
-                        <div className="mt-auto pt-2 flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleFinalizarAmostragem(cabineA.nt_id)}
-                            className="text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 px-2 py-1 rounded flex items-center gap-1"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Finalizar Amostragem
-                          </button>
-                          <Link 
-                            href="/almoxarifado/fluxodeamostragem/cabine1"
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                          >
-                            Gerenciar OEE
-                            <ArrowTopRightOnSquareIcon className="h-3 w-3" />
-                          </Link>
-                        </div>
+                        
                       </div>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center">
@@ -1124,33 +1138,7 @@ export default function FluxoDeAmostragem() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                           Cabine disponível para amostragem
                         </p>
-                        <div className="mt-4 space-y-2 w-full max-w-xs">
-                          {/* Lista de NTs disponíveis */}
-                          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                            Selecione uma NT disponível:
-                          </p>
-                          <div className="max-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 space-y-1.5">
-                            {ntsAmostragem
-                              .filter(nt => (ntItems[nt.id] || []).every(item => item.status === 'Ag. Amostragem'))
-                              .map(nt => (
-                                <button
-                                  key={nt.id}
-                                  onClick={() => handleSelecionarNT(nt.id, 'Cabine 1')}
-                                  disabled={isActionLoading}
-                                  className="w-full flex justify-between items-center bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-left text-xs transition-colors"
-                                >
-                                  <span className="font-medium text-gray-800 dark:text-gray-200">NT #{nt.nt_number}</span>
-                                  <span className="text-blue-600 dark:text-blue-400">{(ntItems[nt.id] || []).length} itens</span>
-                                </button>
-                              ))}
-                            
-                            {ntsAmostragem.filter(nt => (ntItems[nt.id] || []).every(item => item.status === 'Ag. Amostragem')).length === 0 && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-                                Nenhuma NT disponível
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                        
                       </div>
                     )}
                   </div>
@@ -1211,7 +1199,10 @@ export default function FluxoDeAmostragem() {
                               <div key={item.id} className="text-xs border-b border-gray-100 dark:border-gray-700 pb-1 last:border-b-0">
                                 <div className="flex justify-between">
                                   <span className="font-medium text-gray-700 dark:text-gray-300">{item.code}</span>
-                                  <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                  <div className="flex gap-2">
+                                    <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400">Qtd: {item.quantity}</span>
+                                  </div>
                                 </div>
                                 <p className="text-gray-600 dark:text-gray-400 truncate pr-2">
                                   {item.description}
@@ -1254,33 +1245,7 @@ export default function FluxoDeAmostragem() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                           Cabine disponível para amostragem
                         </p>
-                        <div className="mt-4 space-y-2 w-full max-w-xs">
-                          {/* Lista de NTs disponíveis */}
-                          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                            Selecione uma NT disponível:
-                          </p>
-                          <div className="max-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 space-y-1.5">
-                            {ntsAmostragem
-                              .filter(nt => (ntItems[nt.id] || []).every(item => item.status === 'Ag. Amostragem'))
-                              .map(nt => (
-                                <button
-                                  key={nt.id}
-                                  onClick={() => handleSelecionarNT(nt.id, 'Cabine 2')}
-                                  disabled={isActionLoading}
-                                  className="w-full flex justify-between items-center bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-left text-xs transition-colors"
-                                >
-                                  <span className="font-medium text-gray-800 dark:text-gray-200">NT #{nt.nt_number}</span>
-                                  <span className="text-purple-600 dark:text-purple-400">{(ntItems[nt.id] || []).length} itens</span>
-                                </button>
-                              ))}
-                            
-                            {ntsAmostragem.filter(nt => (ntItems[nt.id] || []).every(item => item.status === 'Ag. Amostragem')).length === 0 && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-                                Nenhuma NT disponível
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                        
                       </div>
                     )}
                   </div>
@@ -1346,7 +1311,10 @@ export default function FluxoDeAmostragem() {
                                 <div key={item.id} className="text-xs mb-1 border-b border-gray-50 dark:border-gray-700/50 pb-1 last:border-b-0">
                                   <div className="flex justify-between">
                                     <span className="font-medium text-gray-700 dark:text-gray-300">{item.code}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                    <div className="flex gap-2">
+                                      <span className="text-gray-500 dark:text-gray-400">Lote: {item.batch}</span>
+                                      <span className="text-emerald-600 dark:text-emerald-400">Qtd: {item.quantity}</span>
+                                    </div>
                                   </div>
                                   <p className="text-gray-600 dark:text-gray-400 truncate">
                                     {item.description}

@@ -8,7 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
  * @param {string} [props.size='default'] - Tamanho do loader: 'small', 'default', 'large'
  * @param {string} [props.message='Carregando...'] - Mensagem exibida durante o carregamento
  * @param {boolean} [props.fullScreen=false] - Se deve ocupar toda a tela
- * @param {boolean} [props.logoVisible=true] - Se deve exibir o logo durante o carregamento
+ * @param {boolean} [props.logoVisible=false] - Se deve exibir o logo durante o carregamento
+ * @param {boolean} [props.hasBackground=true] - Se deve exibir o background do loading
  * @param {string} [props.className=''] - Classes adicionais para o container
  */
 const Loading = ({
@@ -16,6 +17,7 @@ const Loading = ({
   message = 'Carregando...',
   fullScreen = false,
   logoVisible = true,
+  hasBackground = false,
   className = ''
 }) => {
   const { darkMode } = useTheme();
@@ -51,7 +53,9 @@ const Loading = ({
     <div className={`
       ${fullScreen ? 'fixed inset-0 z-50' : 'relative w-full h-full'} 
       flex flex-col items-center justify-center 
-      ${darkMode ? 'bg-gradient-to-b from-gray-900 to-gray-950' : 'bg-gradient-to-b from-white to-gray-50'}
+      ${hasBackground ? 
+        `${darkMode ? 'bg-gradient-to-b from-gray-900 to-gray-950' : 'bg-gradient-to-b from-white to-gray-50'}` 
+        : ''}
       ${className}
     `}>
       <div className={`flex flex-col items-center ${message ? 'mb-6' : ''}`}>

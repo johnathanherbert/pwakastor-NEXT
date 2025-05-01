@@ -111,6 +111,7 @@ export default function OEECabine1() {
           description,
           quantity,
           batch,
+          weight,
           created_date,
           created_time,
           status,
@@ -166,6 +167,7 @@ export default function OEECabine1() {
           description,
           quantity,
           batch,
+          weight,
           created_date,
           created_time,
           status,
@@ -911,6 +913,7 @@ export default function OEECabine1() {
                                 <th className="text-left py-1">Código</th>
                                 <th className="text-left py-1">Descrição</th>
                                 <th className="text-left py-1">Lote</th>
+                                <th className="text-left py-1">Qtd</th>
                               </tr>
                             </thead>
                             <tbody className="text-xs">
@@ -923,6 +926,9 @@ export default function OEECabine1() {
                                       item.description}
                                   </td>
                                   <td className="py-1 text-gray-700 dark:text-gray-300">{item.batch}</td>
+                                  <td className="py-1 text-gray-700 dark:text-gray-300">
+                                    {item.quantity}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
