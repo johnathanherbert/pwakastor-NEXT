@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Topbar from "@/components/Topbar";
@@ -49,6 +49,14 @@ export default function FluxoDeAmostragem() {
   // Estado para cabines de amostragem
   const [cabineA, setCabineA] = useState(null);
   const [cabineB, setCabineB] = useState(null);
+  
+  // Estados para controle de tempo em tempo real
+  const [tempoDecorridoA, setTempoDecorridoA] = useState(0);
+  const [tempoDecorridoB, setTempoDecorridoB] = useState(0);
+  
+  // Referências para os intervalos de tempo
+  const timerRefA = useRef(null);
+  const timerRefB = useRef(null);
   
   // Estado para itens aguardando baixa
   const [itensAguardandoBaixa, setItensAguardandoBaixa] = useState([]);
@@ -122,6 +130,44 @@ export default function FluxoDeAmostragem() {
       clearInterval(intervalId);
     };
   }, []);
+  
+  // Inicializar e gerenciar os temporizadores para as cabines
+  useEffect(() => {
+    // Inicializar os tempos a partir dos dados das cabines
+    if (cabineA && cabineA.status === 'em_andamento') {
+      setTempoDecorridoA(cabineA.tempo);
+      
+      // Iniciar timer para cabine A se estiver em andamento
+      timerRefA.current = setInterval(() => {
+        setTempoDecorridoA(prev => prev + 1);
+      }, 1000);
+    } else if (cabineA) {
+      // Se existe cabine mas não está em andamento, só define o tempo
+      setTempoDecorridoA(cabineA.tempo);
+    }
+    
+    if (cabineB && cabineB.status === 'em_andamento') {
+      setTempoDecorridoB(cabineB.tempo);
+      
+      // Iniciar timer para cabine B se estiver em andamento
+      timerRefB.current = setInterval(() => {
+        setTempoDecorridoB(prev => prev + 1);
+      }, 1000);
+    } else if (cabineB) {
+      // Se existe cabine mas não está em andamento, só define o tempo
+      setTempoDecorridoB(cabineB.tempo);
+    }
+    
+    // Limpeza dos timers quando o componente for desmontado ou quando as cabines mudarem
+    return () => {
+      if (timerRefA.current) {
+        clearInterval(timerRefA.current);
+      }
+      if (timerRefB.current) {
+        clearInterval(timerRefB.current);
+      }
+    };
+  }, [cabineA, cabineB]);
   
   // Função para buscar dados do banco
   const fetchData = async (backgroundRefresh = true) => {
@@ -1100,7 +1146,7 @@ export default function FluxoDeAmostragem() {
                         
                         <div className="my-2 text-xs bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-md border border-blue-100 dark:border-blue-800/30 flex justify-between items-center">
                           <span className="text-blue-700 dark:text-blue-300">Tempo de amostragem</span>
-                          <span className="font-mono font-medium text-blue-800 dark:text-blue-200">{formatarTempo(cabineA.tempo)}</span>
+                          <span className="font-mono font-medium text-blue-800 dark:text-blue-200">{formatarTempo(tempoDecorridoA)}</span>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto">
@@ -1190,7 +1236,7 @@ export default function FluxoDeAmostragem() {
                         
                         <div className="my-2 text-xs bg-purple-50 dark:bg-purple-900/20 px-3 py-2 rounded-md border border-purple-100 dark:border-purple-800/30 flex justify-between items-center">
                           <span className="text-purple-700 dark:text-purple-300">Tempo de amostragem</span>
-                          <span className="font-mono font-medium text-purple-800 dark:text-purple-200">{formatarTempo(cabineB.tempo)}</span>
+                          <span className="font-mono font-medium text-purple-800 dark:text-purple-200">{formatarTempo(tempoDecorridoB)}</span>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto">
