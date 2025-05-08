@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { useRouter } from 'next/navigation'; // Adicionar importação do router
 import Sidebar from '../../../components/Sidebar';
@@ -68,6 +68,10 @@ export default function NTsPage() {
   const [startDate, setStartDate] = useState(''); // Filtro de data inicial
   const [endDate, setEndDate] = useState(''); // Filtro de data final
   const [activeFilterCount, setActiveFilterCount] = useState(0); // Contador de filtros ativos
+
+  // Add a state for tracking the last update time
+  const [lastRefreshTimestamp, setLastRefreshTimestamp] = useState(null);
+  const fetchIntervalRef = useRef(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -357,11 +361,108 @@ export default function NTsPage() {
       setFilteredNTs(ntsData);
       setNTItems(itemsByNT);
       setIsLoading(false);
+      setLastRefreshTimestamp(new Date().toISOString()); // Set initial timestamp
     } catch (error) {
       console.error('Error fetching NTs:', error);
       setIsLoading(false);
     }
   };
+
+  // Function to fetch only the most recent NTs data
+  const fetchRecentNTs = async () => {
+    try {
+      // Only show minimal visual feedback during auto-refresh
+      setIsSearching(true);
+      
+      // Get the timestamp from the last NT as a reference point
+      const latestTimestamp = lastRefreshTimestamp || new Date().toISOString();
+      console.log("Fetching NTs since:", latestTimestamp);
+      
+      // Fetch only NTs created or updated after the last refresh
+      const { data: recentNTsData, error: ntsError } = await supabase
+        .from('nts')
+        .select('*')
+        .gt('updated_at', latestTimestamp)
+        .order('created_at', { ascending: false });
+
+      if (ntsError) throw ntsError;
+      
+      if (!recentNTsData || recentNTsData.length === 0) {
+        console.log("No new or updated NTs found");
+        setIsSearching(false);
+        return;
+      }
+      
+      console.log(`Found ${recentNTsData.length} new or updated NTs`);
+      
+      // Get the NT ids to fetch the relevant items
+      const ntIds = recentNTsData.map(nt => nt.id);
+      
+      // Fetch only items for the new/updated NTs
+      const { data: recentItems, error: itemsError } = await supabase
+        .from('nt_items')
+        .select('*')
+        .in('nt_id', ntIds)
+        .order('item_number', { ascending: true });
+      
+      if (itemsError) throw itemsError;
+      
+      // Group items by NT
+      const recentItemsByNT = recentItems?.reduce((acc, item) => {
+        if (!acc[item.nt_id]) {
+          acc[item.nt_id] = [];
+        }
+        acc[item.nt_id].push(item);
+        return acc;
+      }, {}) || {};
+      
+      // Update state with new data
+      setNTs(prevNTs => {
+        // Replace existing NTs with updated ones, and add new ones
+        const updatedNTs = [...prevNTs];
+        recentNTsData.forEach(newNT => {
+          const existingIndex = updatedNTs.findIndex(nt => nt.id === newNT.id);
+          if (existingIndex !== -1) {
+            updatedNTs[existingIndex] = newNT;
+          } else {
+            updatedNTs.unshift(newNT); // Add new NT to beginning
+          }
+        });
+        return updatedNTs;
+      });
+      
+      // Update item data
+      setNTItems(prev => {
+        const updatedItems = { ...prev };
+        Object.keys(recentItemsByNT).forEach(ntId => {
+          updatedItems[ntId] = recentItemsByNT[ntId];
+        });
+        return updatedItems;
+      });
+      
+      // Update timestamp to current time for next refresh cycle
+      setLastRefreshTimestamp(new Date().toISOString());
+    } catch (error) {
+      console.error('Error fetching recent NTs:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Set up the periodic refresh interval
+  useEffect(() => {
+    if (user) {
+      console.log("Setting up auto-refresh for NTs (every 10s)");
+      fetchIntervalRef.current = setInterval(fetchRecentNTs, 10000);
+      
+      return () => {
+        if (fetchIntervalRef.current) {
+          console.log("Clearing auto-refresh interval");
+          clearInterval(fetchIntervalRef.current);
+        }
+      };
+    }
+  }, [user]);
 
   const fetchRobotAlerts = async () => {
     try {
