@@ -1,0 +1,43 @@
+/* Transições suaves para mudança de tema */
+*, 
+*::before, 
+*::after {
+  transition: background-color 0.3s ease-in-out, 
+             border-color 0.3s ease-in-out, 
+             color 0.3s ease-in-out, 
+             box-shadow 0.3s ease-in-out,
+             fill 0.3s ease-in-out,
+             stroke 0.3s ease-in-out,
+             opacity 0.3s ease-in-out;
+}
+
+/* Aplicar transição específica para elementos com background-image ou gradientes */
+.bg-gradient-to-r,
+.bg-gradient-to-l,
+.bg-gradient-to-t,
+.bg-gradient-to-b,
+.bg-gradient-to-tr,
+.bg-gradient-to-tl,
+.bg-gradient-to-br,
+.bg-gradient-to-bl {
+  transition: background 0.3s ease-in-out;
+}
+
+/* Transição específica para elementos com backdrop-filter */
+[class*="backdrop-blur"] {
+  transition: backdrop-filter 0.3s ease-in-out, background-color 0.3s ease-in-out;
+}
+
+/* Exceções - elementos que não devem ter transição */
+.no-transition,
+.no-transition *,
+svg *:not([class*="text-"]),
+input[type="checkbox"],
+input[type="radio"],
+button:active *,
+.animate-spin,
+.animate-pulse,
+.animate-ping,
+.animate-bounce {
+  transition: none !important;
+}

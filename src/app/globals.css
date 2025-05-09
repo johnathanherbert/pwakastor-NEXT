@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 @import '../styles/animations.css';
+@import '../styles/theme-transitions.css';
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -29,6 +30,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
 html {

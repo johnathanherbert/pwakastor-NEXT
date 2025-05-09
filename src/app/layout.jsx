@@ -10,14 +10,14 @@ import AdminMessages from '../components/AdminMessages';
 import useAppUpdate from '../hooks/useAppUpdate';
 import ToastContainer from '../components/Toast/ToastContainer';
 
+
 const inter = Inter({ subsets: ['latin'] });
 
 // Removed metadata export as it can't be used with 'use client'
 
 export default function RootLayout({ children }) {
   const { hasUpdate } = useAppUpdate(5); // Verifica atualizações a cada 5 minutos
-  
-  // Script para dark mode executado no lado do cliente para evitar problemas de hidratação
+    // Script para dark mode executado no lado do cliente para evitar problemas de hidratação
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('theme');
@@ -33,8 +33,8 @@ export default function RootLayout({ children }) {
         document.body.style.backgroundColor = '#111827';
       } else {
         document.documentElement.classList.remove('dark');
-        document.documentElement.style.backgroundColor = '';
-        document.body.style.backgroundColor = '';
+        document.documentElement.style.backgroundColor = '#f9fafb';
+        document.body.style.backgroundColor = '#f9fafb';
       }
     } catch (e) {
       console.error('Error in dark mode initialization script:', e);

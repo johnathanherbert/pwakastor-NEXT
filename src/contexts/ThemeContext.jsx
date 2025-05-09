@@ -55,15 +55,16 @@ export function ThemeProvider({ children }) {
     
     setMounted(true);
   }, []);
-
   // Efeito para atualizar as classes CSS quando o tema muda
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
-      document.body.classList.add('bg-gray-900');
+      document.documentElement.style.backgroundColor = '#111827';
+      document.body.style.backgroundColor = '#111827';
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.classList.remove('bg-gray-900');
+      document.documentElement.style.backgroundColor = '#f9fafb';
+      document.body.style.backgroundColor = '#f9fafb';
     }
   }, [isDarkMode]);
 
