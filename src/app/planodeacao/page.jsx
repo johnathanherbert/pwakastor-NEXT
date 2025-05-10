@@ -31,6 +31,7 @@ import { supabase } from '../../supabaseClient';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import Topbar from '@/components/Topbar';
+import Modal from '@/components/Modal';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }) => {
@@ -203,11 +204,16 @@ export default function PlanoDeAcaoPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   
+  // Estado para o nome do departamento/setor
+  const [departmentName, setDepartmentName] = useState('');
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [tempDepartmentName, setTempDepartmentName] = useState('');
+  
   const [sessions, setSessions] = useState([]);
   const [sessaoSelecionada, setSessaoSelecionada] = useState('todas');
   const [showForm, setShowForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [itemEmEdicao, setItemEmEdicao] = useState(null);  const [novoItem, setNovoItem] = useState({
+  const [itemEmEdicao, setItemEmEdicao] = useState(null);const [novoItem, setNovoItem] = useState({
     problema: '',
     causaRaiz: '',
     contramedida: '',
@@ -231,10 +237,17 @@ export default function PlanoDeAcaoPage() {
     emDia: 0,
     emAtencao: 0,
     atrasados: 0
-  });
-  // Mostrar toast notification
+  });  // Mostrar toast notification
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
+  };
+  
+  // Salvar nome do departamento
+  const saveDepartmentName = () => {
+    setDepartmentName(tempDepartmentName);
+    localStorage.setItem('kasstor_department_name', tempDepartmentName);
+    setShowDepartmentModal(false);
+    showToast('Nome do setor salvo com sucesso', 'success');
   };
     // Função para aplicar filtro de status
   const aplicarFiltroStatus = (filtro) => {
@@ -259,7 +272,15 @@ export default function PlanoDeAcaoPage() {
       showToast(mensagens[filtro] || 'Filtro aplicado', "info");
     }
   };
-
+  // Carregar nome do departamento do localStorage
+  useEffect(() => {
+    const savedDepartment = localStorage.getItem('kasstor_department_name');
+    if (savedDepartment) {
+      setDepartmentName(savedDepartment);
+      setTempDepartmentName(savedDepartment);
+    }
+  }, []);
+  
   // Buscar usuário logado
   useEffect(() => {
     const getUser = async () => {
@@ -819,16 +840,22 @@ export default function PlanoDeAcaoPage() {
               <path d="M46.5,-76.3C59.2,-69.7,67.8,-54.3,75.1,-38.8C82.4,-23.3,88.4,-7.7,87.1,7.3C85.8,22.3,77.2,36.8,66.3,48.1C55.5,59.5,42.3,67.7,28.6,73.8C14.8,79.9,0.4,83.8,-13.9,81.8C-28.3,79.7,-42.6,71.7,-53.6,60.5C-64.6,49.3,-72.4,35,-77.9,19.7C-83.5,4.4,-86.8,-12,-82,-26C-77.1,-40.1,-64,-51.7,-49.8,-57.9C-35.6,-64.1,-20.3,-64.9,-4.2,-58.7C11.9,-52.5,33.8,-83,46.5,-76.3Z" transform="translate(100 100)" />
             </svg>
           </div>
-          
-          <div className="md:flex md:items-center md:justify-between relative z-10">
+            <div className="md:flex md:items-center md:justify-between relative z-10">
             <div className="flex-1 min-w-0">
               <div className="flex items-center">
                 <div className="bg-white/10 p-2.5 rounded-lg mr-4 hidden sm:flex items-center justify-center">
                   <DocumentTextIcon className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl tracking-tight">
-                    Plano de Ação
+                <div className="relative">
+                  <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl tracking-tight group flex items-center">
+                    Plano de Ação {departmentName && <span className="ml-2 text-blue-200">- {departmentName}</span>}
+                    <button 
+                      onClick={() => setShowDepartmentModal(true)}
+                      className="ml-2 opacity-40 hover:opacity-100 transition-opacity focus:outline-none" 
+                      title="Editar nome do setor"
+                    >
+                      <PencilIcon className="h-4 w-4 text-blue-200" />
+                    </button>
                   </h1>
                   <p className="mt-1.5 text-sm text-blue-100 dark:text-blue-200 max-w-3xl">
                     Gerencie, acompanhe e monitore as ações corretivas e melhorias do seu processo de forma eficiente e colaborativa
@@ -1972,11 +1999,55 @@ export default function PlanoDeAcaoPage() {
                   </button>
                 </div>
               </motion.div>
-            ))
-          )}
-        </div>
+            ))          )}        </div>
       )}
       </div>
+      
+      {/* Modal para editar nome do departamento/setor */}
+      <Modal
+        isOpen={showDepartmentModal} 
+        onClose={() => setShowDepartmentModal(false)}
+        title="Editar Nome do Setor"
+        size="sm"
+        footer={
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => setShowDepartmentModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={saveDepartmentName}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              Salvar
+            </button>
+          </div>
+        }
+      >
+        <div className="p-4">
+          <label htmlFor="departmentName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Nome do Departamento/Setor
+          </label>
+          <div className="mt-1 mb-3">
+            <input
+              type="text"
+              id="departmentName"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:focus:border-blue-500 dark:focus:ring-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+              value={tempDepartmentName}
+              onChange={(e) => setTempDepartmentName(e.target.value)}
+              placeholder="Ex: Produção, Qualidade, Manutenção, etc."
+            />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Este nome será exibido no cabeçalho e nos relatórios exportados.
+          </p>
+        </div>
+      </Modal>
+      
+      {/* Toast notification */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
-  );
+  )
 }
