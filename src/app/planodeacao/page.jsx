@@ -832,7 +832,7 @@ export default function PlanoDeAcaoPage() {
         title="Plano de Ação"
       />
         {/* Header com banner da página - Design moderno e funcional */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-950 shadow-lg rounded-lg mb-6">
+      <div className="mx-8 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-950 shadow-lg rounded-lg mb-6">
         <div className="max-w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
           {/* Elementos decorativos de fundo */}
           <div className="absolute top-0 right-0 w-64 h-64 opacity-10">

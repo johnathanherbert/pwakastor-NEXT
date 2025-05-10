@@ -15,6 +15,7 @@ import {
   BeakerIcon,
   ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
+  CalendarIcon
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ open, onClose }) {
@@ -32,6 +33,7 @@ export default function Sidebar({ open, onClose }) {
       icon: BuildingStorefrontIcon,
       description: "Gestão de inventário e notas técnicas"
     },
+    { name: "Plano de ação", href: "/planodeacao", icon: CalendarIcon, description: "Planejamento de atividades" },
     //{ name: "Alocação", href: "/alocacao-mobile", icon: BeakerIcon, description: "Alocação de materiais em vagas" },
     { name: "Inventário", href: "", icon: ArchiveBoxIcon, description: "Controle e balanço de inventário" },
     { name: "Usuários", href: "", icon: UserGroupIcon, description: "Gerenciamento de usuários" },
