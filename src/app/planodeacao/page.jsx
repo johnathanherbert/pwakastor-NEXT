@@ -23,7 +23,9 @@ import {
   FolderIcon,
   QuestionMarkCircleIcon,
   ExclamationTriangleIcon,
-  MagnifyingGlassIcon as SearchIcon
+  MagnifyingGlassIcon as SearchIcon,
+  FunnelIcon as FilterIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../../supabaseClient';
 import { motion } from 'framer-motion';
@@ -51,19 +53,103 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
+// Função para calcular a idade do item (em dias)
+const calcularIdade = (dataCriacao) => {
+  if (!dataCriacao) return null;
+  
+  const hoje = new Date();
+  const criacao = new Date(dataCriacao);
+  
+  // Diferença em milissegundos
+  const diferenca = hoje - criacao;
+  
+  // Converter para dias (arredondando para baixo)
+  const dias = Math.floor(diferenca / (1000 * 60 * 60 * 24));
+  
+  return dias;
+};
+
+// Função para obter classe visual de acordo com a idade do item
+const getClasseIdade = (dias) => {
+  if (dias === null) return {
+    texto: 'N/A',
+    classe: 'text-gray-400 dark:text-gray-500',
+    icone: null
+  };
+  
+  if (dias === 0) return {
+    texto: 'Hoje',
+    classe: 'text-blue-600 dark:text-blue-400',
+    icone: <ClockIcon className="h-3.5 w-3.5 mr-1 text-blue-500 dark:text-blue-400" />
+  };
+  
+  if (dias <= 7) return {
+    texto: `${dias} ${dias === 1 ? 'dia' : 'dias'}`,
+    classe: 'text-green-600 dark:text-green-400',
+    icone: <ClockIcon className="h-3.5 w-3.5 mr-1 text-green-500 dark:text-green-400" />
+  };
+  
+  if (dias <= 30) return {
+    texto: `${dias} dias`,
+    classe: 'text-yellow-600 dark:text-yellow-400',
+    icone: <ClockIcon className="h-3.5 w-3.5 mr-1 text-yellow-500 dark:text-yellow-400" />
+  };
+  
+  return {
+    texto: `${dias} dias`,
+    classe: 'text-red-600 dark:text-red-400',
+    icone: <ClockIcon className="h-3.5 w-3.5 mr-1 text-red-500 dark:text-red-400" />
+  };
+};
+
+// Função para calcular dias até o prazo ou dias de atraso
+const calcularDiasParaPrazo = (prazoFinal) => {
+  const hoje = new Date();
+  const prazo = new Date(prazoFinal);
+  
+  // Diferença em milissegundos
+  const diferenca = prazo - hoje;
+  
+  // Converter para dias (arredondando para baixo ou para cima dependendo se está adiantado ou atrasado)
+  const dias = Math.ceil(diferenca / (1000 * 60 * 60 * 24));
+  
+  return dias;
+};
+
+// Função para formatar a mensagem de prazo
+const formatarMensagemPrazo = (dias) => {
+  if (dias === 0) {
+    return {
+      texto: "Vence hoje",
+      classe: "text-yellow-600 dark:text-yellow-400 font-medium"
+    };
+  } else if (dias > 0) {
+    return {
+      texto: `Faltam ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
+      classe: "text-green-600 dark:text-green-400 font-medium"
+    };
+  } else {
+    const diasAtraso = Math.abs(dias);
+    return {
+      texto: `${diasAtraso} ${diasAtraso === 1 ? 'dia' : 'dias'} de atraso`,
+      classe: "text-red-600 dark:text-red-400 font-medium"
+    };
+  }
+};
+
 // Função para calcular o status com base no prazo final
 const calcularStatus = (prazoFinal, concluido = false) => {
   // Se a tarefa foi concluída, retorna status de concluído independentemente do prazo
   if (concluido) {
-    return { 
-      texto: 'Concluído', 
-      classe: 'text-white bg-blue-500', 
-      badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      badgePill: 'text-xs font-medium px-3 py-1.5 rounded-md bg-blue-100/80 text-blue-800 dark:bg-blue-900 dark:text-blue-300 shadow-sm border border-blue-200 dark:border-blue-800 flex items-center justify-center',
+    return {
+      texto: 'Concluído',
+      classe: 'text-white bg-green-500',
+      badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      badgePill: 'text-xs font-medium px-3 py-1.5 rounded-md bg-green-100/80 text-green-800 dark:bg-green-900 dark:text-green-300 shadow-sm border border-green-200 dark:border-green-800 flex items-center justify-center',
       icon: <CheckCircleIcon className="h-4 w-4 mr-1.5" />,
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
-      priority: 0 
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-600',
+      priority: 0
     };
   }
 
@@ -137,6 +223,7 @@ export default function PlanoDeAcaoPage() {
   const [viewMode, setViewMode] = useState('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMoreSessions, setShowMoreSessions] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(null); // Novo estado para controlar o filtro de status
   
   // Estatísticas
   const [stats, setStats] = useState({
@@ -145,10 +232,32 @@ export default function PlanoDeAcaoPage() {
     emAtencao: 0,
     atrasados: 0
   });
-
   // Mostrar toast notification
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
+  };
+    // Função para aplicar filtro de status
+  const aplicarFiltroStatus = (filtro) => {
+    if (statusFilter === filtro) {
+      // Se clicar no mesmo filtro, remove o filtro (toggle)
+      setStatusFilter(null);
+      showToast("Filtro removido", "info");
+    } else {
+      setStatusFilter(filtro);    const mensagens = {
+        'total': 'Mostrando todos os itens',
+        'emDia': 'Filtrando itens dentro do prazo',
+        'emAtencao': 'Filtrando itens em atenção',
+        'atrasados': 'Filtrando itens atrasados',
+        'concluido': 'Filtrando itens concluídos',
+        'recentes': 'Filtrando itens criados nos últimos 7 dias',
+        'intermediarios': 'Filtrando itens criados entre 7 e 30 dias atrás',
+        'antigos': 'Filtrando itens criados há mais de 30 dias',
+        'venceHoje': 'Filtrando itens que vencem hoje',
+        'venceEmBreve': 'Filtrando itens que vencem em breve (próximos 3 dias)',
+        'atrasados2': 'Filtrando itens com prazo expirado'
+      };
+      showToast(mensagens[filtro] || 'Filtro aplicado', "info");
+    }
   };
 
   // Buscar usuário logado
@@ -181,12 +290,26 @@ export default function PlanoDeAcaoPage() {
         .order('prazo_final');
       
       if (itensError) throw itensError;
-      
-    // Processar os itens com status calculado
-      const itensProcessados = itensData.map(item => ({
-        ...item,
-        status: calcularStatus(item.prazo_final, item.concluido)
-      }));
+    // Processar os itens com status calculado e idade
+      const itensProcessados = itensData.map(item => {
+        const diasDesdeACriacao = calcularIdade(item.created_at);
+        const infoIdade = getClasseIdade(diasDesdeACriacao);
+        const diasParaPrazo = calcularDiasParaPrazo(item.prazo_final);
+        const infoPrazo = formatarMensagemPrazo(diasParaPrazo);
+        
+        return {
+          ...item,
+          status: calcularStatus(item.prazo_final, item.concluido),
+          idade: {
+            dias: diasDesdeACriacao,
+            ...infoIdade
+          },
+          prazo: {
+            dias: diasParaPrazo,
+            ...infoPrazo
+          }
+        };
+      });
       
       // Agrupar itens por sessão
       const sessionsWithItens = sessoesData.map(session => ({
@@ -222,7 +345,7 @@ export default function PlanoDeAcaoPage() {
       fetchData();
     }
   }, [user]);
-    // Filtra os itens com base na sessão selecionada e pesquisa
+  // Filtra os itens com base na sessão selecionada, pesquisa e status
   const itensFiltrados = () => {
     if (!sessions || sessions.length === 0) return [];
     
@@ -241,6 +364,22 @@ export default function PlanoDeAcaoPage() {
         ...item,
         sessao: session.nome
       })) : [];
+    }
+      // Filtra por status se houver um filtro ativo
+    if (statusFilter) {
+      itens = itens.filter(item => {
+        if (statusFilter === 'concluido') return item.concluido;
+        if (statusFilter === 'emDia') return !item.concluido && item.status.texto === 'Dentro do prazo';
+        if (statusFilter === 'emAtencao') return !item.concluido && item.status.texto === 'Atenção';
+        if (statusFilter === 'atrasados') return !item.concluido && item.status.texto === 'Atrasado';
+        if (statusFilter === 'recentes') return item.idade.dias <= 7; // Itens criados nos últimos 7 dias
+        if (statusFilter === 'intermediarios') return item.idade.dias > 7 && item.idade.dias <= 30; // Entre 8 e 30 dias
+        if (statusFilter === 'antigos') return item.idade.dias > 30; // Mais de 30 dias
+        if (statusFilter === 'venceHoje') return item.prazo.dias === 0; // Itens que vencem hoje
+        if (statusFilter === 'venceEmBreve') return item.prazo.dias > 0 && item.prazo.dias <= 3; // Vencem em até 3 dias
+        if (statusFilter === 'atrasados2') return item.prazo.dias < 0; // Itens atrasados (prazo expirado)
+        return true; // Retorna true por padrão se não houver correspondência
+      });
     }
     
     // Depois filtra por pesquisa se houver um termo de busca
@@ -433,49 +572,216 @@ export default function PlanoDeAcaoPage() {
       console.error("Erro ao excluir sessão:", error);
       showToast("Erro ao excluir sessão. Tente novamente.", "error");
     }
-  };
-  const exportToCSV = () => {
+  };  const exportToExcel = async () => {
     const itens = itensFiltrados();
     if (!itens.length) {
       showToast("Não há dados para exportar", "error");
       return;
-    }
-    
-    // Preparar cabeçalho
-    let headers = ['Problema', 'Causa Raiz', 'Contramedida', 'Responsável', 'Prazo Final', 'Status'];
-    if (sessaoSelecionada === 'todas') headers.unshift('Sessão');
-    
-    // Preparar linhas de dados
-    const rows = itens.map(item => {
-      const linha = [
-        item.problema,
-        item.causa_raiz || '-',
-        item.contramedida,
-        item.responsavel,
-        new Date(item.prazo_final).toLocaleDateString('pt-BR'),
-        item.status.texto
+    }    try {
+      // Importar as bibliotecas necessárias dinamicamente
+      const ExcelJS = (await import('exceljs')).default;
+      const FileSaver = await import('file-saver');
+      const saveAs = FileSaver.saveAs;  // Obter a função saveAs corretamente
+      
+      // Criar uma nova planilha
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'PWA Kastor';
+      workbook.lastModifiedBy = 'PWA Kastor';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+      
+      // Adicionar uma planilha
+      const worksheet = workbook.addWorksheet('Plano de Ação', {
+        properties: { tabColor: { argb: '4F81BD' } }
+      });
+      
+      // Definir colunas
+      let columns = [
+        { header: 'Problema', key: 'problema', width: 30 },
+        { header: 'Causa Raiz', key: 'causa_raiz', width: 30 },
+        { header: 'Contramedida', key: 'contramedida', width: 30 },
+        { header: 'Responsável', key: 'responsavel', width: 20 },
+        { header: 'Prazo Final', key: 'prazo_final', width: 15 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Idade', key: 'idade', width: 10 },
+        { header: 'Data de Criação', key: 'data_criacao', width: 15 }
       ];
       
-      if (sessaoSelecionada === 'todas') linha.unshift(item.sessao);
-      return linha;
-    });
-    
-    // Combinar cabeçalho e linhas
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    // Criar e baixar o arquivo
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `plano-de-acao-${new Date().toLocaleDateString('pt-BR')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (sessaoSelecionada === 'todas') {
+        columns.unshift({ header: 'Sessão', key: 'sessao', width: 20 });
+      }
+      
+      worksheet.columns = columns;
+        // Adicionar dados
+      itens.forEach(item => {
+        const idadeItem = calcularIdade(item.created_at);
+        const idadeInfo = getClasseIdade(idadeItem);
+        
+        // Garantir que temos os dados válidos e fazer tratamento de possíveis campos nulos
+        const rowData = {
+          problema: item.problema || 'Sem descrição',
+          causa_raiz: item.causa_raiz || '-',
+          contramedida: item.contramedida || '-',
+          responsavel: item.responsavel || '-',
+          status: (item.status && item.status.texto) ? item.status.texto : '-',
+          idade: idadeInfo ? idadeInfo.texto : '-',
+        };
+
+        // Tratamento especial para datas para evitar erro de data inválida
+        try {
+          if (item.prazo_final) {
+            rowData.prazo_final = new Date(item.prazo_final);
+            if (isNaN(rowData.prazo_final.getTime())) {
+              rowData.prazo_final = '-';
+            }
+          } else {
+            rowData.prazo_final = '-';
+          }
+          
+          if (item.created_at) {
+            rowData.data_criacao = new Date(item.created_at);
+            if (isNaN(rowData.data_criacao.getTime())) {
+              rowData.data_criacao = '-';
+            }
+          } else {
+            rowData.data_criacao = '-';
+          }
+        } catch (e) {
+          console.error("Erro ao processar datas:", e);
+          rowData.prazo_final = '-';
+          rowData.data_criacao = '-';
+        }
+        
+        if (sessaoSelecionada === 'todas') {
+          rowData.sessao = item.sessao || '-';
+        }
+        
+        worksheet.addRow(rowData);
+      });
+      
+      // Estilizar o cabeçalho
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '4472C4' } // Azul
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+        // Estilizar células com base no status
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) { // Pular o cabeçalho
+          try {
+            const statusCell = row.getCell('status');
+            const status = statusCell?.value || '';
+            
+            // Definir cor de fundo baseada no status
+            let fillColor = 'FFFFFF'; // Branco padrão
+            
+            if (status === 'Concluído') {
+              fillColor = 'C6E0B4'; // Verde claro
+            } else if (status === 'Dentro do prazo') {
+              fillColor = 'D5F5E3'; // Verde mais claro
+            } else if (status === 'Em andamento' || status === 'Atenção') {
+              fillColor = 'FFE699'; // Amarelo claro
+            } else if (status === 'Não iniciado') {
+              fillColor = 'F8CBAD'; // Laranja claro
+            } else if (status === 'Atrasado') {
+              fillColor = 'F5B7B1'; // Vermelho claro
+            }
+            
+            statusCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: fillColor }
+            };
+            
+            // Formatar células de data
+            const prazoCell = row.getCell('prazo_final');
+            if (prazoCell && prazoCell.value && prazoCell.value instanceof Date) {
+              prazoCell.numFmt = 'dd/mm/yyyy';
+            }
+            
+            const dataCriacaoCell = row.getCell('data_criacao');
+            if (dataCriacaoCell && dataCriacaoCell.value && dataCriacaoCell.value instanceof Date) {
+              dataCriacaoCell.numFmt = 'dd/mm/yyyy';
+            }
+          } catch (err) {
+            console.error("Erro ao estilizar célula:", err);
+            // Continue mesmo se houver erro em uma linha específica
+          }
+        }
+      });
+        // Adicionar bordas em todas as células
+      worksheet.eachRow((row) => {
+        try {
+          row.eachCell((cell) => {
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          });
+        } catch (err) {
+          console.error("Erro ao adicionar bordas:", err);
+          // Continue mesmo se houver erro em uma linha específica
+        }
+      });
+      
+      // Adicionar filtro ao cabeçalho
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: worksheet.columns.length }
+      };
+      
+      // Congelar a primeira linha
+      worksheet.views = [
+        { state: 'frozen', xSplit: 0, ySplit: 1 }
+      ];
+        // Gerar o arquivo
+      console.log("Gerando buffer da planilha...");
+      const buffer = await workbook.xlsx.writeBuffer();
+      console.log("Buffer gerado com sucesso!");
+      
+      const fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const hoje = new Date();
+      const fileDate = `${hoje.getDate()}-${hoje.getMonth()+1}-${hoje.getFullYear()}`;
+      const fileName = `Plano-de-acao-${fileDate}.xlsx`;
+        // Salvar o arquivo
+      console.log("Criando blob do arquivo...");
+      const blob = new Blob([buffer], { type: fileType });
+      console.log("Salvando arquivo:", fileName);
+      
+      // Usar saveAs do FileSaver para garantir que a função existe
+      if (typeof saveAs === 'function') {
+        saveAs(blob, fileName);
+      } else {
+        console.log("Usando método alternativo para download...");
+        // Método alternativo de download caso saveAs não seja uma função
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }
+      
+      showToast("Planilha exportada com sucesso!", "success");    } catch (error) {
+      console.error("Erro ao exportar planilha:", error);
+      
+      // Mostrar mensagem de erro mais específica para ajudar na depuração
+      let mensagemErro = "Erro ao exportar planilha.";
+      if (error.message) {
+        mensagemErro += " Detalhes: " + error.message;
+      }
+      
+      showToast(mensagemErro, "error");
+    }
   };
   // Marcar item como concluído ou não concluído
   const handleMarcarConcluido = async (id, concluido) => {
@@ -502,13 +808,11 @@ export default function PlanoDeAcaoPage() {
         user={user} 
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        openDialog={openDialog}
-        setOpenDialog={setOpenDialog}
         title="Plano de Ação"
       />
         {/* Header com banner da página - Design moderno e funcional */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-950 shadow-lg">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-950 shadow-lg rounded-lg mb-6">
+        <div className="max-w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
           {/* Elementos decorativos de fundo */}
           <div className="absolute top-0 right-0 w-64 h-64 opacity-10">
             <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="text-white fill-current">
@@ -519,14 +823,14 @@ export default function PlanoDeAcaoPage() {
           <div className="md:flex md:items-center md:justify-between relative z-10">
             <div className="flex-1 min-w-0">
               <div className="flex items-center">
-                <div className="bg-white/10 p-2 rounded-lg mr-4 hidden sm:block">
+                <div className="bg-white/10 p-2.5 rounded-lg mr-4 hidden sm:flex items-center justify-center">
                   <DocumentTextIcon className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl tracking-tight">
                     Plano de Ação
                   </h1>
-                  <p className="mt-2 text-sm text-blue-100 dark:text-blue-200 max-w-3xl">
+                  <p className="mt-1.5 text-sm text-blue-100 dark:text-blue-200 max-w-3xl">
                     Gerencie, acompanhe e monitore as ações corretivas e melhorias do seu processo de forma eficiente e colaborativa
                   </p>
                 </div>
@@ -549,14 +853,12 @@ export default function PlanoDeAcaoPage() {
               </div>
             </div>
             
-            <div className="mt-4 flex flex-col sm:flex-row gap-3 md:mt-0 md:ml-4">
-              <button
-                onClick={exportToCSV}
+            <div className="mt-4 flex flex-col sm:flex-row gap-3 md:mt-0 md:ml-4">              <button
+                onClick={exportToExcel}
                 className="inline-flex items-center justify-center px-4 py-2 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors backdrop-blur-sm"
-                title="Exportar dados para planilha"
-              >
-                <DocumentDuplicateIcon className="h-4 w-4 mr-2" /> 
-                Exportar CSV
+                title="Exportar dados para planilha Excel"
+              >                <DocumentArrowDownIcon className="h-4 w-4 mr-2" /> 
+                Exportar Excel
               </button>
               <button
                 onClick={() => setShowForm(true)}
@@ -570,7 +872,7 @@ export default function PlanoDeAcaoPage() {
         </div>
       </div>
       
-      <div className="pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+      <div className="pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-full mx-auto space-y-6">
         {/* Toast notification */}
         {toast && (
           <Toast 
@@ -621,9 +923,13 @@ export default function PlanoDeAcaoPage() {
               </button>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 sm:divide-x sm:divide-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-            <div className="p-6 flex items-center space-x-4 transition-all hover:bg-gray-50 dark:hover:bg-blue-900/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 sm:divide-x sm:divide-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+            <button 
+              onClick={() => aplicarFiltroStatus('total')}
+              className={`text-left p-6 flex items-center space-x-4 transition-all ${statusFilter === 'total' 
+                ? 'bg-blue-50/50 dark:bg-blue-900/20' 
+                : 'hover:bg-gray-50 dark:hover:bg-blue-900/10'}`}
+            >
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-full p-3 flex-shrink-0">
                 <CheckCircleIcon className="h-7 w-7 text-blue-600 dark:text-blue-400" />
               </div>
@@ -633,10 +939,20 @@ export default function PlanoDeAcaoPage() {
                 <div className="mt-1 h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded-full">
                   <div className="h-1 bg-blue-600 rounded-full" style={{ width: '100%' }}></div>
                 </div>
+                {statusFilter === 'total' && (
+                  <div className="mt-1 inline-flex items-center text-xs text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+                    <FilterIcon className="h-3 w-3 mr-1" /> Filtro ativo
+                  </div>
+                )}
               </div>
-            </div>
+            </button>
             
-            <div className="p-6 flex items-center space-x-4 transition-all hover:bg-green-50/20 dark:hover:bg-green-900/10">
+            <button 
+              onClick={() => aplicarFiltroStatus('emDia')}
+              className={`text-left p-6 flex items-center space-x-4 transition-all ${statusFilter === 'emDia' 
+                ? 'bg-green-50/50 dark:bg-green-900/20' 
+                : 'hover:bg-green-50/20 dark:hover:bg-green-900/10'}`}
+            >
               <div className="bg-green-50 dark:bg-green-900/20 rounded-full p-3 flex-shrink-0">
                 <CheckIcon className="h-7 w-7 text-green-600 dark:text-green-400" />
               </div>
@@ -646,10 +962,20 @@ export default function PlanoDeAcaoPage() {
                 <div className="mt-1 h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded-full">
                   <div className="h-1 bg-green-500 rounded-full" style={{ width: `${stats.total ? (stats.emDia / stats.total) * 100 : 0}%` }}></div>
                 </div>
+                {statusFilter === 'emDia' && (
+                  <div className="mt-1 inline-flex items-center text-xs text-green-600 dark:text-green-400 bg-green-100/50 dark:bg-green-900/30 px-2 py-0.5 rounded-md">
+                    <FilterIcon className="h-3 w-3 mr-1" /> Filtro ativo
+                  </div>
+                )}
               </div>
-            </div>
+            </button>
             
-            <div className="p-6 flex items-center space-x-4 transition-all hover:bg-yellow-50/20 dark:hover:bg-yellow-900/10">
+            <button 
+              onClick={() => aplicarFiltroStatus('emAtencao')}
+              className={`text-left p-6 flex items-center space-x-4 transition-all ${statusFilter === 'emAtencao' 
+                ? 'bg-yellow-50/50 dark:bg-yellow-900/20' 
+                : 'hover:bg-yellow-50/20 dark:hover:bg-yellow-900/10'}`}
+            >
               <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-full p-3 flex-shrink-0">
                 <ClockIcon className="h-7 w-7 text-yellow-600 dark:text-yellow-400" />
               </div>
@@ -659,10 +985,20 @@ export default function PlanoDeAcaoPage() {
                 <div className="mt-1 h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded-full">
                   <div className="h-1 bg-yellow-500 rounded-full" style={{ width: `${stats.total ? (stats.emAtencao / stats.total) * 100 : 0}%` }}></div>
                 </div>
+                {statusFilter === 'emAtencao' && (
+                  <div className="mt-1 inline-flex items-center text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-100/50 dark:bg-yellow-900/30 px-2 py-0.5 rounded-md">
+                    <FilterIcon className="h-3 w-3 mr-1" /> Filtro ativo
+                  </div>
+                )}
               </div>
-            </div>
+            </button>
             
-            <div className="p-6 flex items-center space-x-4 transition-all hover:bg-red-50/20 dark:hover:bg-red-900/10">
+            <button 
+              onClick={() => aplicarFiltroStatus('atrasados')}
+              className={`text-left p-6 flex items-center space-x-4 transition-all ${statusFilter === 'atrasados' 
+                ? 'bg-red-50/50 dark:bg-red-900/20' 
+                : 'hover:bg-red-50/20 dark:hover:bg-red-900/10'}`}
+            >
               <div className="bg-red-50 dark:bg-red-900/20 rounded-full p-3 flex-shrink-0">
                 <ExclamationCircleIcon className="h-7 w-7 text-red-600 dark:text-red-400" />
               </div>
@@ -672,31 +1008,124 @@ export default function PlanoDeAcaoPage() {
                 <div className="mt-1 h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded-full">
                   <div className="h-1 bg-red-500 rounded-full" style={{ width: `${stats.total ? (stats.atrasados / stats.total) * 100 : 0}%` }}></div>
                 </div>
+                {statusFilter === 'atrasados' && (
+                  <div className="mt-1 inline-flex items-center text-xs text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/30 px-2 py-0.5 rounded-md">
+                    <FilterIcon className="h-3 w-3 mr-1" /> Filtro ativo
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-          
-          {/* Barra de progresso para visualizar proporção */}
+            </button>
+          </div>          {/* Barra de progresso para visualizar proporção */}
           {stats.total > 0 && (
             <div>
               <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  <span>Progresso geral</span>
-                  <span>{Math.round((stats.emDia / stats.total) * 100)}% concluído</span>
-                </div>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
-                  <div 
-                    className="bg-green-500" 
-                    style={{ width: `${(stats.emDia / stats.total) * 100}%` }}
-                  ></div>
-                  <div 
-                    className="bg-yellow-500" 
-                    style={{ width: `${(stats.emAtencao / stats.total) * 100}%` }}
-                  ></div>
-                  <div 
-                    className="bg-red-500" 
-                    style={{ width: `${(stats.atrasados / stats.total) * 100}%` }}
-                  ></div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>Progresso geral</span>
+                      <span>{Math.round((stats.emDia / stats.total) * 100)}% dentro do prazo</span>
+                    </div>
+                    <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                      <div 
+                        className="bg-green-500" 
+                        style={{ width: `${(stats.emDia / stats.total) * 100}%` }}
+                      ></div>
+                      <div 
+                        className="bg-yellow-500" 
+                        style={{ width: `${(stats.emAtencao / stats.total) * 100}%` }}
+                      ></div>
+                      <div 
+                        className="bg-red-500" 
+                        style={{ width: `${(stats.atrasados / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => aplicarFiltroStatus('concluido')}
+                      className={`flex items-center text-xs font-medium py-1 px-2 rounded-md transition-colors ${
+                        statusFilter === 'concluido' 
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-blue-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <CheckCircleIcon className="h-3.5 w-3.5 mr-1" />
+                      Ver concluídos
+                      {statusFilter === 'concluido' ? (
+                        <XMarkIcon className="h-3.5 w-3.5 ml-1.5" />
+                      ) : null}
+                    </button>
+                      <div className="hidden sm:flex items-center flex-wrap gap-1">
+                      <div className="hidden md:flex items-center gap-1">
+                        <button
+                          onClick={() => aplicarFiltroStatus('recentes')}
+                          className={`flex items-center text-xs font-medium py-1 px-2 rounded-md transition-colors ${
+                            statusFilter === 'recentes' 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-green-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                          title="Criados nos últimos 7 dias"
+                        >
+                          <ClockIcon className="h-3.5 w-3.5 mr-1" />
+                          Recentes
+                          {statusFilter === 'recentes' ? (
+                            <XMarkIcon className="h-3.5 w-3.5 ml-1.5" />
+                          ) : null}
+                        </button>
+                        
+                        <button
+                          onClick={() => aplicarFiltroStatus('antigos')}
+                          className={`flex items-center text-xs font-medium py-1 px-2 rounded-md transition-colors ${
+                            statusFilter === 'antigos' 
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-red-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                          title="Criados há mais de 30 dias"
+                        >
+                          <ClockIcon className="h-3.5 w-3.5 mr-1" />
+                          Antigos
+                          {statusFilter === 'antigos' ? (
+                            <XMarkIcon className="h-3.5 w-3.5 ml-1.5" />
+                          ) : null}
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 ml-1">
+                        <button
+                          onClick={() => aplicarFiltroStatus('venceHoje')}
+                          className={`flex items-center text-xs font-medium py-1 px-2 rounded-md transition-colors ${
+                            statusFilter === 'venceHoje' 
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                          title="Vence hoje"
+                        >
+                          <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1" />
+                          Vence hoje
+                          {statusFilter === 'venceHoje' ? (
+                            <XMarkIcon className="h-3.5 w-3.5 ml-1.5" />
+                          ) : null}
+                        </button>
+                        
+                        <button
+                          onClick={() => aplicarFiltroStatus('atrasados2')}
+                          className={`flex items-center text-xs font-medium py-1 px-2 rounded-md transition-colors ${
+                            statusFilter === 'atrasados2' 
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-red-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                          title="Prazo expirado"
+                        >
+                          <ClockIcon className="h-3.5 w-3.5 mr-1" />
+                          Atrasados
+                          {statusFilter === 'atrasados2' ? (
+                            <XMarkIcon className="h-3.5 w-3.5 ml-1.5" />
+                          ) : null}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -707,9 +1136,11 @@ export default function PlanoDeAcaoPage() {
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="border-b border-gray-200 dark:border-gray-700">
           <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap -mb-px">
-              <button
-                onClick={() => setSessaoSelecionada('todas')}
+            <div className="flex flex-wrap -mb-px">              <button
+                onClick={() => {
+                  setSessaoSelecionada('todas');
+                  setStatusFilter(null); // Limpa o filtro quando muda de sessão
+                }}
                 className={`inline-flex items-center whitespace-nowrap border-b-2 py-4 px-4 text-sm font-medium ${
                   sessaoSelecionada === 'todas' 
                     ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400' 
@@ -725,9 +1156,11 @@ export default function PlanoDeAcaoPage() {
               </button>
               
               {sessions.slice(0, 5).map((session) => (
-                <div key={session.id} className="relative group">
-                  <button
-                    onClick={() => setSessaoSelecionada(session.nome)}
+                <div key={session.id} className="relative group">                  <button
+                    onClick={() => {
+                      setSessaoSelecionada(session.nome);
+                      setStatusFilter(null); // Limpa o filtro quando muda de sessão
+                    }}
                     className={`inline-flex items-center whitespace-nowrap border-b-2 py-4 px-4 text-sm font-medium ${
                       sessaoSelecionada === session.nome 
                         ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400' 
@@ -760,10 +1193,10 @@ export default function PlanoDeAcaoPage() {
                       <div className="py-1">
                         {sessions.slice(5).map((session) => (
                           <button
-                            key={session.id}
-                            onClick={() => {
+                            key={session.id}                            onClick={() => {
                               setSessaoSelecionada(session.nome);
                               setShowMoreSessions(false);
+                              setStatusFilter(null); // Limpa o filtro quando muda de sessão
                             }}
                             className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                           >
@@ -837,13 +1270,26 @@ export default function PlanoDeAcaoPage() {
                   </span>
                 )}
               </div>
+                
               
-              <button
-                className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-650 transition-colors ml-2"
-              >
-                <FunnelIcon className="h-4 w-4 mr-1.5 text-gray-500 dark:text-gray-400" />
-                Filtros avançados
-              </button>
+              {statusFilter && (
+                <button
+                  onClick={() => {
+                    setStatusFilter(null);
+                    showToast("Filtro de status removido", "info");
+                  }}
+                  className="flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ml-2"
+                  title="Limpar filtro de status"
+                >
+                  <FilterIcon className="h-4 w-4 mr-1.5" />
+                  {statusFilter === 'total' && 'Todos os itens'}
+                  {statusFilter === 'emDia' && 'Dentro do prazo'}
+                  {statusFilter === 'emAtencao' && 'Em atenção'}
+                  {statusFilter === 'atrasados' && 'Atrasados'}
+                  {statusFilter === 'concluido' && 'Concluídos'}
+                  <XMarkIcon className="h-3.5 w-3.5 ml-1.5 text-blue-500 dark:text-blue-400" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1229,7 +1675,34 @@ export default function PlanoDeAcaoPage() {
             Adicionar Item
           </button>
         </div>
-      </div>      {/* Visualização em Tabela */}
+      </div>      {/* Indicador de filtros ativos */}
+      {statusFilter && (
+        <div className="mb-4 flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center">
+            <FilterIcon className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />            <span className="text-sm text-blue-700 dark:text-blue-300">
+              {statusFilter === 'total' && 'Mostrando todos os itens do plano de ação'}
+              {statusFilter === 'emDia' && 'Filtrando itens dentro do prazo'}
+              {statusFilter === 'emAtencao' && 'Filtrando itens que precisam de atenção'}
+              {statusFilter === 'atrasados' && 'Filtrando itens atrasados'}
+              {statusFilter === 'concluido' && 'Mostrando apenas itens concluídos'}
+              {statusFilter === 'recentes' && 'Mostrando itens criados nos últimos 7 dias'}
+              {statusFilter === 'intermediarios' && 'Mostrando itens criados entre 7 e 30 dias atrás'}
+              {statusFilter === 'antigos' && 'Mostrando itens criados há mais de 30 dias'}
+              {statusFilter === 'venceHoje' && 'Mostrando itens que vencem hoje'}
+              {statusFilter === 'venceEmBreve' && 'Mostrando itens que vencem nos próximos 3 dias'}
+              {statusFilter === 'atrasados2' && 'Mostrando itens com prazo expirado'}
+            </span>
+          </div>
+          <button 
+            onClick={() => setStatusFilter(null)}
+            className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded-md hover:bg-blue-100 dark:hover:bg-blue-800/50"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+      
+      {/* Visualização em Tabela */}
       {viewMode === 'table' && (
         <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
@@ -1240,9 +1713,9 @@ export default function PlanoDeAcaoPage() {
                 <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Problema</th>
                 <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Causa Raiz</th>
                 <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Contramedida</th>                
-                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Responsável</th>
-                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">OS</th>
-                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Prazo Final</th>
+                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Responsável</th>                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">OS</th>                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Prazo Final</th>
+                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Prazo</th>
+                <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Criado há</th>
                 <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Status</th>
                 <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-200 uppercase tracking-wide bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">Ações</th>
               </tr>
@@ -1265,13 +1738,46 @@ export default function PlanoDeAcaoPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
                     {item.os || 'N/A'}
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
+                  </td>                  <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center">
                       <CalendarDaysIcon className="h-4 w-4 mr-1.5 text-blue-500 dark:text-blue-400" />
                       {new Date(item.prazo_final).toLocaleDateString('pt-BR')}
                     </div>
-                  </td>                  <td className="px-5 py-4 whitespace-nowrap text-sm border-b border-gray-200 dark:border-gray-700">
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap text-sm border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-center">
+                      <div className={`flex items-center px-2.5 py-1 rounded-md ${
+                        item.prazo.dias < 0 
+                          ? 'bg-red-50 dark:bg-red-900/20' 
+                          : item.prazo.dias === 0 
+                            ? 'bg-yellow-50 dark:bg-yellow-900/20' 
+                            : 'bg-green-50 dark:bg-green-900/20'
+                      }`}>
+                        {item.prazo.dias < 0 ? (
+                          <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1 text-red-500 dark:text-red-400" />
+                        ) : item.prazo.dias === 0 ? (
+                          <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1 text-yellow-500 dark:text-yellow-400" />
+                        ) : (
+                          <ClockIcon className="h-3.5 w-3.5 mr-1 text-green-500 dark:text-green-400" />
+                        )}
+                        <span className={item.prazo.classe}>{item.prazo.texto}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap text-sm border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-center">
+                      <div className={`flex items-center px-2.5 py-1 rounded-md ${item.idade.dias > 30 ? 'bg-red-50 dark:bg-red-900/20' : item.idade.dias > 7 ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                        {item.idade.icone}
+                        <span className={item.idade.classe}>{item.idade.texto}</span>
+                        {item.idade.dias > 0 && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1 hidden sm:inline">
+                            ({new Date(item.created_at).toLocaleDateString('pt-BR')})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap text-sm border-b border-gray-200 dark:border-gray-700">
                     <div className="flex justify-center">
                       <span className={item.status.badgePill}>
                         <div className="flex items-center">
@@ -1310,9 +1816,8 @@ export default function PlanoDeAcaoPage() {
                   </td>
                 </motion.tr>
               ))}
-                {itensFiltrados().length === 0 && (                <tr>
-                  <td 
-                    colSpan={sessaoSelecionada === 'todas' ? 9 : 8} 
+                {itensFiltrados().length === 0 && (                <tr>                  <td 
+                    colSpan={sessaoSelecionada === 'todas' ? 11 : 10} 
                     className="px-6 py-12 text-sm text-gray-600 dark:text-gray-300 text-center border-b border-gray-200 dark:border-gray-700"
                   >
                     <div className="flex flex-col items-center justify-center">
@@ -1397,8 +1902,7 @@ export default function PlanoDeAcaoPage() {
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Causa Raiz:</div>
                       <p className="text-sm text-gray-700 dark:text-gray-300">{item.causa_raiz}</p>
                     </div>
-                  )}
-                    <div className="flex flex-wrap justify-between gap-4 mt-4">
+                  )}                  <div className="flex flex-wrap justify-between gap-4 mt-4">
                     <div>
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Responsável:</div>
                       <p className="text-sm font-medium">{item.responsavel}</p>
@@ -1406,6 +1910,31 @@ export default function PlanoDeAcaoPage() {
                     <div>
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">OS:</div>
                       <p className="text-sm font-medium">{item.os || 'N/A'}</p>
+                    </div>                    <div>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Criado há:</div>
+                      <div className={`flex items-center text-sm ${
+                        item.idade.dias > 30 
+                          ? 'text-red-600 dark:text-red-400' 
+                          : item.idade.dias > 7 
+                            ? 'text-yellow-600 dark:text-yellow-400' 
+                            : 'text-green-600 dark:text-green-400'
+                      }`}>
+                        {item.idade.icone}
+                        {item.idade.texto}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prazo:</div>
+                      <div className={`flex items-center text-sm`}>
+                        {item.prazo.dias < 0 ? (
+                          <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1 text-red-500 dark:text-red-400" />
+                        ) : item.prazo.dias === 0 ? (
+                          <ExclamationCircleIcon className="h-3.5 w-3.5 mr-1 text-yellow-500 dark:text-yellow-400" />
+                        ) : (
+                          <ClockIcon className="h-3.5 w-3.5 mr-1 text-green-500 dark:text-green-400" />
+                        )}
+                        <span className={item.prazo.classe}>{item.prazo.texto}</span>
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prazo Final:</div>

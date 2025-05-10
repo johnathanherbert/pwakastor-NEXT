@@ -40,17 +40,10 @@ export default function PlanoDeAcaoLayout({ children }) {
   }
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Topbar 
-        user={user}
-        drawerOpen={drawerOpen}
-        setDrawerOpen={setDrawerOpen}
-        title="Plano de Ação"
-      />
       
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1">
         <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-        
-        <main className="flex-1 p-4 overflow-auto">
+          <main className="flex-1 p-4 overflow-auto w-full">
           {children}
         </main>
       </div>
