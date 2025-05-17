@@ -160,11 +160,11 @@ export default function AdminPage() {
       const { error } = await supabase
         .from('admin_messages')
         .insert([{ 
-          message: 'Atualizando o sistema para a versão mais recente. A página será recarregada automaticamente.', 
+          message: 'Atualizando...', 
           type: 'info', 
-          duration: 5000,
+          duration: 1000,
           command: 'reload',
-          delay: 3000,
+          delay: 60000,
           active: true,
           created_by: user.email 
         }]);
