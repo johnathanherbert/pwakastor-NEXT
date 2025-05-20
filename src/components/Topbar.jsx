@@ -13,10 +13,10 @@ import HeaderClock from "./Clock/HeaderClock";
 export default function Topbar({ 
   user, 
   drawerOpen, 
-  setDrawerOpen, 
+  setDrawerOpen = () => {}, // Provide default empty function to prevent errors
   openDialog, 
-  setOpenDialog, 
-  handleDataUpdated,
+  setOpenDialog = () => {}, // Provide default empty function
+  handleDataUpdated = () => {}, // Provide default empty function
   title = "Devolução de Materiais", // Default title if none provided
   onUploadClick // Add this prop
 }) {

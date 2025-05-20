@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Spinner } from 'flowbite-react';
 import { HiArrowUp, HiArrowDown, HiSearch } from 'react-icons/hi';

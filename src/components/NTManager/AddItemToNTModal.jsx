@@ -246,15 +246,40 @@ export default function AddItemToNTModal({ isOpen, onClose, onAddItem, nt }) {
     }
     
     try {
-      // Log para depuração do lote
-      console.log("Enviando item com lote:", item.lote);
+      // Debug: Log do item completo
+      console.log("Enviando item para adição:", JSON.stringify(item, null, 2));
+      
+      // Gerar ID temporário para rastreamento
+      const tempId = `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      console.log(`Item sendo rastreado com ID temporário: ${tempId}`);
+      localStorage.setItem(`item_adding_${tempId}`, JSON.stringify({
+        item,
+        ntId: nt.id,
+        timestamp: Date.now()
+      }));
       
       // Call parent handler - this will handle the UI update
       await onAddItem(item);
-      // The modal will be closed by the parent component
+      
+      // Limpar o rastreamento após processamento bem-sucedido
+      localStorage.removeItem(`item_adding_${tempId}`);
+      
+      // Verificar e processar itens em lote restantes
+      const remainingItemsStr = localStorage.getItem('remaining_items_to_add');
+      if (remainingItemsStr) {
+        try {
+          const remainingData = JSON.parse(remainingItemsStr);
+          if (remainingData && remainingData.ntId === nt.id && remainingData.items && remainingData.items.length > 0) {
+            console.log(`${remainingData.items.length} itens em lote restantes serão processados`);
+            // Mantenha o localStorage para o useEffect no componente principal processar
+          }
+        } catch (batchError) {
+          console.error('Erro ao processar itens em lote restantes:', batchError);
+        }
+      }
     } catch (error) {
       console.error('Error adding item:', error);
-      setError('Ocorreu um erro ao adicionar o item. Tente novamente.');
+      setError(`Ocorreu um erro ao adicionar o item: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }

@@ -213,6 +213,13 @@ export default function NTsPage() {
         const ntId = newRecord.nt_id;
         const currentItems = prev[ntId] || [];
         
+        // Verificar se o item já existe (para evitar duplicação)
+        const itemExists = currentItems.some(item => item.id === newRecord.id);
+        if (itemExists) {
+          console.log(`Item ${newRecord.id} já existe na NT ${ntId}, não será adicionado novamente`);
+          return prev; // Não fazer alterações se o item já existe
+        }
+        
         // Check if this item is part of a new NT with items
         const newNTWithItems = localStorage.getItem('new_nt_with_items') === ntId;
         
@@ -225,6 +232,7 @@ export default function NTsPage() {
           }
         }
         
+        console.log(`Adicionando item ${newRecord.id} à NT ${ntId}`);
         return {
           ...prev,
           [ntId]: [...currentItems, newRecord]
@@ -296,11 +304,20 @@ export default function NTsPage() {
   // Make sure we're watching for ntItems changes in the useEffect
   useEffect(() => {
     filterNTs();
+    
+    // Depuração para monitorar alterações em ntItems
+    console.log("ntItems foi atualizado:", Object.keys(ntItems).length, "NTs com itens");
+    // Fazer log da contagem total de itens
+    const totalItems = Object.values(ntItems).reduce((total, items) => total + items.length, 0);
+    console.log(`Total de ${totalItems} itens em todas as NTs`);
   }, [searchTerm, filterStatus, itemSearchTerm, showOverdueOnly, selectedShift, nts, ntItems, startDate, endDate]);
 
   const fetchNTs = async () => {
     try {
       setIsLoading(true);
+      
+      // Armazenar o estado atual dos itens para comparação posterior
+      const currentNTItems = {...ntItems};
       
       const { data: ntsData, error: ntsError } = await supabase
         .from('nts')
@@ -349,6 +366,7 @@ export default function NTsPage() {
       // Debug: Verificar a estrutura de alguns itens
       console.log("Amostra de itens carregados:", allItems.slice(0, 3));
 
+      // Organizar por NT
       const itemsByNT = allItems.reduce((acc, item) => {
         if (!acc[item.nt_id]) {
           acc[item.nt_id] = [];
@@ -356,6 +374,34 @@ export default function NTsPage() {
         acc[item.nt_id].push(item);
         return acc;
       }, {});
+      
+      // IMPORTANTE: Verificar por itens no estado local que podem ter sido adicionados recentemente
+      // e ainda não aparecem no banco de dados
+      Object.keys(currentNTItems).forEach(ntId => {
+        const currentItems = currentNTItems[ntId] || [];
+        const newItems = itemsByNT[ntId] || [];
+        
+        // Verificar itens que existem localmente mas não foram encontrados na consulta do banco
+        const missingItems = currentItems.filter(localItem => 
+          // Considera apenas itens com ID (os sem ID são provavelmente temporários)
+          localItem.id && 
+          // Verifica se não há nenhum item no banco que corresponda a este ID
+          !newItems.some(remoteItem => remoteItem.id === localItem.id)
+        );
+        
+        // Se encontrou itens faltando, adiciona-os à lista nova
+        if (missingItems.length > 0) {
+          console.log(`Encontrados ${missingItems.length} itens locais na NT ${ntId} que não estão no banco ainda`);
+          console.log("Itens faltando:", missingItems);
+          
+          if (!itemsByNT[ntId]) {
+            itemsByNT[ntId] = [];
+          }
+          
+          // Adicionar os itens faltantes à lista
+          itemsByNT[ntId] = [...itemsByNT[ntId], ...missingItems];
+        }
+      });
 
       setNTs(ntsData);
       setFilteredNTs(ntsData);
@@ -435,7 +481,31 @@ export default function NTsPage() {
       setNTItems(prev => {
         const updatedItems = { ...prev };
         Object.keys(recentItemsByNT).forEach(ntId => {
-          updatedItems[ntId] = recentItemsByNT[ntId];
+          // Mesclar com itens existentes em vez de substituir completamente
+          const currentItems = prev[ntId] || [];
+          const newItems = recentItemsByNT[ntId];
+          
+          // Se não houver itens existentes, apenas use os novos
+          if (currentItems.length === 0) {
+            updatedItems[ntId] = newItems;
+            return;
+          }
+          
+          // Mesclar os itens, atualizando os existentes e adicionando novos
+          const updatedNtItems = [...currentItems];
+          
+          newItems.forEach(newItem => {
+            const existingIndex = updatedNtItems.findIndex(item => item.id === newItem.id);
+            if (existingIndex !== -1) {
+              // Atualizar item existente
+              updatedNtItems[existingIndex] = newItem;
+            } else {
+              // Adicionar novo item
+              updatedNtItems.push(newItem);
+            }
+          });
+          
+          updatedItems[ntId] = updatedNtItems;
         });
         return updatedItems;
       });
@@ -672,9 +742,27 @@ export default function NTsPage() {
   };
 
   const refreshData = () => {
+    // Incrementar a chave para forçar a atualização de componentes
     setRefreshKey(prev => prev + 1);
+    
+    // Mostrar indicador de carregamento
+    setIsSearching(true);
+    
+    // Log para depuração
+    console.log("Atualizando dados completos...");
+    console.log("Estado atual:", {
+      totalNTs: nts.length,
+      totalNTsFiltered: filteredNTs.length,
+      totalNTsWithItems: Object.keys(ntItems).length,
+      totalItems: Object.values(ntItems).reduce((sum, items) => sum + items.length, 0)
+    });
+    
+    // Executar as chamadas para atualizar os dados
     fetchNTs();
     fetchRobotAlerts();
+    
+    // Mostrar toast para confirmar a ação
+    showToast("Atualizando dados...", "info");
   };
 
   const handleNTAdded = () => {
@@ -830,10 +918,14 @@ export default function NTsPage() {
       const formattedDate = now.toLocaleDateString('pt-BR');
       const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       
+      // Buscar itens atuais diretamente do estado para garantir os números de item corretos
       const ntItemsList = ntItems[ntId] || [];
       const highestItemNumber = ntItemsList.length > 0 
-        ? Math.max(...ntItemsList.map(item => item.item_number))
+        ? Math.max(...ntItemsList.map(item => parseInt(item.item_number) || 0))
         : 0;
+      
+      // Criar identificador único temporário para este item (para rastreamento)
+      const tempId = `temp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
       
       // Corrigir: Garantir que o campo batch receba o valor de lote (mesmo que seja uma string vazia)
       const itemToInsert = {
@@ -842,11 +934,22 @@ export default function NTsPage() {
         code: newItem.codigo,
         description: newItem.descricao || '-',
         quantity: newItem.quantidade,
-        batch: newItem.lote ? newItem.lote.trim() : null, // Garantir que strings vazias sejam convertidas para null
+        batch: newItem.lote ? newItem.lote.trim() : null,
         created_date: formattedDate,
         created_time: formattedTime,
-        status: 'Ag. Pagamento'
+        status: 'Ag. Pagamento',
+        temp_id: tempId // campo temporário para rastreamento
       };
+      
+      // Adicionar o item LOCALMENTE antes de enviar ao servidor, para garantir que ele apareça imediatamente
+      // Depois será substituído pela versão do servidor quando a resposta voltar
+      setNTItems(prev => {
+        const currentItems = prev[ntId] || [];
+        return {
+          ...prev,
+          [ntId]: [...currentItems, {...itemToInsert, id: tempId}]
+        };
+      });
       
       // Verificar se o lote foi corretamente convertido
       console.log("Verificando conversão de lote:", {
@@ -859,30 +962,58 @@ export default function NTsPage() {
       
       console.log("Inserting item with data:", JSON.stringify(itemToInsert, null, 2));
       
+      // Remover o campo temporário antes de enviar para o servidor
+      const { temp_id, ...itemToSubmit } = itemToInsert;
+      
       const { data, error } = await supabase
         .from('nt_items')
-        .insert([itemToInsert])
+        .insert([itemToSubmit])
         .select();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       console.log("Item inserted successfully, response:", data);
       
       if (data && data.length > 0) {
-        // Adicionar manualmente o item à lista local para garantir que apareça imediatamente
+        // Substitua o item temporário pelo item retornado do servidor
         setNTItems(prev => {
           const currentItems = prev[ntId] || [];
+          // Encontrar e substituir o item temporário
+          const updatedItems = currentItems.map(item => 
+            item.id === tempId ? data[0] : item
+          ).filter(item => item.id !== tempId || item === data[0]);
+          
           return {
             ...prev,
-            [ntId]: [...currentItems, data[0]]
+            [ntId]: updatedItems
           };
         });
       }
       
       showToast(`Item ${newItem.codigo} adicionado à NT ${ntNumber}`, 'success');
+      return data?.[0];
     } catch (error) {
       console.error('Error adding item to NT:', error);
       showToast(`Erro ao adicionar item: ${error.message}`, 'error');
+      
+      // Em caso de erro, remover o item temporário do estado
+      const tempId = `temp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      setNTItems(prev => {
+        const currentItems = prev[ntId] || [];
+        // Remover itens sem ID real (temporários)
+        const validItems = currentItems.filter(item => 
+          typeof item.id === 'string' && item.id.startsWith('temp_') ? false : true
+        );
+        
+        return {
+          ...prev,
+          [ntId]: validItems
+        };
+      });
+      
+      throw error;
     }
   };
 
@@ -938,52 +1069,54 @@ export default function NTsPage() {
 
   useEffect(() => {
     // Verificar se existem itens restantes para adicionar automaticamente
-    const processRemainingItems = () => {
-      const remainingItemsData = localStorage.getItem('remaining_items_to_add');
-      
-      if (remainingItemsData) {
+    const processRemainingItems = async () => {
+      const remainingItemsStr = localStorage.getItem('remaining_items_to_add');
+      if (remainingItemsStr) {
         try {
-          const data = JSON.parse(remainingItemsData);
-          if (data.ntId && data.items && data.items.length > 0) {
-            // Processar itens em sequência
-            const processNextItem = (index) => {
-              if (index < data.items.length) {
-                const item = data.items[index];
-                console.log(`Processando item restante ${index + 1}/${data.items.length}:`, item);
-                addItemToNT(data.ntId, item)
-                  .then(() => {
-                    // Aguardar um pequeno intervalo antes de processar o próximo item
-                    setTimeout(() => processNextItem(index + 1), 300);
-                  })
-                  .catch(err => {
-                    console.error(`Erro ao adicionar item restante ${index + 1}:`, err);
-                    // Continuar mesmo com erro
-                    setTimeout(() => processNextItem(index + 1), 300);
-                  });
-              } else {
-                // Todos os itens foram processados
-                console.log('Processamento de itens restantes concluído');
-                localStorage.removeItem('remaining_items_to_add');
-              }
-            };
+          console.log("Encontrados itens pendentes para processar em lote");
+          const remainingData = JSON.parse(remainingItemsStr);
+          
+          // Verificar se temos a NT e os itens
+          if (remainingData.ntId && remainingData.items && remainingData.items.length > 0) {
+            console.log(`Processando ${remainingData.items.length} itens em lote para NT ${remainingData.ntId}`);
             
-            // Iniciar processamento do primeiro item restante
-            processNextItem(0);
+            // Limpar a localStorage antes de começar a processar para evitar loop infinito em caso de erro
+            localStorage.removeItem('remaining_items_to_add');
+            
+            // Processar sequencialmente para garantir que todos sejam adicionados
+            const totalItems = remainingData.items.length;
+            let processed = 0;
+            
+            // Para evitar recarregamentos desnecessários, usamos uma promessa
+            const processing = remainingData.items.map((item, index) => 
+              new Promise(async (resolve) => {
+                try {
+                  // Adicionar um pequeno atraso para evitar sobrecarga da API
+                  await new Promise(r => setTimeout(r, index * 100));
+                  await addItemToNT(remainingData.ntId, item);
+                  processed++;
+                  console.log(`Processado item ${processed}/${totalItems} em lote`);
+                } catch (error) {
+                  console.error(`Erro ao processar item em lote: ${error.message}`);
+                }
+                resolve();
+              })
+            );
+            
+            await Promise.all(processing);
+            console.log(`Processamento em lote concluído: ${processed}/${totalItems} itens processados`);
+            showToast(`${processed} itens adicionados à NT`, 'success');
           }
         } catch (error) {
-          console.error('Erro ao processar itens restantes:', error);
+          console.error('Erro ao processar itens em lote restantes:', error);
+          // Limpar local storage em caso de erro para evitar loop infinito
           localStorage.removeItem('remaining_items_to_add');
         }
       }
     };
     
-    // Verificar a cada 2 segundos se há novos itens a serem processados
-    const intervalId = setInterval(processRemainingItems, 2000);
-    
-    // Executar uma verificação inicial
+    // Executar processamento de itens restantes
     processRemainingItems();
-    
-    return () => clearInterval(intervalId);
   }, []);
 
   if (isLoading && nts.length === 0) {

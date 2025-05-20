@@ -1,0 +1,271 @@
+/* RecipeManager.css */
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-pulse-once {
+  animation: pulse 2s ease-in-out 1;
+}
+
+.recipe-transition {
+  transition: all 0.3s ease;
+}
+
+.ingredient-row {
+  transition: background-color 0.2s ease;
+}
+
+.badge-effect {
+  transition: all 0.3s ease;
+}
+
+.badge-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.recipe-header:hover {
+  background-color: rgba(147, 51, 234, 0.05);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Modal animation */
+.recipe-modal-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.recipe-modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.recipe-modal-exit {
+  opacity: 1;
+}
+
+.recipe-modal-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Button hover effects */
+.btn-hover-effect {
+  transition: all 0.2s ease;
+}
+
+.btn-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Improved scrollbar for the modal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode scrollbar adjustments */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Estilos para a tabela estilo Excel - Versão melhorada */
+.excel-style-table {
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.excel-style-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.excel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.excel-cell {
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+/* Efeitos de hover na tabela Excel */
+.excel-row:hover .excel-cell {
+  background-color: rgba(237, 242, 247, 0.5) !important;
+}
+
+.dark .excel-row:hover .excel-cell {
+  background-color: rgba(45, 55, 72, 0.3) !important;
+}
+
+/* Célula é destacada individualmente */
+.excel-cell:hover {
+  background-color: rgba(237, 242, 247, 0.8) !important;
+}
+
+.dark .excel-cell:hover {
+  background-color: rgba(45, 55, 72, 0.5) !important;
+}
+
+/* Estilização da linha que está sendo editada */
+.editing-row .excel-cell {
+  background-color: rgba(254, 235, 200, 0.2) !important;
+}
+
+.dark .editing-row .excel-cell {
+  background-color: rgba(214, 158, 46, 0.1) !important;
+}
+
+/* Linhas de categoria */
+.category-row {
+  font-weight: 600;
+  border-top: 1px solid rgba(203, 213, 224, 0.6);
+  border-bottom: 1px solid rgba(203, 213, 224, 0.6);
+}
+
+.dark .category-row {
+  border-top: 1px solid rgba(74, 85, 104, 0.6);
+  border-bottom: 1px solid rgba(74, 85, 104, 0.6);
+}
+
+/* Estilos para os inputs Excel */
+.excel-input input {
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.875rem !important; 
+  border-radius: 3px !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important;
+  background-color: white !important;
+  border: 1px solid #cbd5e0 !important;
+}
+
+.dark .excel-input input {
+  background-color: #2d3748 !important;
+  border-color: #4a5568 !important;
+  color: #e2e8f0 !important;
+}
+
+.excel-input input:focus {
+  border-color: #4c1d95 !important;
+  box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.2) !important;
+}
+
+.dark .excel-input input:focus {
+  border-color: #805ad5 !important;
+  box-shadow: 0 0 0 2px rgba(159, 122, 234, 0.2) !important;
+}
+
+/* Botões específicos para Excel */
+.excel-button {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  height: auto !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.excel-action-button {
+  padding: 0.25rem !important;
+  min-width: 1.75rem !important;
+  height: 1.75rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0.25rem !important;
+}
+
+/* Animações para o modo de edição */
+@keyframes highlightCell {
+  0% { background-color: rgba(248, 250, 252, 1); }
+  50% { background-color: rgba(254, 235, 200, 0.5); }
+  100% { background-color: rgba(254, 249, 231, 0.2); }
+}
+
+.dark .cell-edit-animation {
+  animation: highlightCellDark 0.5s ease-out forwards;
+}
+
+@keyframes highlightCellDark {
+  0% { background-color: rgba(26, 32, 44, 1); }
+  50% { background-color: rgba(214, 158, 46, 0.2); }
+  100% { background-color: rgba(214, 158, 46, 0.1); }
+}
+
+/* Responsividade para telas pequenas */
+@media (max-width: 768px) {
+  .excel-style-table {
+    overflow-x: auto;
+  }
+  
+  .excel-header {
+    white-space: nowrap;
+  }
+}
+
+/* Ajustes adicionais para modo escuro */
+.dark .excel-style-table {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 1px rgba(255, 255, 255, 0.05);
+}
